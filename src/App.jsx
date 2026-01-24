@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient'; // Importe do arquivo que corrigimos
+import { supabase } from './supabaseClient';
 import { 
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, 
   LogOut, Bell, DollarSign, ChevronLeft, ChevronRight, 
@@ -746,4 +746,13 @@ export default function App() {
   };
 
   // ... restante do seu código (WelcomeScreen, AuthScreen, etc)
-}
+
+// Final do componente principal
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Seu conteúdo aqui */}
+      {currentMode === null && <WelcomeScreen onSelectMode={setCurrentMode} />}
+      {/* ... restante do seu JSX */}
+    </div>
+  );
+} // <--- ESTA CHAVE FECHA A FUNCTION APP. CERTIFIQUE-SE QUE ELA EXISTE!
