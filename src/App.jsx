@@ -6,7 +6,6 @@ import {
   Eye, EyeOff, CreditCard, Lock, Clock, CalendarDays,
   Sparkles, Palette, Briefcase, Edit3, MessageCircle, Phone, XCircle, History
 } from 'lucide-react';
-import { supabase } from './supabaseClient';
 
 // --- CONSTANTES E DADOS MOCKADOS ---
 
@@ -214,7 +213,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     setIsPaying(true);
     try {
       // URL base do seu backend (ajuste conforme necessário)
-      const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
       const response = await fetch(`${API_BASE_URL}/criar-pagamento`, {
         method: 'POST',
@@ -690,9 +689,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 };
 
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
-
-import { supabase } from './supabaseClient'; // Certifique-se de que este import existe
-
+import { supabase } from './supabaseClient';
 export default function App() {
   // Carrega dados do LocalStorage para simular persistência
   const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
@@ -717,50 +714,10 @@ export default function App() {
   useEffect(() => { localStorage.setItem('clients', JSON.stringify(clients)); }, [clients]);
   useEffect(() => { localStorage.setItem('appointments', JSON.stringify(appointments)); }, [appointments]);
 
-  // --- INTEGRAÇÃO SUPABASE: VERIFICAÇÃO DE PAGAMENTO AUTOMÁTICA ---
-  useEffect(() => {
-    const checkPayment = async () => {
-      if (user && currentMode === 'barber' && !user.hasAccess) {
-        const { data } = await supabase
-          .from('usuarios')
-          .select('plano_ativo')
-          .eq('barber_id', user.id.toString())
-          .single();
-
-        if (data?.plano_ativo) {
-          handleUpdateProfile({ ...user, hasAccess: true, isVisible: true });
-        }
-      }
-    };
-    const interval = setInterval(checkPayment, 5000); // Checa a cada 5s enquanto logado
-    return () => clearInterval(interval);
-  }, [user, currentMode]);
-
   // LOGIN LÓGICA
-  const handleLogin = async (phone, password) => {
+  const handleLogin = (phone, password) => {
     const list = currentMode === 'barber' ? barbers : clients;
-    let foundUser = list.find(u => u.phone === phone && u.password === password);
-    
-    // Se não achar localmente (novo dispositivo), tenta buscar no Supabase se for Barbeiro
-    if (!foundUser && currentMode === 'barber') {
-      const { data } = await supabase.from('usuarios').select('*').eq('telefone', phone).single();
-      if (data) {
-        // Reconstrói o usuário mínimo para o mock funcionar
-        foundUser = { 
-          id: Number(data.barber_id), 
-          name: "Barbeiro", 
-          phone: data.telefone, 
-          password, 
-          role: 'Barber Master', 
-          hasAccess: data.plano_ativo, 
-          isVisible: data.plano_ativo,
-          availableSlots: ['09:00', '18:00'],
-          myServices: []
-        };
-        setBarbers([...barbers, foundUser]);
-      }
-    }
-
+    const foundUser = list.find(u => u.phone === phone && u.password === password);
     if (foundUser) {
       setUser(foundUser);
     } else {
@@ -768,16 +725,14 @@ export default function App() {
     }
   };
 
-  const handleRegister = async (name, phone, password) => {
+  const handleRegister = (name, phone, password) => {
     const list = currentMode === 'barber' ? barbers : clients;
     if (list.find(u => u.phone === phone)) {
       alert('Telefone já cadastrado!');
       return;
     }
-
-    const newId = Date.now();
     const newUser = {
-      id: newId,
+      id: Date.now(),
       name,
       phone,
       password,
@@ -792,15 +747,7 @@ export default function App() {
         myServices: []
       } : {})
     };
-
-    // --- INTEGRAÇÃO SUPABASE: SALVAR NOVO BARBEIRO ---
-    if (currentMode === 'barber') {
-      await supabase.from('usuarios').insert([{ 
-        barber_id: newId.toString(), 
-        telefone: phone, 
-        plano_ativo: false 
-      }]);
-    }
+    
 
     if (currentMode === 'barber') setBarbers([...barbers, newUser]);
     else setClients([...clients, newUser]);
