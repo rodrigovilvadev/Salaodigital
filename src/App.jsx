@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
 import { 
-  Scissors, User, Calendar, MapPin, Star, CheckCircle2, 
-  LogOut, Bell, DollarSign, ChevronLeft, ChevronRight, 
-  Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
-  CreditCard, Lock, Clock, CalendarDays, Sparkles, 
-  Palette, Briefcase, Edit3, MessageCircle, Phone, 
-  XCircle, History 
+  Scissors, User, Calendar, MapPin, Star, 
+  CheckCircle2, LogOut, Bell, DollarSign, 
+  ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus,
+  Eye, EyeOff, CreditCard, Lock, Clock, CalendarDays,
+  Sparkles, Palette, Briefcase, Edit3, MessageCircle, Phone, XCircle, History
 } from 'lucide-react';
-
-
+import { supabase } from './supabaseClient';
 
 // --- CONSTANTES E DADOS MOCKADOS ---
 
@@ -692,67 +689,202 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
   );
 };
 
-// --- COMPONENTE PRINCIPAL (ORQUESTRADOR) -
+// --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
+
+import { supabase } from './supabaseClient'; // Certifique-se de que este import existe
+
 export default function App() {
-  const [currentMode, setCurrentMode] = useState(null); // Essa linha resolve o erro do console!
-  const [user, setUser] = useState(null);
+  // Carrega dados do LocalStorage para simular persistência
+  const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
+  const [user, setUser] = useState(null); // Usuário logado
   
-  // --- NOVO: Carregar usuário do Banco de Dados ao iniciar ---
+  // Dados globais (Mock Database com persistência local)
+  const [barbers, setBarbers] = useState(() => {
+      const saved = localStorage.getItem('barbers');
+      return saved ? JSON.parse(saved) : INITIAL_BARBERS;
+  });
+  const [clients, setClients] = useState(() => {
+      const saved = localStorage.getItem('clients');
+      return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
+  });
+  const [appointments, setAppointments] = useState(() => {
+      const saved = localStorage.getItem('appointments');
+      return saved ? JSON.parse(saved) : [];
+  });
+
+  // Salva no localStorage sempre que mudar
+  useEffect(() => { localStorage.setItem('barbers', JSON.stringify(barbers)); }, [barbers]);
+  useEffect(() => { localStorage.setItem('clients', JSON.stringify(clients)); }, [clients]);
+  useEffect(() => { localStorage.setItem('appointments', JSON.stringify(appointments)); }, [appointments]);
+
+  // --- INTEGRAÇÃO SUPABASE: VERIFICAÇÃO DE PAGAMENTO AUTOMÁTICA ---
   useEffect(() => {
-    const sessionUser = localStorage.getItem('usuario_logado');
-    if (sessionUser) {
-      const parsedUser = JSON.parse(sessionUser);
-      // Busca dados atualizados do Supabase (para checar se o plano foi ativo)
-      const fetchUser = async () => {
-        const { data, error } = await supabase
+    const checkPayment = async () => {
+      if (user && currentMode === 'barber' && !user.hasAccess) {
+        const { data } = await supabase
           .from('usuarios')
-          .select('*')
-          .eq('barber_id', parsedUser.barber_id || parsedUser.id)
+          .select('plano_ativo')
+          .eq('barber_id', user.id.toString())
           .single();
 
-        if (data) {
-          setUser({ ...parsedUser, ...data, hasAccess: data.plano_ativo });
-          setUserType(data.tipo || 'barber');
+        if (data?.plano_ativo) {
+          handleUpdateProfile({ ...user, hasAccess: true, isVisible: true });
         }
-      };
-      fetchUser();
-    }
-  }, []);
+      }
+    };
+    const interval = setInterval(checkPayment, 5000); // Checa a cada 5s enquanto logado
+    return () => clearInterval(interval);
+  }, [user, currentMode]);
 
-  // --- Função de Registro Atualizada ---
-  const handleRegister = async (name, phone, password) => {
-    const barberId = `barber_${Date.now()}`;
+  // LOGIN LÓGICA
+  const handleLogin = async (phone, password) => {
+    const list = currentMode === 'barber' ? barbers : clients;
+    let foundUser = list.find(u => u.phone === phone && u.password === password);
     
-    // 1. Salva no Supabase imediatamente
-    const { data, error } = await supabase
-      .from('usuarios')
-      .insert([
-        { 
-          barber_id: barberId, 
-          telefone: phone, 
-          nome: name, 
-          plano_ativo: false,
-          tipo: userType 
-        }
-      ]);
+    // Se não achar localmente (novo dispositivo), tenta buscar no Supabase se for Barbeiro
+    if (!foundUser && currentMode === 'barber') {
+      const { data } = await supabase.from('usuarios').select('*').eq('telefone', phone).single();
+      if (data) {
+        // Reconstrói o usuário mínimo para o mock funcionar
+        foundUser = { 
+          id: Number(data.barber_id), 
+          name: "Barbeiro", 
+          phone: data.telefone, 
+          password, 
+          role: 'Barber Master', 
+          hasAccess: data.plano_ativo, 
+          isVisible: data.plano_ativo,
+          availableSlots: ['09:00', '18:00'],
+          myServices: []
+        };
+        setBarbers([...barbers, foundUser]);
+      }
+    }
 
-    if (!error) {
-      const newUser = { id: barberId, name, phone, hasAccess: false };
-      setUser(newUser);
-      localStorage.setItem('usuario_logado', JSON.stringify(newUser));
+    if (foundUser) {
+      setUser(foundUser);
     } else {
-      alert("Erro ao criar conta no banco de dados.");
+      alert('Credenciais inválidas!');
     }
   };
 
-  // ... restante do seu código (WelcomeScreen, AuthScreen, etc)
+  const handleRegister = async (name, phone, password) => {
+    const list = currentMode === 'barber' ? barbers : clients;
+    if (list.find(u => u.phone === phone)) {
+      alert('Telefone já cadastrado!');
+      return;
+    }
 
-// Final do componente principal
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Seu conteúdo aqui */}
-      {currentMode === null && <WelcomeScreen onSelectMode={setCurrentMode} />}
-      {/* ... restante do seu JSX */}
-    </div>
+    const newId = Date.now();
+    const newUser = {
+      id: newId,
+      name,
+      phone,
+      password,
+      photo: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+      ...(currentMode === 'barber' ? {
+        role: 'Barber Iniciante',
+        rating: 5.0,
+        distance: 0,
+        hasAccess: false, // Começa sem acesso (precisa pagar)
+        isVisible: false,
+        availableSlots: ['09:00', '18:00'],
+        myServices: []
+      } : {})
+    };
+
+    // --- INTEGRAÇÃO SUPABASE: SALVAR NOVO BARBEIRO ---
+    if (currentMode === 'barber') {
+      await supabase.from('usuarios').insert([{ 
+        barber_id: newId.toString(), 
+        telefone: phone, 
+        plano_ativo: false 
+      }]);
+    }
+
+    if (currentMode === 'barber') setBarbers([...barbers, newUser]);
+    else setClients([...clients, newUser]);
+    
+    setUser(newUser);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setCurrentMode(null);
+  };
+
+  // ATUALIZAÇÃO DE DADOS
+  const handleUpdateProfile = (updatedUser) => {
+    // Atualiza o usuário logado
+    setUser(updatedUser);
+    // Atualiza na "database"
+    if (currentMode === 'barber') {
+      setBarbers(barbers.map(b => b.id === updatedUser.id ? updatedUser : b));
+    } else {
+      setClients(clients.map(c => c.id === updatedUser.id ? updatedUser : c));
+    }
+  };
+
+  // NOVO AGENDAMENTO
+  const handleBookingSubmit = (data) => {
+    const newAppointment = {
+      id: Date.now(),
+      client: user.name,
+      clientPhone: user.phone,
+      barberId: data.barber.id,
+      service: data.service.name,
+      price: data.price,
+      date: data.date,
+      time: data.time,
+      status: 'pending' // pending | confirmed | rejected | cancelled
+    };
+    setAppointments([...appointments, newAppointment]);
+  };
+
+  const handleUpdateStatus = (appId, newStatus) => {
+    setAppointments(appointments.map(a => 
+      a.id === appId ? { ...a, status: newStatus } : a
+    ));
+  };
+  
+  const handleCancelBooking = (appId) => {
+      if(window.confirm('Tem certeza que deseja cancelar?')) {
+          handleUpdateStatus(appId, 'cancelled');
+      }
+  }
+
+  // ROTEAMENTO SIMPLES
+  if (!currentMode) return <WelcomeScreen onSelectMode={setCurrentMode} />;
+  
+  if (!user) return (
+    <AuthScreen 
+      userType={currentMode} 
+      onBack={() => setCurrentMode(null)} 
+      onLogin={handleLogin} 
+      onRegister={handleRegister} 
+    />
   );
-} // <--- ESTA CHAVE FECHA A FUNCTION APP. CERTIFIQUE-SE QUE ELA EXISTE!
+
+  if (currentMode === 'barber') {
+    return (
+      <BarberDashboard 
+        user={user} 
+        appointments={appointments} 
+        onUpdateStatus={handleUpdateStatus} 
+        onLogout={handleLogout}
+        onUpdateProfile={handleUpdateProfile}
+      />
+    );
+  }
+
+  return (
+    <ClientApp 
+      user={user} 
+      barbers={barbers} 
+      onLogout={handleLogout} 
+      onBookingSubmit={handleBookingSubmit}
+      appointments={appointments}
+      onCancelBooking={handleCancelBooking}
+    />
+  );
+}
