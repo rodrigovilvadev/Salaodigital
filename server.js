@@ -16,7 +16,7 @@ app.use(cors());
 // Conexão com o Supabase (Sua memória digital)
 const supabase = createClient(
   process.env.SUPABASE_URL, 
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Configuração do Mercado Pago
@@ -86,9 +86,9 @@ app.post('/webhooks', async (req, res) => {
           .eq('barber_id', barberId);
 
         if (updateError) {
-          console.error("Erro ao ativar plano no Supabase:", updateError);
+          console.error("Erro ao ativar plano", updateError);
         } else {
-          console.log(`Sucesso: Plano ativado para o barbeiro ${barberId}`);
+          console.log(`Sucesso: Plano ativado ${barberId}`);
         }
       }
     }
