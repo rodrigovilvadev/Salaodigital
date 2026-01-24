@@ -1,12 +1,14 @@
-import { supabase } from './supabaseClient';
 import React, { useState, useEffect } from 'react';
-import {
-  Scissors, User, Calendar, MapPin, Star,
-  CheckCircle2, LogOut, Bell, DollarSign,
-  ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus,
-  Eye, EyeOff, CreditCard, Lock, Clock, CalendarDays,
-  Sparkles, Palette, Briefcase, Edit3, MessageCircle, Phone, XCircle, History
+import { supabase } from './supabaseClient'; // Importe do arquivo que corrigimos
+import { 
+  Scissors, User, Calendar, MapPin, Star, CheckCircle2, 
+  LogOut, Bell, DollarSign, ChevronLeft, ChevronRight, 
+  Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
+  CreditCard, Lock, Clock, CalendarDays, Sparkles, 
+  Palette, Briefcase, Edit3, MessageCircle, Phone, 
+  XCircle, History 
 } from 'lucide-react';
+
 
 
 // --- CONSTANTES E DADOS MOCKADOS ---
