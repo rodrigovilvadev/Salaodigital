@@ -3,12 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "vite",
-    "build": "chmod +x ./node_modules/.bin/vite && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+"scripts": {
+  "start": "node server.js",
+  "dev": "vite",
+  "build": "chmod +x ./node_modules/.bin/vite && vite build",
+  "lint": "eslint .",
+  "preview": "vite preview"
+
   },
   "dependencies": {
     "cors": "^2.8.5",
