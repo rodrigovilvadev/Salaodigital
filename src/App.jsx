@@ -692,79 +692,113 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [userType, setUserType] = useState(null); // 'client' ou 'barber'
+  // Carrega dados do LocalStorage para simular persistência
+  const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
+  const [user, setUser] = useState(null); // Usuário logado
   
-  // --- NOVO: Carregar usuário do Banco de Dados ao iniciar ---
+  // Dados globais (Mock Database com persistência local)
+  const [barbers, setBarbers] = useState(() => {
+      const saved = localStorage.getItem('barbers');
+      return saved ? JSON.parse(saved) : INITIAL_BARBERS;
+  });
+  const [clients, setClients] = useState(() => {
+      const saved = localStorage.getItem('clients');
+      return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
+  });
+  const [appointments, setAppointments] = useState(() => {
+      const saved = localStorage.getItem('appointments');
+      return saved ? JSON.parse(saved) : [];
+  });
+
+  // Salva no localStorage sempre que mudar
+  useEffect(() => { localStorage.setItem('barbers', JSON.stringify(barbers)); }, [barbers]);
+  useEffect(() => { localStorage.setItem('clients', JSON.stringify(clients)); }, [clients]);
+  useEffect(() => { localStorage.setItem('appointments', JSON.stringify(appointments)); }, [appointments]);
+
+  // --- NOVA INTEGRAÇÃO: Sincronizar status do pagamento com o Banco ---
   useEffect(() => {
-    const sessionUser = localStorage.getItem('usuario_logado');
-    if (sessionUser) {
-      const parsedUser = JSON.parse(sessionUser);
-      // Busca dados atualizados do Supabase (para checar se o plano foi ativo)
-      const fetchUser = async () => {
-        const { data, error } = await supabase
+    const checkSupabaseStatus = async () => {
+      if (user && currentMode === 'barber' && !user.hasAccess) {
+        try {
+          const { data } = await supabase
+            .from('usuarios')
+            .select('plano_ativo')
+            .eq('barber_id', user.id.toString())
+            .single();
+            
+          // Se no banco diz que pagou (true), mas no app tá false, libera o acesso
+          if (data?.plano_ativo === true) {
+            handleUpdateProfile({ ...user, hasAccess: true, isVisible: true });
+            alert("Pagamento confirmado pelo servidor! Acesso liberado.");
+          }
+        } catch (error) {
+          console.error("Erro ao verificar status:", error);
+        }
+      }
+    };
+    checkSupabaseStatus();
+  }, [user, currentMode]); // Roda sempre que o usuário loga ou muda
+
+  // LOGIN LÓGICA (INTEGRADO COM SUPABASE)
+  const handleLogin = async (phone, password) => {
+    const list = currentMode === 'barber' ? barbers : clients;
+    
+    // 1. Tenta achar no LocalStorage (seu código original)
+    const foundUser = list.find(u => u.phone === phone && u.password === password);
+    
+    if (foundUser) {
+      setUser(foundUser);
+    } else if (currentMode === 'barber') {
+      // 2. Se não achou e é barbeiro, tenta achar no Supabase (novo dispositivo)
+      try {
+        const { data } = await supabase
           .from('usuarios')
           .select('*')
-          .eq('barber_id', parsedUser.barber_id || parsedUser.id)
+          .eq('telefone', phone)
           .single();
 
         if (data) {
-          setUser({ ...parsedUser, ...data, hasAccess: data.plano_ativo });
-          setUserType(data.tipo || 'barber');
+          // Recria o usuário localmente baseado no banco
+          const recoveredUser = {
+            id: Number(data.barber_id) || Date.now(),
+            name: 'Profissional (Recuperado)', // O nome pode vir do banco se você criar coluna 'nome'
+            phone: data.telefone,
+            password: password, 
+            role: 'Pro Barber',
+            photo: 'https://images.unsplash.com/photo-1618077360395-f3068be8e001?w=400',
+            rating: 5.0,
+            distance: 1.2,
+            hasAccess: data.plano_ativo, // Pega o status real do pagamento
+            isVisible: data.plano_ativo,
+            availableSlots: ['09:00', '18:00'],
+            myServices: []
+          };
+          
+          // Adiciona na lista local e loga
+          setBarbers([...barbers, recoveredUser]);
+          setUser(recoveredUser);
+        } else {
+           alert('Credenciais inválidas!');
         }
-      };
-      fetchUser();
-    }
-  }, []);
-
-  // --- Função de Registro Atualizada ---
-  const handleRegister = async (name, phone, password) => {
-    const barberId = `barber_${Date.now()}`;
-    
-    // 1. Salva no Supabase imediatamente
-    const { data, error } = await supabase
-      .from('usuarios')
-      .insert([
-        { 
-          barber_id: barberId, 
-          telefone: phone, 
-          nome: name, 
-          plano_ativo: false,
-          tipo: userType 
-        }
-      ]);
-
-    if (!error) {
-      const newUser = { id: barberId, name, phone, hasAccess: false };
-      setUser(newUser);
-      localStorage.setItem('usuario_logado', JSON.stringify(newUser));
-    } else {
-      alert("Erro ao criar conta no banco de dados.");
-    }
-  };
-
-  // ... restante do seu código (WelcomeScreen, AuthScreen, etc)
-}
-
-  // LOGIN LÓGICA
-  const handleLogin = (phone, password) => {
-    const list = currentMode === 'barber' ? barbers : clients;
-    const foundUser = list.find(u => u.phone === phone && u.password === password);
-    if (foundUser) {
-      setUser(foundUser);
+      } catch (e) {
+        alert('Erro ao conectar com servidor.');
+      }
     } else {
       alert('Credenciais inválidas!');
     }
   };
 
-  const handleRegister = (name, phone, password) => {
+  const handleRegister = async (name, phone, password) => {
     const list = currentMode === 'barber' ? barbers : clients;
     if (list.find(u => u.phone === phone)) {
       alert('Telefone já cadastrado!');
       return;
     }
+    
+    const newId = Date.now(); // ID gerado aqui
+
     const newUser = {
-      id: Date.now(),
+      id: newId,
       name,
       phone,
       password,
@@ -779,6 +813,20 @@ export default function App() {
         myServices: []
       } : {})
     };
+
+    // --- NOVA INTEGRAÇÃO: Salvar no Supabase ao criar ---
+    if (currentMode === 'barber') {
+      const { error } = await supabase
+        .from('usuarios')
+        .insert([{ 
+           barber_id: newId.toString(), 
+           telefone: phone, 
+           plano_ativo: false 
+        }]);
+        
+      if (error) console.error("Erro ao salvar no banco:", error);
+    }
+    // ----------------------------------------------------
 
     if (currentMode === 'barber') setBarbers([...barbers, newUser]);
     else setClients([...clients, newUser]);
@@ -865,3 +913,4 @@ export default function App() {
       onCancelBooking={handleCancelBooking}
     />
   );
+}
