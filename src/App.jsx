@@ -694,8 +694,8 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) -
 export default function App() {
+  const [currentMode, setCurrentMode] = useState(null); // Essa linha resolve o erro do console!
   const [user, setUser] = useState(null);
-  const [userType, setUserType] = useState(null); // 'client' ou 'barber'
   
   // --- NOVO: Carregar usuário do Banco de Dados ao iniciar ---
   useEffect(() => {
