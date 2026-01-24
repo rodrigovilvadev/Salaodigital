@@ -213,7 +213,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     setIsPaying(true);
     try {
       // URL base do seu backend (ajuste conforme necessário)
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
       const response = await fetch(`${API_BASE_URL}/criar-pagamento`, {
         method: 'POST',
