@@ -691,6 +691,8 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
 
+import { supabase } from './supabaseClient'; // Certifique-se de que este import existe
+
 export default function App() {
   // Carrega dados do LocalStorage para simular persistência
   const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
@@ -715,74 +717,52 @@ export default function App() {
   useEffect(() => { localStorage.setItem('clients', JSON.stringify(clients)); }, [clients]);
   useEffect(() => { localStorage.setItem('appointments', JSON.stringify(appointments)); }, [appointments]);
 
-  // --- NOVA INTEGRAÇÃO: Sincronizar status do pagamento com o Banco ---
+  // --- INTEGRAÇÃO SUPABASE: VERIFICAÇÃO DE PAGAMENTO AUTOMÁTICA ---
   useEffect(() => {
-    const checkSupabaseStatus = async () => {
+    const checkPayment = async () => {
       if (user && currentMode === 'barber' && !user.hasAccess) {
-        try {
-          const { data } = await supabase
-            .from('usuarios')
-            .select('plano_ativo')
-            .eq('barber_id', user.id.toString())
-            .single();
-            
-          // Se no banco diz que pagou (true), mas no app tá false, libera o acesso
-          if (data?.plano_ativo === true) {
-            handleUpdateProfile({ ...user, hasAccess: true, isVisible: true });
-            alert("Pagamento confirmado pelo servidor! Acesso liberado.");
-          }
-        } catch (error) {
-          console.error("Erro ao verificar status:", error);
+        const { data } = await supabase
+          .from('usuarios')
+          .select('plano_ativo')
+          .eq('barber_id', user.id.toString())
+          .single();
+
+        if (data?.plano_ativo) {
+          handleUpdateProfile({ ...user, hasAccess: true, isVisible: true });
         }
       }
     };
-    checkSupabaseStatus();
-  }, [user, currentMode]); // Roda sempre que o usuário loga ou muda
+    const interval = setInterval(checkPayment, 5000); // Checa a cada 5s enquanto logado
+    return () => clearInterval(interval);
+  }, [user, currentMode]);
 
-  // LOGIN LÓGICA (INTEGRADO COM SUPABASE)
+  // LOGIN LÓGICA
   const handleLogin = async (phone, password) => {
     const list = currentMode === 'barber' ? barbers : clients;
+    let foundUser = list.find(u => u.phone === phone && u.password === password);
     
-    // 1. Tenta achar no LocalStorage (seu código original)
-    const foundUser = list.find(u => u.phone === phone && u.password === password);
-    
+    // Se não achar localmente (novo dispositivo), tenta buscar no Supabase se for Barbeiro
+    if (!foundUser && currentMode === 'barber') {
+      const { data } = await supabase.from('usuarios').select('*').eq('telefone', phone).single();
+      if (data) {
+        // Reconstrói o usuário mínimo para o mock funcionar
+        foundUser = { 
+          id: Number(data.barber_id), 
+          name: "Barbeiro", 
+          phone: data.telefone, 
+          password, 
+          role: 'Barber Master', 
+          hasAccess: data.plano_ativo, 
+          isVisible: data.plano_ativo,
+          availableSlots: ['09:00', '18:00'],
+          myServices: []
+        };
+        setBarbers([...barbers, foundUser]);
+      }
+    }
+
     if (foundUser) {
       setUser(foundUser);
-    } else if (currentMode === 'barber') {
-      // 2. Se não achou e é barbeiro, tenta achar no Supabase (novo dispositivo)
-      try {
-        const { data } = await supabase
-          .from('usuarios')
-          .select('*')
-          .eq('telefone', phone)
-          .single();
-
-        if (data) {
-          // Recria o usuário localmente baseado no banco
-          const recoveredUser = {
-            id: Number(data.barber_id) || Date.now(),
-            name: 'Profissional (Recuperado)', // O nome pode vir do banco se você criar coluna 'nome'
-            phone: data.telefone,
-            password: password, 
-            role: 'Pro Barber',
-            photo: 'https://images.unsplash.com/photo-1618077360395-f3068be8e001?w=400',
-            rating: 5.0,
-            distance: 1.2,
-            hasAccess: data.plano_ativo, // Pega o status real do pagamento
-            isVisible: data.plano_ativo,
-            availableSlots: ['09:00', '18:00'],
-            myServices: []
-          };
-          
-          // Adiciona na lista local e loga
-          setBarbers([...barbers, recoveredUser]);
-          setUser(recoveredUser);
-        } else {
-           alert('Credenciais inválidas!');
-        }
-      } catch (e) {
-        alert('Erro ao conectar com servidor.');
-      }
     } else {
       alert('Credenciais inválidas!');
     }
@@ -794,9 +774,8 @@ export default function App() {
       alert('Telefone já cadastrado!');
       return;
     }
-    
-    const newId = Date.now(); // ID gerado aqui
 
+    const newId = Date.now();
     const newUser = {
       id: newId,
       name,
@@ -814,19 +793,14 @@ export default function App() {
       } : {})
     };
 
-    // --- NOVA INTEGRAÇÃO: Salvar no Supabase ao criar ---
+    // --- INTEGRAÇÃO SUPABASE: SALVAR NOVO BARBEIRO ---
     if (currentMode === 'barber') {
-      const { error } = await supabase
-        .from('usuarios')
-        .insert([{ 
-           barber_id: newId.toString(), 
-           telefone: phone, 
-           plano_ativo: false 
-        }]);
-        
-      if (error) console.error("Erro ao salvar no banco:", error);
+      await supabase.from('usuarios').insert([{ 
+        barber_id: newId.toString(), 
+        telefone: phone, 
+        plano_ativo: false 
+      }]);
     }
-    // ----------------------------------------------------
 
     if (currentMode === 'barber') setBarbers([...barbers, newUser]);
     else setClients([...clients, newUser]);
