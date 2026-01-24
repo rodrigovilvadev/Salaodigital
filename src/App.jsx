@@ -6,6 +6,7 @@ import {
   Eye, EyeOff, CreditCard, Lock, Clock, CalendarDays,
   Sparkles, Palette, Briefcase, Edit3, MessageCircle, Phone, XCircle, History
 } from 'lucide-react';
+import { supabase } from './supabaseClient';
 
 // --- CONSTANTES E DADOS MOCKADOS ---
 
@@ -691,28 +692,59 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
 
 export default function App() {
-  // Carrega dados do LocalStorage para simular persistência
-  const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
-  const [user, setUser] = useState(null); // Usuário logado
+  const [user, setUser] = useState(null);
+  const [userType, setUserType] = useState(null); // 'client' ou 'barber'
   
-  // Dados globais (Mock Database com persistência local)
-  const [barbers, setBarbers] = useState(() => {
-      const saved = localStorage.getItem('barbers');
-      return saved ? JSON.parse(saved) : INITIAL_BARBERS;
-  });
-  const [clients, setClients] = useState(() => {
-      const saved = localStorage.getItem('clients');
-      return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
-  });
-  const [appointments, setAppointments] = useState(() => {
-      const saved = localStorage.getItem('appointments');
-      return saved ? JSON.parse(saved) : [];
-  });
+  // --- NOVO: Carregar usuário do Banco de Dados ao iniciar ---
+  useEffect(() => {
+    const sessionUser = localStorage.getItem('usuario_logado');
+    if (sessionUser) {
+      const parsedUser = JSON.parse(sessionUser);
+      // Busca dados atualizados do Supabase (para checar se o plano foi ativo)
+      const fetchUser = async () => {
+        const { data, error } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('barber_id', parsedUser.barber_id || parsedUser.id)
+          .single();
 
-  // Salva no localStorage sempre que mudar
-  useEffect(() => { localStorage.setItem('barbers', JSON.stringify(barbers)); }, [barbers]);
-  useEffect(() => { localStorage.setItem('clients', JSON.stringify(clients)); }, [clients]);
-  useEffect(() => { localStorage.setItem('appointments', JSON.stringify(appointments)); }, [appointments]);
+        if (data) {
+          setUser({ ...parsedUser, ...data, hasAccess: data.plano_ativo });
+          setUserType(data.tipo || 'barber');
+        }
+      };
+      fetchUser();
+    }
+  }, []);
+
+  // --- Função de Registro Atualizada ---
+  const handleRegister = async (name, phone, password) => {
+    const barberId = `barber_${Date.now()}`;
+    
+    // 1. Salva no Supabase imediatamente
+    const { data, error } = await supabase
+      .from('usuarios')
+      .insert([
+        { 
+          barber_id: barberId, 
+          telefone: phone, 
+          nome: name, 
+          plano_ativo: false,
+          tipo: userType 
+        }
+      ]);
+
+    if (!error) {
+      const newUser = { id: barberId, name, phone, hasAccess: false };
+      setUser(newUser);
+      localStorage.setItem('usuario_logado', JSON.stringify(newUser));
+    } else {
+      alert("Erro ao criar conta no banco de dados.");
+    }
+  };
+
+  // ... restante do seu código (WelcomeScreen, AuthScreen, etc)
+}
 
   // LOGIN LÓGICA
   const handleLogin = (phone, password) => {
@@ -833,4 +865,3 @@ export default function App() {
       onCancelBooking={handleCancelBooking}
     />
   );
-}
