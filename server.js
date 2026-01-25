@@ -9,10 +9,10 @@ import { createClient } from '@supabase/supabase-js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
 
 // Aumenta o limite do body caso o MP mande algo grande, e força JSON
-app.use(express.json()); 
+const app = express();
+app.use(express.json()); // Essencial para receber notificações do Mercado Pago
 app.use(cors());
 
 // Conexão ÚNICA com o Supabase
@@ -34,7 +34,7 @@ app.post('/criar-pagamento', async (req, res) => {
   
   // URL DO SEU BACKEND (Troque isso pela sua URL de produção do Render/Railway)
   // Exemplo: 'https://api-salaodigital.onrender.com/webhooks'
-  const MEU_WEBHOOK = 'https://SUA-URL-DO-BACKEND-AQUI.com/webhooks'; 
+  const MEU_WEBHOOK = 'https://salaodigital.onrender.com//webhooks'; 
 
   try {
     const preference = new Preference(client);
@@ -85,65 +85,72 @@ app.post('/webhooks', async (req, res) => {
   // Log para você ver o que está chegando (útil para debug)
   console.log("🔔 Webhook recebido:", JSON.stringify(body || query));
 
-  try {
-    // O Mercado Pago envia o ID de duas formas:
-    // 1. Na query string: ?id=123&topic=payment
-    // 2. No body: { action: 'payment.created', data: { id: '123' } }
-    
-    let paymentId = query.id || query['data.id'] || (body.data && body.data.id);
-    let topic = query.topic || (body.type) || (body.action);
-
-    // Se for apenas teste de validação do MP, responda OK e ignore
-    if (body.action === 'test.created') {
-        console.log("Teste de webhook recebido.");
-        return res.status(200).send("OK");
-    }
-
-    // Se temos um ID de pagamento, vamos consultar o status real
-    if (paymentId && (topic === 'payment' || body.type === 'payment' || body.action === 'payment.updated')) {
-      
-      console.log(`Verificando pagamento ID: ${paymentId}...`);
-      
-      const payment = new Payment(client);
-      const data = await payment.get({ id: paymentId });
-
-      console.log(`Status do pagamento ${paymentId}: ${data.status}`);
-
-      if (data.status === 'approved') {
-        // Pega o ID do barbeiro que salvamos no metadata
-        const barberId = data.metadata.barber_id; 
-
-        if (barberId) {
-            // ATUALIZA NO SUPABASE
-            const { error: updateError } = await supabase
-              .from('usuarios')
-              .update({ plano_ativo: true })
-              .eq('barber_id', barberId);
-
-            if (updateError) {
-              console.error("❌ Erro ao ativar plano no banco:", updateError);
-            } else {
-              console.log(`✅ SUCESSO: Plano ativado para barbeiro ${barberId}`);
-            }
-        } else {
-            console.warn("⚠️ Pagamento aprovado, mas sem barber_id no metadata.");
-        }
+try {
+    const preference = new Preference(client);
+    const result = await preference.create({
+      body: {
+        items: [{
+          title: "Assinatura Plano Profissional - Salaodigital",
+          quantity: 1,
+          unit_price: 29.90,
+          currency_id: 'BRL'
+        }],
+        metadata: { barber_id: barberId },
+        // A URL abaixo deve ser a sua URL pública do Render
+        notification_url: "https://salaodigital.app.br/webhooks", 
+        back_urls: {
+          success: "https://salaodigital.app.br/sucesso",
+        },
+        auto_return: "approved",
       }
-    }
+    });
 
-    // SEMPRE retorne 200, caso contrário o MP fica reenviando infinitamente
-    res.status(200).send("OK");
-    
+    // Registra o interesse inicial no Supabase
+    await supabase.from('usuarios').upsert({
+      barber_id: barberId,
+      telefone: telefone,
+      plano_ativo: false
+    }, { onConflict: 'barber_id' });
+
+    res.json({ id: result.id, init_point: result.init_point });
+
   } catch (error) {
-    console.error("❌ Erro processando Webhook:", error);
-    // Mesmo com erro, responda 200 para não travar a fila do MP, mas logue o erro.
-    res.status(200).send("Error logged");
+    console.error("Erro ao gerar pagamento:", error);
+    res.status(500).json({ error: "Erro ao gerar link de pagamento" });
   }
 });
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+// 2. Rota de Webhook: O Mercado Pago avisa aqui quando o status muda
+app.post('/webhooks', async (req, res) => {
+  const { query } = req;
+  const topic = query.topic || query.type;
+
+  // Responda 200 imediatamente para o Mercado Pago não reenviar o aviso
+  res.sendStatus(200);
+
+  if (topic === 'payment') {
+    const paymentId = query.id || query['data.id'];
+    
+    try {
+      const payment = new Payment(client);
+      const data = await payment.get({ id: paymentId });
+
+      if (data.status === 'approved') {
+        const barberId = data.metadata.barber_id;
+        
+        // Atualiza o plano no Supabase
+        await supabase
+          .from('usuarios')
+          .update({ plano_ativo: true })
+          .eq('barber_id', barberId);
+          
+        console.log(`Pagamento aprovado para o barbeiro: ${barberId}`);
+      }
+    } catch (error) {
+      console.error("Erro ao processar webhook:", error);
+    }
+  }
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
