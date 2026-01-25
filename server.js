@@ -31,6 +31,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.post('/criar-pagamento', async (req, res) => {
   const { barberId, telefone } = req.body; 
   try {
+
     const preference = new Preference(client);
     const result = await preference.create({
       body: {
@@ -53,9 +54,9 @@ app.post('/criar-pagamento', async (req, res) => {
     });
 
     // Registra no Supabase
-    const { error: upsertError } = await supabase.from('usuarios').upsert({ 
+   await supabase.from('usuarios').upsert({ 
       barber_id: barberId, 
-      telefone: telefone,
+      telefone: telefoneSeguro, // Agora nunca será null
       plano_ativo: false 
     }, { onConflict: 'barber_id' });
 
