@@ -643,9 +643,10 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
 export default function App() {
-  // Carrega dados do LocalStorage para simular persistência
-  const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
-  const [user, setUser] = useState(null); // Usuário logado
+  const [user, setUser] = useState(null);
+  const [mode, setMode] = useState(null);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   
   // Dados globais (Mock Database com persistência local)
   const [barbers, setBarbers] = useState(() => {
