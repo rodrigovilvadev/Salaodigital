@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import 'dotenv/config';
+import 'dotenv/config'; 
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
 
@@ -10,24 +10,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json()); // Essencial para receber notificações do Mercado Pago
+app.use(express.json());
 app.use(cors());
 
-// Conexão única com Supabase usando a SERVICE_ROLE_KEY para evitar erros de RLS
+// Conexão com o Supabase (Sua memória digital)
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_URL, 
+  process.env.SUPABASE_ANON_KEY
 );
 
 // Configuração do Mercado Pago
 const client = new MercadoPagoConfig({ 
-  accessToken: process.env.MP_ACCESS_TOKEN 
+  accessToken: process.env.VITE_MP_ACCESS_TOKEN 
 });
 
-// 1. Rota para Criar Pagamento
-app.post('/criar-pagamento', async (req, res) => {
-  const { barberId, telefone } = req.body;
+app.use(express.static(path.join(__dirname, 'dist')));
 
+// 1. Rota para Criar o Link de Pagamento
+app.post('/criar-pagamento', async (req, res) => {
+  const { barberId, telefone } = req.body; 
   try {
     const preference = new Preference(client);
     const result = await preference.create({
@@ -38,25 +39,24 @@ app.post('/criar-pagamento', async (req, res) => {
           unit_price: 29.90,
           currency_id: 'BRL'
         }],
-        metadata: { barber_id: barberId },
-        // A URL abaixo deve ser a sua URL pública do Render
-        notification_url: "https://salaodigital.onrender.com/weebook.com",
+        metadata: { barber_id: barberId }, // Vincula o pagamento ao ID do usuário
         back_urls: {
-          success: "https://salaodigital.app.br/sucesso",
+          success: `https://salaodigital.app.br/`,
         },
         auto_return: "approved",
       }
     });
 
-    // Registra o interesse inicial no Supabase
-    await supabase.from('usuarios').upsert({
-      barber_id: barberId,
+    // Registra ou atualiza o barbeiro no Supabase como "plano inativo"
+    const { error: upsertError } = await supabase.from('usuarios').upsert({ 
+      barber_id: barberId, 
       telefone: telefone,
-      plano_ativo: false
+      plano_ativo: false 
     }, { onConflict: 'barber_id' });
 
-    res.json({ id: result.id, init_point: result.init_point });
+    if (upsertError) console.error("Erro ao registrar no Supabase:", upsertError);
 
+    res.json({ init_point: result.init_point });
   } catch (error) {
     console.error("Erro ao gerar pagamento:", error);
     res.status(500).json({ error: "Erro ao gerar link de pagamento" });
@@ -65,35 +65,43 @@ app.post('/criar-pagamento', async (req, res) => {
 
 // 2. Rota de Webhook: O Mercado Pago avisa aqui quando o status muda
 app.post('/webhooks', async (req, res) => {
-  const { query } = req;
-  const topic = query.topic || query.type;
+  const { query, body } = req;
+  const topic = query.topic || query.type || (body.data && 'payment');
 
-  // Responda 200 imediatamente para o Mercado Pago não reenviar o aviso
-  res.sendStatus(200);
-
-  if (topic === 'payment') {
-    const paymentId = query.id || query['data.id'];
-    
-    try {
+  try {
+    if (topic === 'payment') {
+      // Pega o ID do pagamento de qualquer lugar que ele venha
+      const paymentId = query.id || (body.data && body.data.id);
+      
       const payment = new Payment(client);
       const data = await payment.get({ id: paymentId });
 
       if (data.status === 'approved') {
         const barberId = data.metadata.barber_id;
-        
-        // Atualiza o plano no Supabase
-        await supabase
+
+        // ATUALIZA NO SUPABASE para ATIVO
+        const { error: updateError } = await supabase
           .from('usuarios')
           .update({ plano_ativo: true })
           .eq('barber_id', barberId);
-          
-        console.log(`Pagamento aprovado para o barbeiro: ${barberId}`);
+
+        if (updateError) {
+          console.error("Erro ao ativar plano no Supabase:", updateError);
+        } else {
+          console.log(`Sucesso: Plano ativado para o barbeiro ${barberId}`);
+        }
       }
-    } catch (error) {
-      console.error("Erro ao processar webhook:", error);
     }
+    res.sendStatus(200); // Responde 200 para o Mercado Pago não reenviar
+  } catch (error) {
+    console.error("Erro processando Webhook:", error);
+    res.sendStatus(500);
   }
 });
 
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor Live na porta ${PORT}`));
