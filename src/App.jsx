@@ -728,7 +728,7 @@ export default function App() {
   const handleRegister = (name, phone, password) => {
     const list = currentMode === 'barber' ? barbers : clients;
     if (list.find(u => u.phone === phone)) {
-      alert('Telefone já cadastrado!');
+      alert('numero ja existe');
       return;
     }
     const newUser = {
