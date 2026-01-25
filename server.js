@@ -28,7 +28,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 // 1. Rota para Criar o Link de Pagamento
 app.post('/criar-pagamento', async (req, res) => {
-  const { barberId, telefone } = req.body; 
+  const { barberId } = req.body; 
   try {
     const preference = new Preference(client);
     const result = await preference.create({
@@ -39,27 +39,16 @@ app.post('/criar-pagamento', async (req, res) => {
           unit_price: 29.90,
           currency_id: 'BRL'
         }],
-        metadata: { barber_id: barberId }, // Vincula o pagamento ao ID do usuário
-        back_urls: {
-          success: `https://salaodigital.onrender.com,`
-        },
+        metadata: { barber_id: barberId },
+        notification_url: "https://salaodigital.onrender.com/webhooks", // URL essencial
+        back_urls: { success: "https://salaodigital.app.br/" },
         auto_return: "approved",
       }
     });
 
-    // Registra ou atualiza o barbeiro no Supabase como "plano inativo"
-    const { error: upsertError } = await supabase.from('usuarios').upsert({ 
-      barber_id: barberId, 
-      telefone: telefone,
-      plano_ativo: false 
-    }, { onConflict: 'barber_id' });
-
-    if (upsertError) console.error("Erro ao registrar no Supabase:", upsertError);
-
     res.json({ init_point: result.init_point });
   } catch (error) {
-    console.error("Erro ao gerar pagamento:", error);
-    res.status(500).json({ error: "Erro ao gerar link de pagamento" });
+    res.status(500).json({ error: "Erro ao gerar link" });
   }
 });
 
