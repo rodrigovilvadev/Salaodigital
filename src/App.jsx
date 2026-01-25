@@ -6,13 +6,6 @@ import {
   Eye, EyeOff, CreditCard, Lock, Clock, CalendarDays,
   Sparkles, Palette, Briefcase, Edit3, MessageCircle, Phone, XCircle, History
 } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-// Configuração oficial do seu projeto SalaoDigital
-const supabaseUrl = 'https://vqpbbodhhyvwtfvrpgrk.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxcGJib2RoaHl2d3RmdnJwZ3JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyMTE3NDksImV4cCI6MjA4NDc4Nzc0OX0.8Swb8y8YbzTtYuAEc9flAYyIGiYo5fNAqPQJvWqrZEs';
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- CONSTANTES E DADOS MOCKADOS ---
 
@@ -118,25 +111,30 @@ const WelcomeScreen = ({ onSelectMode }) => (
   </div>
 );
 
-const RegisterScreen = ({ mode, onLoginSuccess }) => {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
+const onRegister = async (name, phone, password) => {
+  try {
+    // 1. (Opcional) Criar usuário no Auth do Supabase se estiver usando
+    // const { data: authData } = await supabase.auth.signUp({ phone, password });
 
-  const handleSubmit = () => {
-    // Aqui chamamos o Passo 1
-    handleSignUp(name, phone, password, mode); 
-  };
+    // 2. Salvar na tabela 'usuarios' imediatamente
+    const { error } = await supabase
+      .from('usuarios')
+      .insert([
+        { 
+          barber_id: phone, // ou authData.user.id
+          nome: name, 
+          telefone: phone, 
+          plano_ativo: false 
+        }
+      ]);
 
-  return (
-    <div className="p-6 space-y-4">
-      <input placeholder="Nome" onChange={(e) => setName(e.target.value)} className="w-full p-3 border rounded" />
-      <input placeholder="WhatsApp" onChange={(e) => setPhone(e.target.value)} className="w-full p-3 border rounded" />
-      <input placeholder="Senha" type="password" onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded" />
-      
-      <Button onClick={handleSubmit}>Criar Conta</Button>
-    </div>
-  );
+    if (error) throw error;
+
+    alert("Conta criada! Agora você pode ativar seu plano.");
+    // Redireciona para o Dashboard onde aparecerá o botão de pagar
+  } catch (error) {
+    alert("Erro ao cadastrar: " + error.message);
+  }
 };
 
 // --- DASHBOARD DO BARBEIRO ---
@@ -642,11 +640,16 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 };
 
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
+import { createClient } from '@supabase/supabase-js';
+
+// Configuração oficial do seu projeto SalaoDigital
+const supabaseUrl = 'https://vqpbbodhhyvwtfvrpgrk.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxcGJib2RoaHl2d3RmdnJwZ3JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyMTE3NDksImV4cCI6MjA4NDc4Nzc0OX0.8Swb8y8YbzTtYuAEc9flAYyIGiYo5fNAqPQJvWqrZEs';
+
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [mode, setMode] = useState(null);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  // Carrega dados do LocalStorage para simular persistência
+  const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
+  const [user, setUser] = useState(null); // Usuário logado
   
   // Dados globais (Mock Database com persistência local)
   const [barbers, setBarbers] = useState(() => {
@@ -694,8 +697,8 @@ export default function App() {
         role: 'Barber Iniciante',
         rating: 5.0,
         distance: 0,
-        hasAccess: false, // Começa sem acesso (precisa pagar)
-        isVisible: false,
+        hasAccess: true, //ça sem acesso (precisa pagar)
+        isVisible: true,
         availableSlots: ['09:00', '18:00'],
         myServices: []
       } : {})
