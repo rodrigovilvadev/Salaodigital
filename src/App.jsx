@@ -111,17 +111,41 @@ const WelcomeScreen = ({ onSelectMode }) => (
   </div>
 );
 
-const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
-  const [mode, setMode] = useState('login');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+const onRegister = async (name, phone, password) => {
+  try {
+    // 1. Criar o usuário na Autenticação do Supabase
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      phone: phone,
+      password: password,
+    });
 
-  const handleSubmit = () => {
-    if (mode === 'login') onLogin(phone, password);
-    else onRegister(name, phone, password);
-  };
+    if (authError) throw authError;
+
+    if (authData?.user) {
+      // 2. SALVAR NA TABELA 'USUARIOS' IMEDIATAMENTE
+      // Isso garante que o usuário já exista antes de qualquer tentativa de pagamento
+      const { error: dbError } = await supabase
+        .from('usuarios')
+        .insert([
+          { 
+            barber_id: authData.user.id, 
+            nome: name, 
+            telefone: phone, 
+            plano_ativo: false 
+          }
+        ]);
+
+      if (dbError) throw dbError;
+
+      alert("Conta criada com sucesso!");
+      // Agora você pode redirecionar para a tela de pagamento com segurança
+      setScreen('payment_setup'); 
+    }
+  } catch (error) {
+    console.error("Erro no cadastro:", error.message);
+    alert("Erro ao criar conta: " + error.message);
+  }
+};
 
   const isFormValid = mode === 'login' ? (phone && password) : (name && phone && password);
 
@@ -184,7 +208,7 @@ const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
       </div>
     </div>
   );
-};
+
 
 // --- DASHBOARD DO BARBEIRO ---
 
@@ -213,7 +237,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     setIsPaying(true);
     try {
       // URL base do seu backend (ajuste conforme necessário)
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://saladigital.onrender.com';
 
       const response = await fetch(`${API_BASE_URL}/criar-pagamento`, {
         method: 'POST',
