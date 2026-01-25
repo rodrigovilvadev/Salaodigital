@@ -41,7 +41,7 @@ app.post('/criar-pagamento', async (req, res) => {
         }],
         metadata: { barber_id: barberId }, // Vincula o pagamento ao ID do usuário
         back_urls: {
-          success: `https://salaodigital.app.br/`,
+          success: `https://salaodigital.onrender.com,`
         },
         auto_return: "approved",
       }
