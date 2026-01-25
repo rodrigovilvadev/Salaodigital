@@ -213,7 +213,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     setIsPaying(true);
     try {
       // URL base do seu backend (ajuste conforme necessário)
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://saladigital.onrender.com';
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
       const response = await fetch(`${API_BASE_URL}/criar-pagamento`, {
         method: 'POST',
@@ -689,7 +689,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 };
 
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
-import { supabase } from './supabaseClient';
+
 export default function App() {
   // Carrega dados do LocalStorage para simular persistência
   const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
@@ -728,7 +728,7 @@ export default function App() {
   const handleRegister = (name, phone, password) => {
     const list = currentMode === 'barber' ? barbers : clients;
     if (list.find(u => u.phone === phone)) {
-      alert('numero ja existe');
+      alert('Telefone já cadastrado!');
       return;
     }
     const newUser = {
@@ -747,7 +747,6 @@ export default function App() {
         myServices: []
       } : {})
     };
-    
 
     if (currentMode === 'barber') setBarbers([...barbers, newUser]);
     else setClients([...clients, newUser]);
