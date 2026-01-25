@@ -642,7 +642,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 };
 
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
-import { supabase } from './supabaseClient';
 export default function App() {
   // Carrega dados do LocalStorage para simular persistência
   const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
