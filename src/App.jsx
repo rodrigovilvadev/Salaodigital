@@ -7,7 +7,6 @@ import {
   Sparkles, Palette, Briefcase, Edit3, MessageCircle, Phone, XCircle, History
 } from 'lucide-react';
 
-
 // --- CONSTANTES E DADOS MOCKADOS ---
 
 const MASTER_SERVICES = [
@@ -24,8 +23,8 @@ const GLOBAL_TIME_SLOTS = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00',
 const INITIAL_BARBERS = [
   { 
     id: 101, 
-    name: 'rcardo', 
-    phone: '111111',
+    name: 'Ricardo', 
+    phone: '11999990001', 
     password: '123', 
     role: 'Barber Master', 
     photo: 'https://images.unsplash.com/photo-1580256081112-e49377338b7f?w=400', 
@@ -112,23 +111,77 @@ const WelcomeScreen = ({ onSelectMode }) => (
   </div>
 );
 
-const RegisterScreen = ({ mode, onLoginSuccess }) => {
+const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
+  const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = () => {
-    // Aqui chamamos o Passo 1
-    handleSignUp(name, phone, password, mode); 
+    if (mode === 'login') onLogin(phone, password);
+    else onRegister(name, phone, password);
   };
 
+  const isFormValid = mode === 'login' ? (phone && password) : (name && phone && password);
+
   return (
-    <div className="p-6 space-y-4">
-      <input placeholder="Nome" onChange={(e) => setName(e.target.value)} className="w-full p-3 border rounded" />
-      <input placeholder="WhatsApp" onChange={(e) => setPhone(e.target.value)} className="w-full p-3 border rounded" />
-      <input placeholder="Senha" type="password" onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border rounded" />
-      
-      <Button onClick={handleSubmit}>Criar Conta</Button>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative">
+      <button onClick={onBack} className="absolute top-6 left-6 p-2 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-900">
+        <ChevronLeft size={24} />
+      </button>
+
+      <div className="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+        <h2 className="text-2xl font-black text-slate-900 mb-2 text-center">
+          {userType === 'barber' ? 'Área Profissional' : 'Área do Cliente'}
+        </h2>
+        <p className="text-slate-500 text-sm text-center mb-6">
+          {mode === 'login' ? 'Entre com seu telefone' : 'Crie sua conta gratuitamente'}
+        </p>
+
+        <div className="space-y-4">
+          {mode === 'register' && (
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Nome Completo</label>
+              <div className="relative">
+                <User className="absolute left-3 top-3.5 text-slate-400" size={20}/>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"/>
+              </div>
+            </div>
+          )}
+           
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">WhatsApp / Telefone</label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-3.5 text-slate-400" size={20}/>
+              <input 
+                type="tel" 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)} 
+                placeholder="(11) 99999-9999" 
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Senha</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3.5 text-slate-400" size={20}/>
+              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••" className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"/>
+              <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600">
+                {showPassword ? <EyeOff size={20}/> : <Eye size={20}/>}
+              </button>
+            </div>
+          </div>
+          <Button onClick={handleSubmit} disabled={!isFormValid}>{mode === 'login' ? 'Entrar' : 'Cadastrar'}</Button>
+          <div className="text-center mt-4">
+            <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setName(''); setPhone(''); setPassword(''); }} className="text-blue-600 font-bold text-sm hover:underline mt-1">
+              {mode === 'login' ? 'Criar nova conta' : 'Já tenho conta'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
