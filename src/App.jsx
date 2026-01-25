@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { 
   Scissors, User, Calendar, MapPin, Star, 
   CheckCircle2, LogOut, Bell, DollarSign, 
@@ -7,7 +8,13 @@ import {
   Sparkles, Palette, Briefcase, Edit3, MessageCircle, Phone, XCircle, History
 } from 'lucide-react';
 
-// --- CONSTANTES E DADOS MOCKADOS ---
+// --- CONFIGURAÇÃO DO SUPABASE ---
+// ⚠️ COLOQUE SUAS CHAVES AQUI
+const supabaseUrl = 'SUA_URL_DO_SUPABASE'; 
+const supabaseKey = 'SUA_CHAVE_ANONIMA';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// --- CONSTANTES ---
 
 const MASTER_SERVICES = [
   { id: 1, name: 'Corte Degradê', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'hair' },
@@ -19,47 +26,6 @@ const MASTER_SERVICES = [
 ];
 
 const GLOBAL_TIME_SLOTS = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
-
-const INITIAL_BARBERS = [
-  { 
-    id: 101, 
-    name: 'Ricardo', 
-    phone: '11999990001', 
-    password: '123', 
-    role: 'Barber Master', 
-    photo: 'https://images.unsplash.com/photo-1580256081112-e49377338b7f?w=400', 
-    rating: 5.0, 
-    distance: 1.2,
-    hasAccess: true, 
-    isVisible: true, 
-    availableSlots: ['09:00', '10:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
-    myServices: [{ id: 1, price: 60 }, { id: 2, price: 40 }, { id: 3, price: 90 }] 
-  },
-  { 
-    id: 102, 
-    name: 'André', 
-    phone: '11999990002',
-    password: '123',
-    role: 'Pro Barber', 
-    photo: 'https://images.unsplash.com/photo-1618077360395-f3068be8e001?w=400', 
-    rating: 4.8, 
-    distance: 4.5,
-    hasAccess: true, 
-    isVisible: true,
-    availableSlots: ['13:00', '14:00', '15:00', '16:00', '17:00'],
-    myServices: [{ id: 1, price: 45 }, { id: 2, price: 35 }]
-  }
-];
-
-const INITIAL_CLIENTS = [
-  {
-    id: 201,
-    name: 'Carlos Cliente',
-    phone: '11999998888',
-    password: '123',
-    photo: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=400'
-  }
-];
 
 // --- COMPONENTES UI REUTILIZÁVEIS ---
 
@@ -111,16 +77,63 @@ const WelcomeScreen = ({ onSelectMode }) => (
   </div>
 );
 
-const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
+const AuthScreen = ({ userType, onBack, onLoginSuccess }) => {
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    if (mode === 'login') onLogin(phone, password);
-    else onRegister(name, phone, password);
+  // Lógica conectada ao Supabase
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+        if (mode === 'login') {
+            // LOGIN: Busca usuário no banco
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('phone', phone)
+                .eq('password', password) // Em produção, use hash
+                .eq('type', userType)
+                .single();
+
+            if (error || !data) throw new Error("Telefone ou senha incorretos.");
+            onLoginSuccess(data);
+        } else {
+            // REGISTRO: Cria usuário no banco
+            const newUser = {
+                name,
+                phone,
+                password,
+                type: userType,
+                photo: `https://ui-avatars.com/api/?name=${name}&background=random`,
+                // Campos padrão para barbeiros
+                ...(userType === 'barber' ? {
+                    role: 'Barber Starter',
+                    rating: 5.0,
+                    distance: 0,
+                    hasAccess: false,
+                    isVisible: false,
+                    availableSlots: [],
+                    myServices: []
+                } : {})
+            };
+
+            const { data, error } = await supabase.from('users').insert([newUser]).select();
+
+            if (error) {
+                if (error.code === '23505') throw new Error("Este telefone já está cadastrado.");
+                throw error;
+            }
+            onLoginSuccess(data[0]);
+        }
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        setLoading(false);
+    }
   };
 
   const isFormValid = mode === 'login' ? (phone && password) : (name && phone && password);
@@ -174,7 +187,9 @@ const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
               </button>
             </div>
           </div>
-          <Button onClick={handleSubmit} disabled={!isFormValid}>{mode === 'login' ? 'Entrar' : 'Cadastrar'}</Button>
+          <Button onClick={handleSubmit} disabled={!isFormValid || loading}>
+              {loading ? 'Carregando...' : (mode === 'login' ? 'Entrar' : 'Cadastrar')}
+          </Button>
           <div className="text-center mt-4">
             <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setName(''); setPhone(''); setPassword(''); }} className="text-blue-600 font-bold text-sm hover:underline mt-1">
               {mode === 'login' ? 'Criar nova conta' : 'Já tenho conta'}
@@ -193,55 +208,23 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   const [isPaying, setIsPaying] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
 
-  // Verifica se o usuário retornou do Mercado Pago com sucesso
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
     const status = queryParams.get('status');
-    const paymentId = queryParams.get('payment_id');
-
     if (status === 'approved' && !user.hasAccess) {
-        // Atualiza o perfil para pago se detectar o parâmetro na URL
         alert('Pagamento confirmado! Bem-vindo ao plano Profissional.');
         onUpdateProfile({ ...user, hasAccess: true, isVisible: true });
-        
-        // Limpa a URL
         window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
   const handlePayment = async () => {
     setIsPaying(true);
-    try {
-      // URL base do seu backend (ajuste conforme necessário)
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://saladigital.onrender.com';
-
-      const response = await fetch(`${API_BASE_URL}/criar-pagamento`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          barberId: user.id,
-          price: 29.90,
-          title: "Plano Profissional SalaoDigital"
-        })
-      });
-
-      if (!response.ok) {
-         throw new Error("Erro ao gerar link de pagamento.");
-      }
-
-      const data = await response.json();
-      if (data.init_point) {
-        // Redireciona para o Mercado Pago
-        window.location.href = data.init_point;
-      } else {
-         alert("Erro: Link de pagamento não retornado.");
-      }
-    } catch (error) {
-      console.error("Erro de pagamento:", error);
-      alert("Não foi possível conectar ao servidor de pagamento. Verifique se o server.js está rodando.");
-    } finally {
-      setIsPaying(false);
-    }
+    // Simulação de delay de pagamento para exemplo
+    setTimeout(() => {
+        alert("Simulação: Redirecionando para Mercado Pago...");
+        setIsPaying(false);
+    }, 1500);
   };
 
   const handleToggleVisibility = () => {
@@ -283,7 +266,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      {/* MODAL DE PAGAMENTO SOBREPOSTO */}
       {showPayModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -427,8 +409,8 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
   const [step, setStep] = useState(1);
   const [bookingData, setBookingData] = useState({ service: null, barber: null, price: null, date: null, time: null });
 
+  // Filtra apenas barbeiros reais carregados do Supabase que estão PAGOS e VISÍVEIS
   const availableBarbers = barbers.filter(b => {
-    // Só mostra barbeiros que pagaram e estão visíveis
     const isPaying = b.hasAccess === true;
     const isOnline = b.isVisible === true;
     const hasService = bookingData.service ? b.myServices?.some(s => s.id === bookingData.service.id) : true;
@@ -450,12 +432,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
     setBookingData({ service: null, barber: null, price: null, date: null, time: null });
     setStep(1);
     setView('home');
-  };
-
-  const getOccupiedSlots = (barberId, date) => {
-    return appointments
-      .filter(app => app.barberId === barberId && app.date === date && app.status !== 'cancelled')
-      .map(app => app.time);
   };
 
   const getBarberPrice = (barber) => {
@@ -517,16 +493,16 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 
               <h3 className="font-bold text-slate-800 mb-4">Serviços Populares</h3>
               <div className="space-y-3">
-                 {MASTER_SERVICES.slice(0,3).map(s => (
-                   <div key={s.id} className="bg-white p-4 rounded-xl border border-slate-100 flex items-center gap-4">
-                       <div className="p-3 bg-slate-50 text-slate-900 rounded-lg">{s.icon}</div>
-                       <div className="flex-1">
-                           <p className="font-bold text-slate-900">{s.name}</p>
-                           <p className="text-xs text-slate-500">{s.duration}</p>
-                       </div>
-                       <p className="font-bold text-slate-400 text-xs">A partir de R$ {s.defaultPrice}</p>
-                   </div>
-                 ))}
+                  {MASTER_SERVICES.slice(0,3).map(s => (
+                    <div key={s.id} className="bg-white p-4 rounded-xl border border-slate-100 flex items-center gap-4">
+                        <div className="p-3 bg-slate-50 text-slate-900 rounded-lg">{s.icon}</div>
+                        <div className="flex-1">
+                            <p className="font-bold text-slate-900">{s.name}</p>
+                            <p className="text-xs text-slate-500">{s.duration}</p>
+                        </div>
+                        <p className="font-bold text-slate-400 text-xs">A partir de R$ {s.defaultPrice}</p>
+                    </div>
+                  ))}
               </div>
             </div>
         )}
@@ -546,7 +522,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
                              <div className="flex justify-between items-start mb-4 pl-2">
                                 <div>
                                     <h3 className="font-bold text-slate-900">{app.service}</h3>
-                                    <p className="text-sm text-slate-500">com {barbers.find(b => b.id === app.barberId)?.name}</p>
+                                    <p className="text-sm text-slate-500">com {barbers.find(b => b.id === app.barberId)?.name || 'Barbeiro'}</p>
                                 </div>
                                 <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${app.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                                     {app.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
@@ -619,66 +595,32 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
                 <div className="pt-4"><Button onClick={handleNextStep} disabled={!bookingData.barber}>Continuar</Button></div>
               </div>
             )}
-
+            
             {step === 3 && (
-              <div className="space-y-4">
-                 <h2 className="text-2xl font-bold text-slate-900">Data e Hora</h2>
-                 <input type="date" className="w-full p-4 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-900 mb-4" onChange={(e) => setBookingData({...bookingData, date: e.target.value})}/>
-                 
-                 {bookingData.date && (
-                    <div className="grid grid-cols-4 gap-2 animate-in fade-in">
-                       {GLOBAL_TIME_SLOTS.map(slot => {
-                           const occupied = getOccupiedSlots(bookingData.barber.id, bookingData.date);
-                           const isOccupied = occupied.includes(slot);
-                           const isAvailable = bookingData.barber.availableSlots.includes(slot);
-                           
-                           if(!isAvailable) return null;
-
-                           return (
-                               <button 
-                                key={slot} 
-                                disabled={isOccupied}
-                                onClick={() => setBookingData({...bookingData, time: slot})}
-                                className={`py-3 text-sm font-bold rounded-xl border transition-all ${
-                                    isOccupied 
-                                    ? 'bg-slate-100 text-slate-300 border-transparent cursor-not-allowed decoration-slice line-through' 
-                                    : bookingData.time === slot 
-                                        ? 'bg-slate-900 text-white border-slate-900' 
-                                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                                }`}
-                               >
-                                   {slot}
-                               </button>
-                           )
-                       })}
+                <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-slate-900">Escolha o Horário</h2>
+                    <input type="date" className="w-full p-4 rounded-xl border border-slate-200 font-bold" onChange={(e) => setBookingData({...bookingData, date: e.target.value})} />
+                    
+                    <div className="grid grid-cols-4 gap-2">
+                        {GLOBAL_TIME_SLOTS.map(slot => {
+                            // Verifica se o barbeiro atende nesse horário
+                            const isSlotAvailableByBarber = bookingData.barber?.availableSlots?.includes(slot);
+                            return (
+                                <button 
+                                    key={slot} 
+                                    disabled={!isSlotAvailableByBarber}
+                                    onClick={() => setBookingData({...bookingData, time: slot})}
+                                    className={`py-3 rounded-lg text-sm font-bold border transition-all
+                                        ${!isSlotAvailableByBarber ? 'opacity-30 cursor-not-allowed bg-slate-100' : 
+                                          bookingData.time === slot ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}
+                                    `}
+                                >
+                                    {slot}
+                                </button>
+                            );
+                        })}
                     </div>
-                 )}
-                 <div className="pt-4"><Button onClick={handleNextStep} disabled={!bookingData.date || !bookingData.time}>Continuar</Button></div>
-              </div>
-            )}
-
-            {step === 4 && (
-                <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-slate-900">Confirmar</h2>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                        <div className="flex justify-between border-b border-slate-100 pb-4">
-                            <span className="text-slate-500">Serviço</span>
-                            <span className="font-bold text-slate-900">{bookingData.service?.name}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-slate-100 pb-4">
-                            <span className="text-slate-500">Profissional</span>
-                            <span className="font-bold text-slate-900">{bookingData.barber?.name}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-slate-100 pb-4">
-                            <span className="text-slate-500">Data e Hora</span>
-                            <span className="font-bold text-slate-900">{bookingData.date.split('-').reverse().join('/')} às {bookingData.time}</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-2">
-                            <span className="text-slate-500">Total</span>
-                            <span className="text-2xl font-black text-slate-900">R$ {bookingData.price}</span>
-                        </div>
-                    </div>
-                    <Button onClick={submitBooking} variant="success">Confirmar Agendamento</Button>
+                    <div className="pt-4"><Button onClick={submitBooking} disabled={!bookingData.date || !bookingData.time}>Confirmar Agendamento</Button></div>
                 </div>
             )}
           </div>
@@ -688,136 +630,113 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
   );
 };
 
-// --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
-import { supabase } from './supabaseClient';
+// --- COMPONENTE PRINCIPAL (CONTROLADOR) ---
+
 export default function App() {
-  // Carrega dados do LocalStorage para simular persistência
-  const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
-  const [user, setUser] = useState(null); // Usuário logado
-  
-  // Dados globais (Mock Database com persistência local)
-  const [barbers, setBarbers] = useState(() => {
-      const saved = localStorage.getItem('barbers');
-      return saved ? JSON.parse(saved) : INITIAL_BARBERS;
-  });
-  const [clients, setClients] = useState(() => {
-      const saved = localStorage.getItem('clients');
-      return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
-  });
-  const [appointments, setAppointments] = useState(() => {
-      const saved = localStorage.getItem('appointments');
-      return saved ? JSON.parse(saved) : [];
-  });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userType, setUserType] = useState(null);
+  const [barbersList, setBarbersList] = useState([]);
+  const [appointments, setAppointments] = useState([]); // Estado local temporário para agendamentos
 
-  // Salva no localStorage sempre que mudar
-  useEffect(() => { localStorage.setItem('barbers', JSON.stringify(barbers)); }, [barbers]);
-  useEffect(() => { localStorage.setItem('clients', JSON.stringify(clients)); }, [clients]);
-  useEffect(() => { localStorage.setItem('appointments', JSON.stringify(appointments)); }, [appointments]);
-
-  // LOGIN LÓGICA
-  const handleLogin = (phone, password) => {
-    const list = currentMode === 'barber' ? barbers : clients;
-    const foundUser = list.find(u => u.phone === phone && u.password === password);
-    if (foundUser) {
-      setUser(foundUser);
-    } else {
-      alert('Credenciais inválidas!');
+  // Efeito 1: Recuperar sessão salva localmente ao abrir o app
+  useEffect(() => {
+    const savedUser = localStorage.getItem('salao_user');
+    if (savedUser) {
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
+        setUserType(user.type); // Restaura o tipo também
     }
-  };
+  }, []);
 
-  const handleRegister = (name, phone, password) => {
-    const list = currentMode === 'barber' ? barbers : clients;
-    if (list.find(u => u.phone === phone)) {
-      alert('Telefone já cadastrado!');
-      return;
-    }
-    const newUser = {
-      id: Date.now(),
-      name,
-      phone,
-      password,
-      photo: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-      ...(currentMode === 'barber' ? {
-        role: 'Barber Iniciante',
-        rating: 5.0,
-        distance: 0,
-        hasAccess: false, // Começa sem acesso (precisa pagar)
-        isVisible: false,
-        availableSlots: ['09:00', '18:00'],
-        myServices: []
-      } : {})
+  // Efeito 2: Carregar lista de barbeiros do Supabase
+  useEffect(() => {
+    const fetchBarbers = async () => {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('type', 'barber');
+        
+        if (data) setBarbersList(data);
+        if (error) console.error("Erro ao carregar barbeiros:", error);
     };
-    
+    fetchBarbers();
+  }, []); // Executa uma vez ao montar
 
-    if (currentMode === 'barber') setBarbers([...barbers, newUser]);
-    else setClients([...clients, newUser]);
-    
-    setUser(newUser);
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    localStorage.setItem('salao_user', JSON.stringify(user)); // Salva sessão
   };
 
   const handleLogout = () => {
-    setUser(null);
-    setCurrentMode(null);
+    setCurrentUser(null);
+    setUserType(null);
+    localStorage.removeItem('salao_user'); // Limpa sessão
   };
 
-  // ATUALIZAÇÃO DE DADOS
-  const handleUpdateProfile = (updatedUser) => {
-    // Atualiza o usuário logado
-    setUser(updatedUser);
-    // Atualiza na "database"
-    if (currentMode === 'barber') {
-      setBarbers(barbers.map(b => b.id === updatedUser.id ? updatedUser : b));
-    } else {
-      setClients(clients.map(c => c.id === updatedUser.id ? updatedUser : c));
+  const handleUpdateProfile = async (updatedUser) => {
+    // 1. Atualiza visualmente instantaneamente
+    setCurrentUser(updatedUser);
+    localStorage.setItem('salao_user', JSON.stringify(updatedUser));
+    
+    // 2. Persiste no Supabase
+    const { error } = await supabase
+      .from('users')
+      .update({
+        isVisible: updatedUser.isVisible,
+        hasAccess: updatedUser.hasAccess,
+        availableSlots: updatedUser.availableSlots,
+        myServices: updatedUser.myServices
+      })
+      .eq('id', updatedUser.id);
+
+    if (error) {
+        console.error("Erro ao salvar no banco:", error);
+        alert("Erro de conexão ao salvar alterações.");
     }
   };
 
-  // NOVO AGENDAMENTO
-  const handleBookingSubmit = (data) => {
-    const newAppointment = {
-      id: Date.now(),
-      client: user.name,
-      clientPhone: user.phone,
-      barberId: data.barber.id,
-      service: data.service.name,
-      price: data.price,
-      date: data.date,
-      time: data.time,
-      status: 'pending' // pending | confirmed | rejected | cancelled
-    };
-    setAppointments([...appointments, newAppointment]);
+  const handleBooking = (booking) => {
+      // Cria agendamento no estado local
+      const newAppointment = {
+          id: Math.random(),
+          status: 'pending',
+          client: currentUser.name,
+          clientPhone: currentUser.phone,
+          barberId: booking.barber.id,
+          service: booking.service.name,
+          price: booking.price,
+          date: booking.date,
+          time: booking.time
+      };
+      setAppointments([...appointments, newAppointment]);
   };
 
-  const handleUpdateStatus = (appId, newStatus) => {
-    setAppointments(appointments.map(a => 
-      a.id === appId ? { ...a, status: newStatus } : a
-    ));
+  const handleUpdateStatus = (appId, status) => {
+      setAppointments(appointments.map(a => a.id === appId ? { ...a, status } : a));
   };
-  
-  const handleCancelBooking = (appId) => {
-      if(window.confirm('Tem certeza que deseja cancelar?')) {
-          handleUpdateStatus(appId, 'cancelled');
-      }
+
+  // ROTEAMENTO
+
+  if (!userType && !currentUser) {
+    return <WelcomeScreen onSelectMode={setUserType} />;
   }
 
-  // ROTEAMENTO SIMPLES
-  if (!currentMode) return <WelcomeScreen onSelectMode={setCurrentMode} />;
-  
-  if (!user) return (
-    <AuthScreen 
-      userType={currentMode} 
-      onBack={() => setCurrentMode(null)} 
-      onLogin={handleLogin} 
-      onRegister={handleRegister} 
-    />
-  );
+  if (!currentUser) {
+    return (
+      <AuthScreen 
+        userType={userType} 
+        onBack={() => setUserType(null)} 
+        onLoginSuccess={handleLoginSuccess} 
+      />
+    );
+  }
 
-  if (currentMode === 'barber') {
+  if (currentUser.type === 'barber') {
     return (
       <BarberDashboard 
-        user={user} 
-        appointments={appointments} 
-        onUpdateStatus={handleUpdateStatus} 
+        user={currentUser} 
+        appointments={appointments}
+        onUpdateStatus={handleUpdateStatus}
         onLogout={handleLogout}
         onUpdateProfile={handleUpdateProfile}
       />
@@ -826,12 +745,12 @@ export default function App() {
 
   return (
     <ClientApp 
-      user={user} 
-      barbers={barbers} 
-      onLogout={handleLogout} 
-      onBookingSubmit={handleBookingSubmit}
+      user={currentUser}
+      barbers={barbersList}
       appointments={appointments}
-      onCancelBooking={handleCancelBooking}
+      onBookingSubmit={handleBooking}
+      onLogout={handleLogout}
+      onCancelBooking={(id) => setAppointments(appointments.filter(a => a.id !== id))}
     />
   );
 }
