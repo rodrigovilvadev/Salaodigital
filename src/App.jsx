@@ -111,17 +111,39 @@ const WelcomeScreen = ({ onSelectMode }) => (
   </div>
 );
 
-const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
-  const [mode, setMode] = useState('login');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+const handleRegister = async (name, phone, password) => {
+  try {
+    // 1. Opcional: Criar no Auth do Supabase (se estiver usando)
+    // const { data: authData, error: authError } = await supabase.auth.signUp({ ... })
 
-  const handleSubmit = () => {
-    if (mode === 'login') onLogin(phone, password);
-    else onRegister(name, phone, password);
-  };
+    // 2. SALVAR NA TABELA 'USUARIOS' (A parte que você precisa)
+    const { data, error } = await supabase
+      .from('usuarios')
+      .insert([
+        { 
+          // Se não tiver authData.user.id ainda, pode usar o próprio telefone ou um ID temporário
+          // Mas o ideal é usar o ID gerado pelo Supabase Auth
+          barber_id: phone, // Usando o phone como ID único por enquanto se não tiver UUID
+          nome: name,
+          telefone: phone,
+          plano_ativo: false,
+          isVisible: false,
+          hasAccess: false
+        }
+      ]);
+
+    if (error) {
+       console.error("Erro ao inserir:", error);
+       alert("Erro ao criar conta. Este telefone já pode estar cadastrado.");
+       return;
+    }
+
+    alert("Conta criada com sucesso!");
+    // Aqui você muda para a tela de login ou dashboard
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const isFormValid = mode === 'login' ? (phone && password) : (name && phone && password);
 
@@ -184,7 +206,6 @@ const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
       </div>
     </div>
   );
-};
 
 // --- DASHBOARD DO BARBEIRO ---
 
