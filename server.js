@@ -16,7 +16,7 @@ app.use(cors());
 // Conexão com o Supabase (Sua memória digital)
 const supabase = createClient(
   process.env.SUPABASE_URL, 
-  process.env.SUPABASE_ANON_KEY
+  process.env.SERVICE_ROLE_KEY
 );
 
 // Configuração do Mercado Pago
