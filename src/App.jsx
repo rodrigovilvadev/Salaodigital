@@ -99,76 +99,123 @@ export default function App() {
 }
 
 // --- MÓDULO DE AUTENTICAÇÃO ---
-function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
+// --- MÓDULO DE AUTENTICAÇÃO (LOGIN / REGISTRO) ---
+
+function AuthModule({ isRegistering, setIsRegistering, fetchProfile }) {
   const [role, setRole] = useState('cliente');
   const [form, setForm] = useState({ email: '', password: '', nome: '', telefone: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleAuth(e) {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       if (isRegistering) {
-        const { data: authData, error: authError } = await supabase.auth.signUp({ 
-          email: form.email, password: form.password 
+        // Tenta cadastrar no Auth do Supabase
+        const { data: auth, error: aErr } = await supabase.auth.signUp({ 
+          email: form.email, 
+          password: form.password 
         });
-        if (authError) throw authError;
 
-        const { error: dbError } = await supabase.from('usuarios').insert([{
-          id: authData.user.id,
-          full_name: form.nome,
-          telefone: form.telefone,
-          role: role,
-          plano_ativo: false
-        }]);
-        if (dbError) throw dbError;
-        alert("Conta criada! Verifique seu e-mail.");
+        if (aErr) throw aErr;
+
+        // Se o usuário foi criado, insere os dados extras na tabela 'usuarios'
+        if (auth?.user) {
+          const { error: dbError } = await supabase.from('usuarios').insert([
+            { 
+              id: auth.user.id, 
+              full_name: form.nome, 
+              telefone: form.telefone, 
+              role: role 
+            }
+          ]);
+          if (dbError) throw dbError;
+        }
+        alert("Sucesso! Verifique seu e-mail para confirmar a conta.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ 
-          email: form.email, password: form.password 
+        // Tenta fazer login
+        const { error: lErr } = await supabase.auth.signInWithPassword({ 
+          email: form.email, 
+          password: form.password 
         });
-        if (error) throw error;
+        if (lErr) throw lErr;
       }
-    } catch (err) { alert(err.message); }
+    } catch (err) {
+      if (err.message.includes("rate limit exceeded")) {
+        alert("⚠️ Limite de tentativas excedido. Aguarde 15 minutos ou use outro e-mail.");
+      } else {
+        alert(err.message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-black text-slate-800">{isRegistering ? 'Criar Conta' : 'Acessar'}</h2>
-        <p className="text-slate-400 text-sm mt-1">Bem-vindo à elite dos agendamentos.</p>
-      </div>
+    <div className="max-w-md mx-auto mt-10 bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-100">
+      <h2 className="text-3xl font-black text-center mb-2">{isRegistering ? 'Criar Conta' : 'Acessar'}</h2>
+      <p className="text-center text-slate-400 text-sm mb-8 italic">O próximo nível do seu negócio.</p>
 
       <form onSubmit={handleAuth} className="space-y-4">
         {isRegistering && (
           <>
-            <div className="flex bg-slate-100 p-1 rounded-2xl mb-6">
-              <button type="button" onClick={() => setRole('cliente')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${role === 'cliente' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>CLIENTE</button>
-              <button type="button" onClick={() => setRole('profissional')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${role === 'profissional' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>PROFISSIONAL</button>
+            <div className="flex bg-slate-100 p-1 rounded-2xl mb-4">
+              <button 
+                type="button" 
+                onClick={() => setRole('cliente')} 
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${role === 'cliente' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}
+              >
+                SOU CLIENTE
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setRole('profissional')} 
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${role === 'profissional' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}
+              >
+                SOU PROFISSIONAL
+              </button>
             </div>
             <div className="relative">
-              <User className="absolute left-4 top-3 text-slate-300" size={18}/><input required className="w-full pl-12 pr-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome Completo" onChange={e => setForm({...form, nome: e.target.value})}/>
+              <User className="absolute left-4 top-3.5 text-slate-300" size={18}/>
+              <input required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome Completo" onChange={e => setForm({...form, nome: e.target.value})}/>
             </div>
             <div className="relative">
-              <Phone className="absolute left-4 top-3 text-slate-300" size={18}/><input required className="w-full pl-12 pr-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="WhatsApp" onChange={e => setForm({...form, telefone: e.target.value})}/>
+              <Phone className="absolute left-4 top-3.5 text-slate-300" size={18}/>
+              <input required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="WhatsApp" onChange={e => setForm({...form, telefone: e.target.value})}/>
             </div>
           </>
         )}
+        
         <div className="relative">
-          <Mail className="absolute left-4 top-3 text-slate-300" size={18}/><input required type="email" className="w-full pl-12 pr-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="E-mail" onChange={e => setForm({...form, email: e.target.value})}/>
+          <Mail className="absolute left-4 top-3.5 text-slate-300" size={18}/>
+          <input required type="email" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="E-mail" onChange={e => setForm({...form, email: e.target.value})}/>
         </div>
+        
         <div className="relative">
-          <Lock className="absolute left-4 top-3 text-slate-300" size={18}/><input required type="password" className="w-full pl-12 pr-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Senha" onChange={e => setForm({...form, password: e.target.value})}/>
+          <Lock className="absolute left-4 top-3.5 text-slate-300" size={18}/>
+          <input required type="password" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Senha" onChange={e => setForm({...form, password: e.target.value})}/>
         </div>
-        <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg hover:bg-blue-600 transition transform active:scale-95 uppercase tracking-widest text-sm">
-          {isRegistering ? 'Confirmar Cadastro' : 'Entrar Agora'}
+        
+        <button 
+          type="submit" 
+          disabled={isSubmitting}
+          className={`w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg transition uppercase tracking-widest text-sm transform active:scale-95 ${isSubmitting ? 'opacity-50' : 'hover:bg-blue-600'}`}
+        >
+          {isSubmitting ? 'PROCESSANDO...' : (isRegistering ? 'CRIAR MINHA CONTA' : 'ENTRAR NA CONTA')}
         </button>
       </form>
 
-      <p className="text-center mt-6 text-sm text-slate-400 font-medium">
-        {isRegistering ? 'Já tem conta?' : 'Novo por aqui?'} 
-        <button onClick={() => setIsRegistering(!isRegistering)} className="ml-2 text-blue-600 font-black underline italic">
-          {isRegistering ? 'Login' : 'Criar Conta Grátis'}
+      <div className="text-center mt-6">
+        <button 
+          type="button" 
+          onClick={() => setIsRegistering(!isRegistering)} 
+          className="text-blue-600 font-bold underline italic text-sm"
+        >
+          {isRegistering ? 'Já possui conta? Faça login' : 'Novo aqui? Registre-se'}
         </button>
-      </p>
+      </div>
     </div>
   );
 }
