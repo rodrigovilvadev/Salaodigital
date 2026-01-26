@@ -169,108 +169,84 @@ function Navbar({ session, profile }) {
 
 // --- MÓDULO DE AUTENTICAÇÃO (LOGIN / REGISTRO) ---
 
-function AuthModule({ fetchProfile }) {
-  const [isRegister, setIsRegister] = useState(false);
+// --- MÓDULO DE LOGIN E CADASTRO CORRIGIDO ---
+function AuthModule({ isRegistering, setIsRegistering }) {
   const [role, setRole] = useState('cliente');
   const [form, setForm] = useState({ email: '', password: '', nome: '', telefone: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false); // Estado para evitar cliques múltiplos
 
-  const handleAuth = async (e) => {
+  async function handleAuth(e) {
     e.preventDefault();
+    setIsSubmitting(true); // Bloqueia o botão
+
     try {
-      if (isRegister) {
-        const { data, error } = await supabase.auth.signUp({ 
+      if (isRegistering) {
+        const { data: auth, error: aErr } = await supabase.auth.signUp({ 
           email: form.email, 
           password: form.password 
         });
-        if (error) throw error;
+
+        if (aErr) throw aErr;
+
+        const { error: dbError } = await supabase.from('usuarios').insert([
+          { id: auth.user.id, full_name: form.nome, telefone: form.telefone, role: role }
+        ]);
         
-        // Criar perfil no DB usando o seu formato de tabela
-        const { error: dbError } = await supabase.from('usuarios').insert([{
-          id: data.user.id,
-          full_name: form.nome,
-          telefone: form.telefone,
-          role: role,
-          plano_ativo: false,
-          created_at: new Date()
-        }]);
         if (dbError) throw dbError;
-        alert("Conta criada! Confirme seu e-mail.");
+        alert("Sucesso! Verifique seu e-mail para confirmar a conta.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ 
+        const { error: lErr } = await supabase.auth.signInWithPassword({ 
           email: form.email, 
           password: form.password 
         });
-        if (error) throw error;
+        if (lErr) throw lErr;
       }
     } catch (err) {
-      alert(err.message);
+      // TRATAMENTO DO LIMITE DE E-MAIL
+      if (err.message.includes("rate limit exceeded")) {
+        alert("⚠️ Limite de envios excedido: O sistema de segurança bloqueou novos cadastros temporariamente para este e-mail. Por favor, aguarde 15 minutos e tente novamente.");
+      } else {
+        alert(err.message);
+      }
+    } finally {
+      setIsSubmitting(false); // Libera o botão
     }
-  };
+  }
 
   return (
-    <div className="max-w-xl mx-auto pt-10 pb-20">
-      <div className="bg-white rounded-[3.5rem] p-10 shadow-2xl shadow-slate-200 border border-slate-100">
-        <header className="text-center mb-10">
-          <h2 className="text-4xl font-black text-slate-900 mb-2">{isRegister ? "Comece agora" : "Acesse sua conta"}</h2>
-          <p className="text-slate-400 font-medium">O padrão ouro em agendamentos digitais.</p>
-        </header>
+    <div className="max-w-md mx-auto mt-10 bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-100">
+      <h2 className="text-3xl font-black text-center mb-2">{isRegistering ? 'Criar Conta' : 'Acessar'}</h2>
+      <p className="text-center text-slate-400 text-sm mb-8 italic font-medium">O próximo nível do seu negócio.</p>
 
-        <form onSubmit={handleAuth} className="space-y-5">
-          {isRegister && (
-            <div className="grid grid-cols-2 gap-4 p-1.5 bg-slate-50 rounded-[2rem] mb-8">
-              <button 
-                type="button" onClick={() => setRole('cliente')}
-                className={`py-3 rounded-[1.5rem] text-sm font-black transition-all ${role === 'cliente' ? 'bg-white shadow-md text-blue-600 scale-[1.02]' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                SOU CLIENTE
-              </button>
-              <button 
-                type="button" onClick={() => setRole('profissional')}
-                className={`py-3 rounded-[1.5rem] text-sm font-black transition-all ${role === 'profissional' ? 'bg-white shadow-md text-blue-600 scale-[1.02]' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                SOU PROFISSIONAL
-              </button>
+      <form onSubmit={handleAuth} className="space-y-4">
+        {isRegistering && (
+          <>
+            <div className="flex bg-slate-100 p-1 rounded-2xl mb-4">
+              <button type="button" onClick={() => setRole('cliente')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${role === 'cliente' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}>CLIENTE</button>
+              <button type="button" onClick={() => setRole('profissional')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${role === 'profissional' ? 'bg-white shadow text-blue-600' : 'text-slate-400'}`}>PROFISSIONAL</button>
             </div>
-          )}
+            <div className="relative"><User className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="Nome Completo" onChange={e => setForm({...form, nome: e.target.value})}/></div>
+            <div className="relative"><Phone className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="WhatsApp" onChange={e => setForm({...form, telefone: e.target.value})}/></div>
+          </>
+        )}
+        <div className="relative"><Mail className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required type="email" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="E-mail" onChange={e => setForm({...form, email: e.target.value})}/></div>
+        <div className="relative"><Lock className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required type="password" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="Senha" onChange={e => setForm({...form, password: e.target.value})}/></div>
+        
+        <button 
+          type="submit" 
+          disabled={isSubmitting}
+          className={`w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg transition uppercase tracking-widest text-sm transform active:scale-95 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
+        >
+          {isSubmitting ? 'Processando...' : (isRegistering ? 'Cadastrar Agora' : 'Entrar na Conta')}
+        </button>
+      </form>
 
-          {isRegister && (
-            <>
-              <div className="relative">
-                <User className="absolute left-4 top-4 text-slate-300" size={20} />
-                <input required className={styles.input} placeholder="Nome Completo" onChange={e => setForm({...form, nome: e.target.value})} />
-              </div>
-              <div className="relative">
-                <Phone className="absolute left-4 top-4 text-slate-300" size={20} />
-                <input required className={styles.input} placeholder="Telefone (WhatsApp)" onChange={e => setForm({...form, telefone: e.target.value})} />
-              </div>
-            </>
-          )}
-
-          <div className="relative">
-            <Mail className="absolute left-4 top-4 text-slate-300" size={20} />
-            <input required type="email" className={styles.input} placeholder="Seu melhor e-mail" onChange={e => setForm({...form, email: e.target.value})} />
-          </div>
-
-          <div className="relative">
-            <Lock className="absolute left-4 top-4 text-slate-300" size={20} />
-            <input required type="password" className={styles.input} placeholder="Senha segura" onChange={e => setForm({...form, password: e.target.value})} />
-          </div>
-
-          <button type="submit" className={styles.buttonPrimary}>
-            {isRegister ? "CRIAR MINHA CONTA" : "ENTRAR NO SISTEMA"}
-            <ChevronRight size={20} />
-          </button>
-        </form>
-
-        <footer className="mt-10 text-center">
-          <p className="text-slate-400 font-bold">
-            {isRegister ? "Já possui conta?" : "Ainda não tem conta?"} 
-            <button onClick={() => setIsRegister(!isRegister)} className="ml-2 text-blue-600 underline">
-              {isRegister ? "Faça login" : "Cadastre-se grátis"}
-            </button>
-          </p>
-        </footer>
-      </div>
+      <p className="text-center mt-6 text-sm font-bold text-slate-400">
+        {isRegistering ? 'Já tem conta?' : 'Novo aqui?'} 
+        <button onClick={() => setIsRegistering(!isRegistering)} className="ml-2 text-blue-600 underline italic">
+          {isRegistering ? 'Logar' : 'Registrar'}
+        </button>
+      </p>
     </div>
   );
 }
