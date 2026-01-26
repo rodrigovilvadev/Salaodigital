@@ -18,7 +18,58 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
 
- return (
+  // Monitora Sessão e Perfil
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) getProfile(session.user.id);
+      else setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) getProfile(session.user.id);
+      else { 
+        setProfile(null); 
+        setLoading(false); 
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function getProfile(userId) {
+    try {
+      const { data, error } = await supabase.from('usuarios').select('*').eq('id', userId).single();
+      if (data) setProfile(data);
+    } catch (err) { 
+      console.error("Erro ao buscar perfil:", err); 
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handlePayment = async () => {
+    try {
+      const res = await fetch(`${API_URL}/criar-pagamento`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barberId: session.user.id })
+      });
+      const data = await res.json();
+      if (data.init_point) window.location.href = data.init_point;
+    } catch (err) { 
+      alert("Erro ao conectar com o servidor de pagamento."); 
+    }
+  };
+
+  if (loading) return (
+    <div className="h-screen w-full flex items-center justify-center bg-slate-900">
+      <div className="text-center text-white font-black animate-pulse">CARREGANDO...</div>
+    </div>
+  );
+
+  return (
     <div className="min-h-screen bg-[#F4F7FA] text-slate-900 font-sans selection:bg-blue-100">
       <nav className="bg-white/70 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -43,89 +94,18 @@ export default function App() {
           />
         ) : (
           profile?.role === 'barbeiro' || profile?.role === 'profissional' ? (
-            <BarberDashboard user={profile} onLogout={() => supabase.auth.signOut()} handlePayment={handlePayment} />
+            <ProDashboard profile={profile} onPay={handlePayment} />
           ) : (
-            <ClientDashboard user={profile} />
+            <ClientDashboard profile={profile} />
           )
         )}
       </main>
-    </div>
-  );
-} // <--- FECHAMENTO DO COMPONENTE APP
-
-// --- DASHBOARD DO BARBEIRO (FORA DO APP) ---
-function BarberDashboard({ user, onLogout, handlePayment }) {
-  const [activeTab, setActiveTab] = useState('home');
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-2xl font-black">Painel do Profissional</h2>
-            <p className="text-slate-500">Olá, {user?.full_name}</p>
-          </div>
-          <span className={`px-4 py-1 rounded-full text-xs font-bold ${user?.plano_ativo ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-            {user?.plano_ativo ? 'PLANO ATIVO' : 'PLANO PENDENTE'}
-          </span>
-        </div>
-
-        {!user?.plano_ativo && (
-          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
-            <p className="text-sm text-amber-800 font-medium">Seu perfil não está visível para clientes. Ative seu plano agora.</p>
-            <button 
-              onClick={handlePayment}
-              className="bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-amber-700 transition"
-            >
-              Ativar Plano
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-slate-900 p-6 rounded-3xl text-white">
-          <p className="text-slate-400 text-xs font-bold uppercase">Ganhos Estimados</p>
-          <p className="text-3xl font-black">R$ 0,00</p>
-        </div>
-        <div className="bg-white p-6 rounded-3xl border border-slate-200">
-          <p className="text-slate-400 text-xs font-bold uppercase">Agendamentos Hoje</p>
-          <p className="text-3xl font-black text-slate-900">0</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- DASHBOARD DO CLIENTE (FORA DO APP) ---
-function ClientDashboard({ user }) {
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10">
-          <h2 className="text-3xl font-black mb-2">Olá, {user?.full_name?.split(' ')[0]}!</h2>
-          <p className="text-blue-100 mb-6">Pronto para dar um tapa no visual?</p>
-          <button className="bg-white text-blue-600 px-6 py-3 rounded-2xl font-black text-sm hover:shadow-lg transition">
-            BUSCAR BARBEARIAS
-          </button>
-        </div>
-        <Search className="absolute -bottom-4 -right-4 text-white/10" size={150} />
-      </div>
-
-      <section>
-        <h3 className="font-bold text-slate-800 mb-4">Meus Agendamentos</h3>
-        <div className="bg-white p-12 rounded-3xl border-2 border-dashed border-slate-200 text-center text-slate-400">
-          <Calendar className="mx-auto mb-2 opacity-20" size={40} />
-          <p>Você não possui agendamentos ativos.</p>
-        </div>
-      </section>
     </div>
   );
 }
 
 // --- MÓDULO DE AUTENTICAÇÃO ---
 function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
-
   const [role, setRole] = useState('cliente');
   const [form, setForm] = useState({ email: '', password: '', nome: '', telefone: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,16 +117,13 @@ function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
 
     try {
       if (isRegistering) {
-        // 1. Cadastro no Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({ 
           email: form.email, 
           password: form.password 
         });
-        
         if (authError) throw authError;
 
         if (authData?.user) {
-          // 2. Cadastro na Tabela de Usuários
           const { error: dbError } = await supabase.from('usuarios').insert([{
             id: authData.user.id,
             full_name: form.nome,
@@ -154,15 +131,10 @@ function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
             role: role,
             plano_ativo: false
           }]);
-          
           if (dbError) throw dbError;
-
-          // 3. Login Automático: Se o e-mail não precisa de confirmação,
-          // o onAuthStateChange no App já vai detectar, mas chamamos getProfile por segurança.
           getProfile(authData.user.id);
         }
       } else {
-        // Login normal
         const { error } = await supabase.auth.signInWithPassword({ 
           email: form.email, 
           password: form.password 
@@ -251,19 +223,10 @@ function ProDashboard({ profile, onPay }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <h3 className="text-xl font-black flex items-center gap-2 px-2 text-slate-700 uppercase tracking-widest text-sm"><Clock size={18}/> Solicitações do Dia</h3>
-          {[1, 2].map(i => (
-            <div key={i} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-between group hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-slate-100 rounded-2xl overflow-hidden shadow-inner"><img src={`https://i.pravatar.cc/150?u=${i}`} alt="user"/></div>
-                <div><p className="font-black text-slate-800">Cliente #0{i}</p><p className="text-xs text-slate-400 font-bold">Cabelo & Barba • 15:30</p></div>
-              </div>
-              <div className="flex gap-2">
-                <button className="p-3 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition shadow-sm"><CheckCircle size={20}/></button>
-                <button className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition shadow-sm"><XCircle size={20}/></button>
-                <a href={`https://wa.me/${profile?.telefone}`} className="p-3 bg-blue-600 text-white rounded-xl shadow-lg"><MessageCircle size={20}/></a>
-              </div>
-            </div>
-          ))}
+          <div className="bg-white p-12 rounded-[2.5rem] border-2 border-dashed border-slate-200 text-center text-slate-400">
+             <Calendar className="mx-auto mb-2 opacity-20" size={40} />
+             <p>Nenhum agendamento para hoje.</p>
+          </div>
         </div>
         <div className="bg-slate-900 rounded-[3rem] p-8 text-white">
           <h3 className="font-black mb-6 text-blue-400 uppercase tracking-widest text-xs">Configuração Rápida</h3>
