@@ -7,6 +7,10 @@ import {
   Sparkles, Palette, Briefcase, Edit3, MessageCircle, Phone, XCircle, History
 } from 'lucide-react';
 
+const supabaseUrl = 'https://vqpbbodhhyvwtfvrpgrk.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxcGJib2RoaHl2d3RmdnJwZ3JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyMTE3NDksImV4cCI6MjA4NDc4Nzc0OX0.8Swb8y8YbzTtYuAEc9flAYyIGiYo5fNAqPQJvWqrZEs';
+const API_URL = "https://salaodigital.onrender.com";
+const supabase = createClient(supabaseUrl, supabaseKey);
 // --- CONSTANTES E DADOS MOCKADOS ---
 
 const MASTER_SERVICES = [
