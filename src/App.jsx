@@ -18,18 +18,21 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
 
-  // Monitora Sessão
+  // Monitora Sessão e Perfil
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) getProfile(session.user.id);
-      setLoading(false);
+      else setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) getProfile(session.user.id);
-      else { setProfile(null); setLoading(false); }
+      else { 
+        setProfile(null); 
+        setLoading(false); 
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -39,11 +42,13 @@ export default function App() {
     try {
       const { data, error } = await supabase.from('usuarios').select('*').eq('id', userId).single();
       if (data) setProfile(data);
-    } catch (err) { console.error(err); }
-    setLoading(false);
+    } catch (err) { 
+      console.error("Erro ao buscar perfil:", err); 
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // Pagamento via seu Back-end
   const handlePayment = async () => {
     try {
       const res = await fetch(`${API_URL}/criar-pagamento`, {
@@ -53,7 +58,9 @@ export default function App() {
       });
       const data = await res.json();
       if (data.init_point) window.location.href = data.init_point;
-    } catch (err) { alert("Erro ao conectar com o servidor."); }
+    } catch (err) { 
+      alert("Erro ao conectar com o servidor de pagamento."); 
+    }
   };
 
   if (loading) return (
@@ -67,7 +74,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FA] text-slate-900 font-sans selection:bg-blue-100">
-      {/* HEADER FIXO */}
       <nav className="bg-white/70 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -112,6 +118,7 @@ function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
 
     try {
       if (isRegistering) {
+        // 1. Cadastro no Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({ 
           email: form.email, 
           password: form.password 
@@ -120,6 +127,7 @@ function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
         if (authError) throw authError;
 
         if (authData?.user) {
+          // 2. Cadastro na Tabela de Usuários
           const { error: dbError } = await supabase.from('usuarios').insert([{
             id: authData.user.id,
             full_name: form.nome,
@@ -127,10 +135,15 @@ function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
             role: role,
             plano_ativo: false
           }]);
+          
           if (dbError) throw dbError;
-          alert("Conta criada! Verifique seu e-mail para confirmar.");
+
+          // 3. Login Automático: Se o e-mail não precisa de confirmação,
+          // o onAuthStateChange no App já vai detectar, mas chamamos getProfile por segurança.
+          getProfile(authData.user.id);
         }
       } else {
+        // Login normal
         const { error } = await supabase.auth.signInWithPassword({ 
           email: form.email, 
           password: form.password 
@@ -138,11 +151,7 @@ function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
         if (error) throw error;
       }
     } catch (err) {
-      if (err.message.includes("rate limit")) {
-        alert("⚠️ Muitos pedidos de cadastro. Aguarde 15 minutos ou use outro e-mail.");
-      } else {
-        alert(err.message);
-      }
+      alert(err.message.includes("rate limit") ? "Muitas tentativas. Aguarde 15 min." : err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -181,17 +190,13 @@ function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
         </div>
         
         <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg hover:bg-blue-600 transition uppercase tracking-widest text-sm disabled:opacity-50">
-          {isSubmitting ? 'Aguarde...' : (isRegistering ? 'Confirmar Cadastro' : 'Entrar Agora')}
+          {isSubmitting ? 'AGUARDE...' : (isRegistering ? 'CONFIRMAR CADASTRO' : 'ENTRAR AGORA')}
         </button>
       </form>
 
       <div className="text-center mt-6">
-        <button 
-          type="button" 
-          onClick={() => setIsRegistering(!isRegistering)} 
-          className="text-blue-600 font-black underline italic text-sm"
-        >
-          {isRegistering ? 'Já tem conta? Login' : 'Novo por aqui? Criar Conta'}
+        <button type="button" onClick={() => setIsRegistering(!isRegistering)} className="text-blue-600 font-black underline italic text-sm">
+          {isRegistering ? 'Já tem conta? Login' : 'Novo por aqui? Criar Conta Grátis'}
         </button>
       </div>
     </div>
@@ -216,7 +221,7 @@ function ProDashboard({ profile, onPay }) {
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
           <h1 className="text-4xl font-black tracking-tighter italic text-slate-800">Olá, {profile.full_name}!</h1>
-          <p className="text-green-600 font-bold flex items-center gap-2 mt-1"><CheckCircle size={16}/> Assinatura Ativa (Válido por 30 dias)</p>
+          <p className="text-green-600 font-bold flex items-center gap-2 mt-1"><CheckCircle size={16}/> Assinatura Ativa</p>
         </div>
         <div className="flex gap-4">
           <div className="text-center bg-slate-50 px-6 py-3 rounded-2xl"><p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Avaliação</p><p className="font-black text-xl italic text-blue-600">4.9</p></div>
@@ -236,7 +241,7 @@ function ProDashboard({ profile, onPay }) {
               <div className="flex gap-2">
                 <button className="p-3 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition shadow-sm"><CheckCircle size={20}/></button>
                 <button className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition shadow-sm"><XCircle size={20}/></button>
-                <a href={`https://wa.me/${profile.telefone}`} className="p-3 bg-blue-600 text-white rounded-xl shadow-lg"><MessageCircle size={20}/></a>
+                <a href={`https://wa.me/${profile?.telefone}`} className="p-3 bg-blue-600 text-white rounded-xl shadow-lg"><MessageCircle size={20}/></a>
               </div>
             </div>
           ))}
@@ -262,7 +267,7 @@ function ClientDashboard({ profile }) {
         <h2 className="text-6xl font-black italic tracking-tighter text-slate-900 leading-none">Onde você vai <span className="text-blue-600">cortar hoje?</span></h2>
         <div className="relative group">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition" />
-          <input className="w-full py-6 pl-16 pr-8 bg-white rounded-[2.5rem] shadow-2xl shadow-blue-100 border-none outline-none text-lg placeholder:italic" placeholder="Nome da barbearia ou distância..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="w-full py-6 pl-16 pr-8 bg-white rounded-[2.5rem] shadow-2xl shadow-blue-100 border-none outline-none text-lg placeholder:italic" placeholder="Nome da barbearia..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
@@ -270,7 +275,7 @@ function ClientDashboard({ profile }) {
         {[1, 2, 3].map(i => (
           <div key={i} className="bg-white rounded-[3rem] overflow-hidden shadow-sm border border-slate-100 hover:shadow-2xl transition-all duration-500">
             <div className="h-48 bg-slate-200 relative">
-              <img src={`https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500`} className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500" className="w-full h-full object-cover" alt="barbearia" />
               <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-black flex items-center gap-1"><Star size={12} className="fill-yellow-400 text-yellow-400"/> 4.8</div>
             </div>
             <div className="p-8">
@@ -280,14 +285,6 @@ function ClientDashboard({ profile }) {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="bg-slate-900 rounded-[4rem] p-12 text-white">
-        <h3 className="text-xl font-black italic mb-8 border-b border-white/10 pb-4">Histórico de Visitas (Visual)</h3>
-        <div className="space-y-4 opacity-40">
-          <div className="flex justify-between font-bold italic border-b border-white/5 pb-2"><span>Corte Social • Barber Club</span><span>Ontem</span></div>
-          <div className="flex justify-between font-bold italic border-b border-white/5 pb-2"><span>Barba • Studio X</span><span>12 Dez</span></div>
-        </div>
       </div>
     </div>
   );
