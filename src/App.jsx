@@ -107,6 +107,7 @@ export default function App() {
 
 // --- MÓDULO DE AUTENTICAÇÃO ---
 function AuthModule({ isRegistering, setIsRegistering, getProfile }) {
+
   const [role, setRole] = useState('cliente');
   const [form, setForm] = useState({ email: '', password: '', nome: '', telefone: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
