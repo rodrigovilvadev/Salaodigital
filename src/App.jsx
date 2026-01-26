@@ -169,15 +169,15 @@ function Navbar({ session, profile }) {
 
 // --- MÓDULO DE AUTENTICAÇÃO (LOGIN / REGISTRO) ---
 
-// --- MÓDULO DE LOGIN E CADASTRO CORRIGIDO ---
 function AuthModule({ isRegistering, setIsRegistering }) {
   const [role, setRole] = useState('cliente');
   const [form, setForm] = useState({ email: '', password: '', nome: '', telefone: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false); // Estado para evitar cliques múltiplos
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleAuth(e) {
     e.preventDefault();
-    setIsSubmitting(true); // Bloqueia o botão
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
       if (isRegistering) {
@@ -185,15 +185,14 @@ function AuthModule({ isRegistering, setIsRegistering }) {
           email: form.email, 
           password: form.password 
         });
-
         if (aErr) throw aErr;
 
-        const { error: dbError } = await supabase.from('usuarios').insert([
-          { id: auth.user.id, full_name: form.nome, telefone: form.telefone, role: role }
-        ]);
-        
-        if (dbError) throw dbError;
-        alert("Sucesso! Verifique seu e-mail para confirmar a conta.");
+        if (auth?.user) {
+          await supabase.from('usuarios').insert([
+            { id: auth.user.id, full_name: form.nome, telefone: form.telefone, role: role }
+          ]);
+        }
+        alert("Sucesso! Verifique seu e-mail.");
       } else {
         const { error: lErr } = await supabase.auth.signInWithPassword({ 
           email: form.email, 
@@ -202,23 +201,17 @@ function AuthModule({ isRegistering, setIsRegistering }) {
         if (lErr) throw lErr;
       }
     } catch (err) {
-      // TRATAMENTO DO LIMITE DE E-MAIL
-      if (err.message.includes("rate limit exceeded")) {
-        alert("⚠️ Limite de envios excedido: O sistema de segurança bloqueou novos cadastros temporariamente para este e-mail. Por favor, aguarde 15 minutos e tente novamente.");
-      } else {
-        alert(err.message);
-      }
+      alert(err.message.includes("rate limit") ? "Aguarde 15 min ou use outro email." : err.message);
     } finally {
-      setIsSubmitting(false); // Libera o botão
+      setIsSubmitting(false);
     }
   }
 
   return (
     <div className="max-w-md mx-auto mt-10 bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-100">
       <h2 className="text-3xl font-black text-center mb-2">{isRegistering ? 'Criar Conta' : 'Acessar'}</h2>
-      <p className="text-center text-slate-400 text-sm mb-8 italic font-medium">O próximo nível do seu negócio.</p>
-
-      <form onSubmit={handleAuth} className="space-y-4">
+      
+      <form onSubmit={handleAuth} className="space-y-4 mt-8">
         {isRegistering && (
           <>
             <div className="flex bg-slate-100 p-1 rounded-2xl mb-4">
@@ -229,24 +222,24 @@ function AuthModule({ isRegistering, setIsRegistering }) {
             <div className="relative"><Phone className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="WhatsApp" onChange={e => setForm({...form, telefone: e.target.value})}/></div>
           </>
         )}
+        
         <div className="relative"><Mail className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required type="email" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="E-mail" onChange={e => setForm({...form, email: e.target.value})}/></div>
         <div className="relative"><Lock className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required type="password" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="Senha" onChange={e => setForm({...form, password: e.target.value})}/></div>
         
-        <button 
-          type="submit" 
-          disabled={isSubmitting}
-          className={`w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg transition uppercase tracking-widest text-sm transform active:scale-95 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
-        >
-          {isSubmitting ? 'Processando...' : (isRegistering ? 'Cadastrar Agora' : 'Entrar na Conta')}
+        <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg hover:bg-blue-600 transition uppercase tracking-widest text-sm disabled:opacity-50">
+          {isSubmitting ? 'CARREGANDO...' : (isRegistering ? 'CRIAR MINHA CONTA' : 'ENTRAR NA CONTA')}
         </button>
       </form>
 
-      <p className="text-center mt-6 text-sm font-bold text-slate-400">
-        {isRegistering ? 'Já tem conta?' : 'Novo aqui?'} 
-        <button onClick={() => setIsRegistering(!isRegistering)} className="ml-2 text-blue-600 underline italic">
-          {isRegistering ? 'Logar' : 'Registrar'}
+      <div className="text-center mt-6">
+        <button 
+          type="button" 
+          onClick={() => setIsRegistering(!isRegistering)} 
+          className="text-blue-600 font-bold underline italic text-sm"
+        >
+          {isRegistering ? 'Já possui conta? Faça login' : 'Novo aqui? Registre-se'}
         </button>
-      </p>
+      </div>
     </div>
   );
 }
