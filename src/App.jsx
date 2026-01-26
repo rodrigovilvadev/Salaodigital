@@ -691,12 +691,11 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
 import { supabase } from './supabaseClient';
 export default function App() {
-  const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
+  const [currentMode, setCurrentMode] = useState(null);
   const [user, setUser] = useState(null); 
-  const [barbers, setBarbers] = useState([]);
+  const [barbersList, setBarbersList] = useState([]); // Renomeado para evitar conflito
   const [appointments, setAppointments] = useState([]);
 
-  // Carregar dados iniciais do Supabase
   useEffect(() => {
     if (user) {
       fetchAppointments();
@@ -705,61 +704,78 @@ export default function App() {
   }, [user, currentMode]);
 
   async function fetchBarbers() {
-    const { data } = await supabase.from('usuarios').select('*').eq('role', 'profissional').eq('visivel', true);
-    if (data) setBarbers(data);
+    try {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('role', 'profissional')
+        .eq('visivel', true);
+      
+      if (error) throw error;
+      if (data) setBarbersList(data);
+    } catch (err) {
+      console.error("Erro ao buscar barbeiros:", err.message);
+    }
   }
 
   async function fetchAppointments() {
-    // Busca agendamentos onde o usuário é o barbeiro OU o cliente (pelo telefone)
-    const { data } = await supabase
-      .from('agendamentos')
-      .select('*')
-      .or(`barberId.eq.${user.id},clientPhone.eq.${user.telefone}`);
-    if (data) setAppointments(data);
+    try {
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .or(`barberId.eq.${user.id},clientPhone.eq.${user.telefone}`);
+      
+      if (error) throw error;
+      if (data) setAppointments(data);
+    } catch (err) {
+      console.error("Erro ao buscar agendamentos:", err.message);
+    }
   }
 
-  // --- LOGIN (Lendo do Supabase) ---
   const handleLogin = async (phone, password) => {
     try {
       const { data, error } = await supabase
         .from('usuarios')
         .select('*')
         .eq('telefone', phone)
-        .eq('password_hack', password) // Usando sua lógica de senha simples
+        .eq('password_hack', password)
         .single();
 
+      if (error) throw error;
       if (data) {
         setUser(data);
         setCurrentMode(data.role === 'profissional' ? 'barber' : 'client');
-      } else {
-        alert('Credenciais inválidas!');
       }
     } catch (err) {
-      alert('Erro ao fazer login.');
+      alert('Credenciais inválidas ou erro de conexão.');
     }
   };
 
-  // --- REGISTRO (Salvando no Supabase) ---
   const handleRegister = async (name, phone, password) => {
-    const roleValue = currentMode === 'barber' ? 'profissional' : 'cliente';
-    
-    const newUser = {
-      full_name: name,
-      telefone: phone,
-      password_hack: password,
-      role: roleValue,
-      plano_ativo: false,
-      visivel: false,
-      horarios: ['09:00', '10:00', '18:00'],
-      servicos: []
-    };
+    try {
+      const roleValue = currentMode === 'barber' ? 'profissional' : 'cliente';
+      const newUser = {
+        full_name: name,
+        telefone: phone,
+        password_hack: password,
+        role: roleValue,
+        plano_ativo: false,
+        visivel: false,
+        horarios: ['09:00', '10:00', '18:00'],
+        servicos: []
+      };
 
-    const { data, error } = await supabase.from('usuarios').insert([newUser]).select().single();
+      const { data, error } = await supabase
+        .from('usuarios')
+        .insert([newUser])
+        .select()
+        .single();
 
-    if (error) {
-      alert('Erro ao cadastrar: ' + error.message);
-    } else {
-      setUser(data);
+      if (error) throw error;
+      if (data) setUser(data);
+    } catch (err) {
+      alert('Erro ao cadastrar: Verifique sua conexão com a internet.');
+      console.error(err);
     }
   };
 
@@ -768,10 +784,8 @@ export default function App() {
     setCurrentMode(null);
   };
 
-  // --- ATUALIZAÇÃO DE PERFIL (Update no Supabase) ---
   const handleUpdateProfile = async (updatedUser) => {
-    setUser(updatedUser); // Update local para velocidade
-
+    setUser(updatedUser);
     await supabase
       .from('usuarios')
       .update({
@@ -784,7 +798,6 @@ export default function App() {
       .eq('id', updatedUser.id);
   };
 
-  // --- AGENDAMENTOS (Insert e Status no Supabase) ---
   const handleBookingSubmit = async (data) => {
     const newAppointment = {
       client: user.full_name,
@@ -806,13 +819,6 @@ export default function App() {
     await supabase.from('agendamentos').update({ status: newStatus }).eq('id', appId);
   };
   
-  const handleCancelBooking = (appId) => {
-    if(window.confirm('Tem certeza que deseja cancelar?')) {
-      handleUpdateStatus(appId, 'cancelled');
-    }
-  };
-
-  // ROTEAMENTO
   if (!currentMode) return <WelcomeScreen onSelectMode={setCurrentMode} />;
   
   if (!user) return (
@@ -839,11 +845,11 @@ export default function App() {
   return (
     <ClientApp 
       user={user} 
-      barbers={barbers} 
+      barbers={barbersList} // Usando o nome correto aqui
       onLogout={handleLogout} 
       onBookingSubmit={handleBookingSubmit}
       appointments={appointments}
-      onCancelBooking={handleCancelBooking}
+      onCancelBooking={(id) => handleUpdateStatus(id, 'cancelled')}
     />
   );
 }
