@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
 import { 
-  Scissors, User, Calendar, MapPin, Star, CheckCircle2, 
-  LogOut, Bell, DollarSign, ChevronLeft, ChevronRight, 
-  Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
-  CreditCard, Lock, Clock, CalendarDays, Sparkles, 
-  Palette, Briefcase, Edit3, MessageCircle, Phone, 
-  XCircle, History
+  Scissors, User, Calendar, MapPin, Star, 
+  CheckCircle2, LogOut, Bell, DollarSign, 
+  ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus,
+  Eye, EyeOff, CreditCard, Lock, Clock, CalendarDays,
+  Sparkles, Palette, Briefcase, Edit3, MessageCircle, Phone, XCircle, History
 } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+// --- CONFIGURAÇÃO ÚNICA ---
+const supabaseUrl = 'https://vqpbbodhhyvwtfvrpgrk.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxcGJib2RoaHl2d3RmdnJwZ3JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyMTE3NDksImV4cCI6MjA4NDc4Nzc0OX0.8Swb8y8YbzTtYuAEc9flAYyIGiYo5fNAqPQJvWqrZEs';
+
+// Declare apenas UMA vez
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- CONSTANTES ---
 const MASTER_SERVICES = [
