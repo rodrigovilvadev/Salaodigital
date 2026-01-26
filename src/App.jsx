@@ -1,244 +1,569 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { 
   User, Briefcase, MapPin, Calendar, Clock, CheckCircle, 
-  XCircle, MessageCircle, CreditCard, LogOut, Search, Star, Camera, Phone, Mail, Lock
+  XCircle, MessageCircle, CreditCard, LogOut, Search, Star, 
+  Camera, Phone, Mail, Lock, ChevronRight, Settings, 
+  Bell, Filter, ShieldCheck, Wallet, Scissors, LayoutDashboard
 } from 'lucide-react';
 
-const supabase = createClient('SEU_SUPABASE_URL', 'SUA_ANON_KEY');
+// --- CONFIGURAÇÃO (SUBSTITUA PELOS SEUS DADOS) ---
+const SUPABASE_URL = "SUA_URL_AQUI";
+const SUPABASE_KEY = "SUA_KEY_ANON_AQUI";
 const API_URL = "https://salaodigital.onrender.com";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// --- ESTILOS TAIWAND REUTILIZÁVEIS ---
+const styles = {
+  input: "w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-300 text-slate-700 shadow-inner",
+  buttonPrimary: "w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-black shadow-xl shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2",
+  card: "bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500 p-6",
+  badgeActive: "bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black flex items-center gap-1",
+  badgeInactive: "bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-black flex items-center gap-1",
+};
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [error, setError] = useState(null);
+  const [view, setView] = useState('auth'); // auth, dashboard, profile_edit
 
+  // --- LOGICA DE SESSÃO ---
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) fetchProfile(session.user.id);
-      setLoading(false);
-    });
+    const initialize = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        if (session) await fetchProfile(session.user.id);
+      } catch (err) {
+        setError("Erro ao inicializar aplicativo.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    initialize();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-      if (session) fetchProfile(session.user.id);
+      if (session) await fetchProfile(session.user.id);
       else setProfile(null);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  async function fetchProfile(userId) {
-    const { data } = await supabase.from('usuarios').select('*').eq('id', userId).single();
-    if (data) setProfile(data);
-  }
+  const fetchProfile = async (userId) => {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error("Erro profile:", error);
+      return;
+    }
+    setProfile(data);
+  };
 
-  const handleCheckout = async () => {
+  // --- LÓGICA DE PAGAMENTO (SEU BACKEND) ---
+  const handlePayment = async () => {
     try {
       const response = await fetch(`${API_URL}/criar-pagamento`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barberId: session.user.id }) 
+        body: JSON.stringify({ barberId: session.user.id })
       });
       const data = await response.json();
       if (data.init_point) window.location.href = data.init_point;
-    } catch (err) { alert("Erro ao gerar link de pagamento."); }
+    } catch (err) {
+      alert("Falha ao conectar com o servidor de pagamento.");
+    }
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50 italic font-bold text-blue-600">SALAO DIGITAL...</div>;
+  // --- RENDERS ---
+  if (loading) return <LoadingScreen />;
+  if (error) return <ErrorScreen message={error} />;
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-slate-900">
-      <nav className="flex justify-between items-center px-8 py-5 border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="text-2xl font-black italic tracking-tighter text-blue-700">SALAO.DIGITAL</div>
-        {session && (
-          <button onClick={() => supabase.auth.signOut()} className="flex items-center gap-2 text-sm font-bold text-red-500 bg-red-50 px-4 py-2 rounded-full hover:bg-red-100 transition">
-            <LogOut size={18} /> Sair
-          </button>
+    <div className="min-h-screen bg-[#F8FAFC] selection:bg-blue-100">
+      <Navbar session={session} profile={profile} />
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {!session ? (
+          <AuthModule fetchProfile={fetchProfile} />
+        ) : (
+          <>
+            {profile?.role === 'profissional' ? (
+              <ProfessionalModule profile={profile} onPay={handlePayment} />
+            ) : (
+              <ClientModule profile={profile} />
+            )}
+          </>
         )}
-      </nav>
+      </main>
 
-      {!session ? (
-        <AuthForm isRegistering={isRegistering} setIsRegistering={setIsRegistering} />
-      ) : (
-        <div className="max-w-6xl mx-auto p-6">
-          {profile?.role === 'profissional' ? (
-            <ProDashboard profile={profile} onPay={handleCheckout} />
-          ) : (
-            <ClientDashboard profile={profile} />
-          )}
-        </div>
-      )}
+      <Footer />
     </div>
   );
 }
 
-// --- FORMULÁRIO DE LOGIN / CADASTRO ---
-function AuthForm({ isRegistering, setIsRegistering }) {
-  const [formData, setFormData] = useState({ email: '', password: '', nome: '', telefone: '', role: 'cliente' });
+// --- COMPONENTES AUXILIARES ---
 
-  const handleSubmit = async (e) => {
+function LoadingScreen() {
+  return (
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-white">
+      <div className="relative">
+        <div className="w-20 h-20 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin"></div>
+        <Scissors className="absolute inset-0 m-auto text-blue-600 animate-pulse" size={24} />
+      </div>
+      <h2 className="mt-6 text-xl font-black italic text-slate-800 tracking-tighter">SALAO DIGITAL</h2>
+    </div>
+  );
+}
+
+function ErrorScreen({ message }) {
+  return (
+    <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
+      <XCircle size={64} className="text-red-500 mb-4" />
+      <h1 className="text-2xl font-bold">{message}</h1>
+      <button onClick={() => window.location.reload()} className="mt-4 text-blue-600 font-bold">Tentar novamente</button>
+    </div>
+  );
+}
+
+function Navbar({ session, profile }) {
+  return (
+    <nav className="bg-white/80 backdrop-blur-xl sticky top-0 z-[100] border-b border-slate-200/50 px-6 py-4">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-600 rounded-xl rotate-3 shadow-lg shadow-blue-200">
+             <Scissors className="text-white transform -rotate-3" size={20} />
+          </div>
+          <span className="text-2xl font-black italic tracking-tighter bg-gradient-to-br from-slate-900 to-slate-500 bg-clip-text text-transparent">
+            SALAO<span className="text-blue-600">DIGITAL</span>
+          </span>
+        </div>
+
+        {session && (
+          <div className="flex items-center gap-4">
+            <div className="hidden md:block text-right">
+              <p className="text-xs font-black text-slate-400 uppercase leading-none">Bem-vindo</p>
+              <p className="text-sm font-bold text-slate-800">{profile?.full_name?.split(' ')[0]}</p>
+            </div>
+            <button 
+              onClick={() => supabase.auth.signOut()}
+              className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all duration-300"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+// --- MÓDULO DE AUTENTICAÇÃO (LOGIN / REGISTRO) ---
+
+function AuthModule({ fetchProfile }) {
+  const [isRegister, setIsRegister] = useState(false);
+  const [role, setRole] = useState('cliente');
+  const [form, setForm] = useState({ email: '', password: '', nome: '', telefone: '' });
+
+  const handleAuth = async (e) => {
     e.preventDefault();
-    if (isRegistering) {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (authError) return alert(authError.message);
-
-      // Salva os dados adicionais na sua tabela 'usuarios'
-      const { error: dbError } = await supabase.from('usuarios').insert([{
-        id: authData.user.id,
-        full_name: formData.nome,
-        telefone: formData.telefone,
-        role: formData.role,
-        plano_ativo: false
-      }]);
-
-      if (dbError) alert("Erro ao salvar perfil: " + dbError.message);
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-      if (error) alert("Erro no login: " + error.message);
+    try {
+      if (isRegister) {
+        const { data, error } = await supabase.auth.signUp({ 
+          email: form.email, 
+          password: form.password 
+        });
+        if (error) throw error;
+        
+        // Criar perfil no DB usando o seu formato de tabela
+        const { error: dbError } = await supabase.from('usuarios').insert([{
+          id: data.user.id,
+          full_name: form.nome,
+          telefone: form.telefone,
+          role: role,
+          plano_ativo: false,
+          created_at: new Date()
+        }]);
+        if (dbError) throw dbError;
+        alert("Conta criada! Confirme seu e-mail.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ 
+          email: form.email, 
+          password: form.password 
+        });
+        if (error) throw error;
+      }
+    } catch (err) {
+      alert(err.message);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-12 p-10 bg-white rounded-[3rem] shadow-2xl border border-slate-100">
-      <h2 className="text-3xl font-black text-center mb-2">{isRegistering ? 'Criar Conta' : 'Entrar'}</h2>
-      <p className="text-center text-slate-400 mb-8 text-sm">Preencha seus dados para continuar</p>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {isRegistering && (
-          <>
-            <div className="flex bg-slate-50 p-1 rounded-2xl mb-4">
-              <button type="button" onClick={() => setFormData({...formData, role: 'cliente'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${formData.role === 'cliente' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>CLIENTE</button>
-              <button type="button" onClick={() => setFormData({...formData, role: 'profissional'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${formData.role === 'profissional' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>PROFISSIONAL</button>
+    <div className="max-w-xl mx-auto pt-10 pb-20">
+      <div className="bg-white rounded-[3.5rem] p-10 shadow-2xl shadow-slate-200 border border-slate-100">
+        <header className="text-center mb-10">
+          <h2 className="text-4xl font-black text-slate-900 mb-2">{isRegister ? "Comece agora" : "Acesse sua conta"}</h2>
+          <p className="text-slate-400 font-medium">O padrão ouro em agendamentos digitais.</p>
+        </header>
+
+        <form onSubmit={handleAuth} className="space-y-5">
+          {isRegister && (
+            <div className="grid grid-cols-2 gap-4 p-1.5 bg-slate-50 rounded-[2rem] mb-8">
+              <button 
+                type="button" onClick={() => setRole('cliente')}
+                className={`py-3 rounded-[1.5rem] text-sm font-black transition-all ${role === 'cliente' ? 'bg-white shadow-md text-blue-600 scale-[1.02]' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                SOU CLIENTE
+              </button>
+              <button 
+                type="button" onClick={() => setRole('profissional')}
+                className={`py-3 rounded-[1.5rem] text-sm font-black transition-all ${role === 'profissional' ? 'bg-white shadow-md text-blue-600 scale-[1.02]' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                SOU PROFISSIONAL
+              </button>
             </div>
-            <div className="relative">
-              <User className="absolute left-4 top-3.5 text-slate-300" size={18}/>
-              <input required placeholder="Nome Completo" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 border-none" 
-                onChange={e => setFormData({...formData, nome: e.target.value})}/>
-            </div>
-            <div className="relative">
-              <Phone className="absolute left-4 top-3.5 text-slate-300" size={18}/>
-              <input required placeholder="Telefone (WhatsApp)" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 border-none"
-                onChange={e => setFormData({...formData, telefone: e.target.value})}/>
-            </div>
-          </>
-        )}
-        <div className="relative">
-          <Mail className="absolute left-4 top-3.5 text-slate-300" size={18}/>
-          <input required type="email" placeholder="E-mail" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 border-none"
-            onChange={e => setFormData({...formData, email: e.target.value})}/>
-        </div>
-        <div className="relative">
-          <Lock className="absolute left-4 top-3.5 text-slate-300" size={18}/>
-          <input required type="password" placeholder="Senha" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 border-none"
-            onChange={e => setFormData({...formData, password: e.target.value})}/>
-        </div>
-        
-        <button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition transform active:scale-95">
-          {isRegistering ? 'FINALIZAR CADASTRO' : 'ACESSAR CONTA'}
-        </button>
-      </form>
-      
-      <p className="text-center mt-6 text-sm font-medium text-slate-400">
-        {isRegistering ? 'Já tem conta?' : 'Não tem conta?'} 
-        <span onClick={() => setIsRegistering(!isRegistering)} className="text-blue-600 cursor-pointer ml-1 font-bold underline">
-          {isRegistering ? 'Faça login' : 'Cadastre-se'}
-        </span>
-      </p>
+          )}
+
+          {isRegister && (
+            <>
+              <div className="relative">
+                <User className="absolute left-4 top-4 text-slate-300" size={20} />
+                <input required className={styles.input} placeholder="Nome Completo" onChange={e => setForm({...form, nome: e.target.value})} />
+              </div>
+              <div className="relative">
+                <Phone className="absolute left-4 top-4 text-slate-300" size={20} />
+                <input required className={styles.input} placeholder="Telefone (WhatsApp)" onChange={e => setForm({...form, telefone: e.target.value})} />
+              </div>
+            </>
+          )}
+
+          <div className="relative">
+            <Mail className="absolute left-4 top-4 text-slate-300" size={20} />
+            <input required type="email" className={styles.input} placeholder="Seu melhor e-mail" onChange={e => setForm({...form, email: e.target.value})} />
+          </div>
+
+          <div className="relative">
+            <Lock className="absolute left-4 top-4 text-slate-300" size={20} />
+            <input required type="password" className={styles.input} placeholder="Senha segura" onChange={e => setForm({...form, password: e.target.value})} />
+          </div>
+
+          <button type="submit" className={styles.buttonPrimary}>
+            {isRegister ? "CRIAR MINHA CONTA" : "ENTRAR NO SISTEMA"}
+            <ChevronRight size={20} />
+          </button>
+        </form>
+
+        <footer className="mt-10 text-center">
+          <p className="text-slate-400 font-bold">
+            {isRegister ? "Já possui conta?" : "Ainda não tem conta?"} 
+            <button onClick={() => setIsRegister(!isRegister)} className="ml-2 text-blue-600 underline">
+              {isRegister ? "Faça login" : "Cadastre-se grátis"}
+            </button>
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }
 
-// --- DASHBOARD PROFISSIONAL ---
-function ProDashboard({ profile, onPay }) {
-  if (!profile?.plano_ativo) {
+// --- MÓDULO DO PROFISSIONAL ---
+
+function ProfessionalModule({ profile, onPay }) {
+  const [activeTab, setActiveTab] = useState('requests');
+
+  // Verifica expiração
+  const expiryDate = profile?.created_at ? new Date(new Date(profile.created_at).getTime() + 30*24*60*60*1000) : null;
+  const isExpired = expiryDate ? new Date() > expiryDate : false;
+
+  if (!profile?.plano_ativo || isExpired) {
     return (
-      <div className="max-w-xl mx-auto text-center py-20 bg-white rounded-[3rem] border shadow-xl p-10">
-        <CreditCard className="text-blue-600 mx-auto mb-6" size={48} />
-        <h2 className="text-3xl font-black mb-4">Seu Perfil está Invisível</h2>
-        <p className="text-slate-500 mb-8">Para aceitar solicitações e aparecer para clientes, ative sua assinatura mensal.</p>
-        <button onClick={onPay} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black shadow-xl hover:bg-blue-700 transition">
-          ATIVAR AGORA - R$ 29,90
-        </button>
+      <div className="max-w-3xl mx-auto py-12">
+        <div className="bg-white rounded-[3.5rem] p-12 text-center shadow-2xl border-4 border-blue-50">
+          <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
+            <Wallet className="text-blue-600" size={48} />
+          </div>
+          <h2 className="text-4xl font-black text-slate-900 mb-4">Seu Perfil está Pausado</h2>
+          <p className="text-lg text-slate-500 mb-10 max-w-md mx-auto italic">
+            "O sucesso não espera. Ative sua presença digital e receba novos clientes hoje mesmo."
+          </p>
+          
+          <div className="grid md:grid-cols-2 gap-6 mb-12 text-left">
+            <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+              <ShieldCheck className="text-blue-600 mb-2" />
+              <h4 className="font-black text-slate-800">Visibilidade Total</h4>
+              <p className="text-xs text-slate-400">Seu perfil no topo das buscas locais por distância.</p>
+            </div>
+            <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+              <MessageCircle className="text-blue-600 mb-2" />
+              <h4 className="font-black text-slate-800">Direto no WhatsApp</h4>
+              <p className="text-xs text-slate-400">Receba notificações e fale com clientes em um clique.</p>
+            </div>
+          </div>
+
+          <button onClick={onPay} className={styles.buttonPrimary}>
+            ATIVAR PLANO PREMIUM - R$ 29,90/mês
+          </button>
+          {isExpired && <p className="mt-4 text-red-500 font-bold text-sm">Sua assinatura expirou em {expiryDate?.toLocaleDateString()}</p>}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+    <div className="space-y-10 animate-in fade-in duration-700">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-3xl font-black italic">Olá, {profile.full_name}</h1>
-          <p className="text-green-600 text-sm font-bold flex items-center gap-1 mt-1">
-            <CheckCircle size={14}/> Assinatura Premium Ativa
+          <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">Dashboard</h1>
+          <p className="text-slate-400 font-bold mt-2 flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+            PROFISSIONAL ATIVO • EXPIRA EM {expiryDate?.toLocaleDateString()}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-slate-400 font-bold uppercase">Expira em</p>
-          <p className="font-mono text-slate-700">25/02/2026</p>
+        <div className="flex gap-3">
+          <button className="px-6 py-3 bg-white rounded-2xl font-black text-xs border border-slate-200 shadow-sm hover:bg-slate-50">HORÁRIOS</button>
+          <button className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs shadow-lg">CONFIGURAÇÕES</button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Calendar size={20} className="text-blue-600"/> Pedidos</h3>
-          <div className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between">
-            <div>
-              <p className="font-bold text-slate-800">Cliente Exemplo</p>
-              <p className="text-xs text-slate-400">Corte Social • 14:00</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Lado Esquerdo: Pedidos */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-2xl font-black text-slate-800 tracking-tight">Solicitações Recentes</h3>
+            <span className="p-2 bg-blue-100 text-blue-600 rounded-lg text-xs font-black">2 PENDENTES</span>
+          </div>
+
+          {[1, 2].map((i) => (
+            <div key={i} className="group relative bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-6">
+                <div className="w-20 h-20 bg-slate-100 rounded-[1.8rem] overflow-hidden group-hover:rotate-3 transition-transform">
+                  <img src={`https://i.pravatar.cc/150?u=${i}`} alt="user" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-black text-slate-800">Gabriel Medeiros</h4>
+                  <div className="flex items-center gap-3 text-sm text-slate-400 font-medium mt-1">
+                    <span className="flex items-center gap-1"><Scissors size={14}/> Corte Degradê</span>
+                    <span className="flex items-center gap-1"><Clock size={14}/> Hoje às 16:30</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <button className="flex-1 md:flex-none p-4 bg-green-50 text-green-600 rounded-2xl hover:bg-green-600 hover:text-white transition-all shadow-sm">
+                  <CheckCircle size={24} />
+                </button>
+                <button className="flex-1 md:flex-none p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                  <XCircle size={24} />
+                </button>
+                <a 
+                  href="https://wa.me/5511999999999" 
+                  target="_blank" 
+                  className="flex-1 md:flex-none p-4 bg-blue-600 text-white rounded-2xl hover:bg-slate-900 transition-all shadow-lg"
+                >
+                  <MessageCircle size={24} />
+                </a>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button className="p-2 bg-white text-green-500 rounded-lg shadow-sm hover:bg-green-500 hover:text-white transition"><CheckCircle size={18}/></button>
-              <a href={`https://wa.me/${profile.telefone}`} className="p-2 bg-green-500 text-white rounded-lg shadow-sm"><MessageCircle size={18}/></a>
+          ))}
+        </div>
+
+        {/* Lado Direito: Perfil & Status */}
+        <div className="space-y-8">
+          <div className="bg-slate-900 rounded-[3rem] p-8 text-white relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 blur-3xl rounded-full"></div>
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="relative mb-6">
+                <div className="w-32 h-32 rounded-[2.5rem] bg-white/10 border-4 border-white/20 p-1 group-hover:rotate-6 transition-all duration-500">
+                  <img src={profile?.avatar_url || "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200"} className="w-full h-full object-cover rounded-[2rem]" />
+                </div>
+                <button className="absolute -bottom-2 -right-2 p-3 bg-blue-600 text-white rounded-2xl shadow-xl border-4 border-slate-900">
+                  <Camera size={18} />
+                </button>
+              </div>
+              <h3 className="text-2xl font-black mb-1">{profile.full_name}</h3>
+              <p className="text-blue-400 font-bold text-sm tracking-widest uppercase mb-6">Professional Barber</p>
+              
+              <div className="w-full grid grid-cols-2 gap-4">
+                <div className="bg-white/5 p-4 rounded-2xl text-center">
+                  <p className="text-xs text-slate-500 font-bold uppercase">Nota</p>
+                  <p className="text-xl font-black">4.9</p>
+                </div>
+                <div className="bg-white/5 p-4 rounded-2xl text-center">
+                  <p className="text-xs text-slate-500 font-bold uppercase">Fidelidade</p>
+                  <p className="text-xl font-black">128</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Camera size={20} className="text-blue-600"/> Meu Perfil</h3>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 bg-slate-100 rounded-3xl border-4 border-white shadow-md flex items-center justify-center">
-               <Camera size={24} className="text-slate-300"/>
+          <div className="bg-white p-8 rounded-[3rem] border border-slate-100">
+            <h4 className="font-black text-slate-800 mb-6 flex items-center gap-2">
+              <Settings size={18} className="text-blue-600" /> Agenda Semanal
+            </h4>
+            <div className="space-y-3">
+              {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map(day => (
+                <div key={day} className="flex justify-between items-center p-3 hover:bg-slate-50 rounded-xl transition cursor-pointer">
+                  <span className="font-bold text-slate-600">{day}</span>
+                  <span className="text-xs font-black text-blue-600">09:00 - 19:00</span>
+                </div>
+              ))}
             </div>
-            <button className="text-sm font-bold text-blue-600 underline">Alterar Foto</button>
           </div>
-          <button className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm">Gerenciar Horários</button>
         </div>
       </div>
     </div>
   );
 }
 
-// --- DASHBOARD CLIENTE ---
-function ClientDashboard({ profile }) {
-  const [search, setSearch] = useState('');
-  return (
-    <div className="space-y-10">
-      <div className="text-center max-w-2xl mx-auto space-y-4">
-        <h2 className="text-5xl font-black tracking-tighter italic">Olá, {profile?.full_name?.split(' ')[0]}!</h2>
-        <div className="relative">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" />
-          <input className="w-full py-6 pl-16 pr-6 bg-white rounded-[2.5rem] shadow-2xl shadow-blue-50 border-none outline-none text-lg" 
-            placeholder="Buscar por nome ou distância..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-      </div>
+// --- MÓDULO DO CLIENTE ---
 
-      <section className="bg-slate-900 text-white p-10 rounded-[3rem]">
-        <h3 className="text-xl font-bold mb-6">Histórico (Apenas Visual)</h3>
-        <div className="space-y-4 opacity-60 italic">
-          <div className="flex justify-between border-b border-white/10 pb-2"><span>Corte de Cabelo</span><span>Ontem</span></div>
-          <div className="flex justify-between border-b border-white/10 pb-2"><span>Barba e Bigode</span><span>12 Jan</span></div>
+function ClientModule({ profile }) {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('Proximidade');
+
+  return (
+    <div className="space-y-12 animate-in slide-in-from-bottom-6 duration-700">
+      {/* Hero Section */}
+      <section className="relative h-[400px] rounded-[4rem] bg-slate-900 overflow-hidden flex flex-col items-center justify-center px-6 text-center shadow-2xl">
+        <img src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+        <div className="relative z-10 space-y-6 max-w-3xl">
+          <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none italic">
+            SEU ESTILO <br/><span className="text-blue-500">DIGITALIZADO.</span>
+          </h1>
+          <p className="text-slate-300 text-lg font-medium">Os melhores profissionais da sua região a um toque de distância.</p>
+          
+          <div className="relative max-w-2xl mx-auto group">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={24} />
+            <input 
+              className="w-full pl-16 pr-8 py-6 bg-white rounded-[2.5rem] shadow-2xl shadow-blue-900/20 text-slate-900 outline-none text-lg font-medium"
+              placeholder="Buscar por nome, serviço ou localização..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Categorias & Filtros */}
+      <section className="flex flex-wrap items-center justify-between gap-6">
+        <div className="flex gap-2">
+          {['Todos', 'Barba', 'Cabelo', 'Coloração', 'Visagismo'].map(cat => (
+            <button key={cat} className="px-6 py-3 bg-white border border-slate-100 rounded-full text-xs font-black text-slate-500 hover:border-blue-600 hover:text-blue-600 transition shadow-sm uppercase tracking-widest">{cat}</button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3 bg-slate-100 p-1.5 rounded-2xl">
+          <Filter size={18} className="ml-3 text-slate-400" />
+          <select 
+            className="bg-transparent text-sm font-black text-slate-600 outline-none pr-4 py-2"
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+          >
+            <option>Proximidade</option>
+            <option>Melhor Avaliados</option>
+            <option>Menor Preço</option>
+          </select>
+        </div>
+      </section>
+
+      {/* Grid de Profissionais */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        {[1, 2, 3, 4, 5, 6].map(barber => (
+          <div key={barber} className="group bg-white rounded-[3.5rem] p-6 border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col">
+            <div className="relative h-64 rounded-[2.5rem] overflow-hidden mb-6">
+              <img 
+                src={`https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?w=500`} 
+                className="w-full h-full object-cover group-hover:scale-110 transition duration-700" 
+              />
+              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg">
+                <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                <span className="font-black text-sm text-slate-900">4.9</span>
+              </div>
+              <div className="absolute bottom-4 left-4 bg-blue-600 text-white px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase">
+                A 0.5 KM
+              </div>
+            </div>
+            
+            <div className="flex-1 space-y-2">
+              <h4 className="text-2xl font-black text-slate-800 tracking-tight">Classic Barber Shop</h4>
+              <p className="text-slate-400 font-medium text-sm flex items-center gap-2">
+                <MapPin size={14} className="text-blue-600" /> Av. Paulista, 1200 - SP
+              </p>
+              <div className="flex gap-2 py-4">
+                <span className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-bold text-slate-500 italic">Corte Americano</span>
+                <span className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-bold text-slate-500 italic">Barba</span>
+              </div>
+            </div>
+
+            <button className="w-full mt-4 py-4 bg-slate-900 text-white rounded-2xl font-black shadow-xl group-hover:bg-blue-600 transition-colors">
+              RESERVAR AGORA
+            </button>
+          </div>
+        ))}
+      </section>
+
+      {/* Histórico Local (Nav Only) */}
+      <section className="bg-white rounded-[4rem] p-12 border border-slate-100 shadow-sm">
+        <h3 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3">
+          <Clock className="text-blue-600" /> Sua Jornada de Estilo
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2].map(hist => (
+            <div key={hist} className="flex items-center gap-4 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 opacity-60">
+               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                 <Scissors size={20} className="text-slate-400" />
+               </div>
+               <div>
+                 <p className="font-black text-slate-700">Corte & Barba</p>
+                 <p className="text-xs text-slate-400">Há 2 semanas no Classic Shop</p>
+               </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="border-t border-slate-200 bg-white py-20 mt-20">
+      <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12 text-center md:text-left">
+        <div className="md:col-span-2">
+          <h2 className="text-2xl font-black italic tracking-tighter text-blue-700 mb-4">SALAO.DIGITAL</h2>
+          <p className="text-slate-400 font-medium max-w-sm">Elevando o padrão de atendimento para barbeiros e clientes em todo o Brasil. Tecnologia a serviço da beleza.</p>
+        </div>
+        <div>
+          <h4 className="font-black text-slate-900 mb-6 uppercase text-xs tracking-widest">Plataforma</h4>
+          <ul className="space-y-4 text-sm font-bold text-slate-400">
+            <li className="hover:text-blue-600 cursor-pointer transition">Como funciona</li>
+            <li className="hover:text-blue-600 cursor-pointer transition">Planos Pro</li>
+            <li className="hover:text-blue-600 cursor-pointer transition">Suporte</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-black text-slate-900 mb-6 uppercase text-xs tracking-widest">Legal</h4>
+          <ul className="space-y-4 text-sm font-bold text-slate-400">
+            <li className="hover:text-blue-600 cursor-pointer transition">Termos de uso</li>
+            <li className="hover:text-blue-600 cursor-pointer transition">Privacidade</li>
+          </ul>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-8 pt-20 flex flex-col md:flex-row justify-between items-center gap-6">
+        <p className="text-xs font-bold text-slate-300">© 2026 Salao Digital Corp. Todos os direitos reservados.</p>
+        <div className="flex gap-6">
+          <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 transition cursor-pointer border border-slate-100 shadow-sm"><Settings size={18}/></div>
+          <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 transition cursor-pointer border border-slate-100 shadow-sm"><ShieldCheck size={18}/></div>
+        </div>
+      </div>
+    </footer>
   );
 }
