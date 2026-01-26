@@ -691,92 +691,68 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onC
 // --- COMPONENTE PRINCIPAL (ORQUESTRADOR) ---
 import { supabase } from './supabaseClient';
 export default function App() {
-  const [currentMode, setCurrentMode] = useState(null);
-  const [user, setUser] = useState(null); 
-  const [barbersList, setBarbersList] = useState([]); // Renomeado para evitar conflito
-  const [appointments, setAppointments] = useState([]);
+  // Carrega dados do LocalStorage para simular persistência
+  const [currentMode, setCurrentMode] = useState(null); // 'client' | 'barber'
+  const [user, setUser] = useState(null); // Usuário logado
+  
+  // Dados globais (Mock Database com persistência local)
+  const [barbers, setBarbers] = useState(() => {
+      const saved = localStorage.getItem('barbers');
+      return saved ? JSON.parse(saved) : INITIAL_BARBERS;
+  });
+  const [clients, setClients] = useState(() => {
+      const saved = localStorage.getItem('clients');
+      return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
+  });
+  const [appointments, setAppointments] = useState(() => {
+      const saved = localStorage.getItem('appointments');
+      return saved ? JSON.parse(saved) : [];
+  });
 
-  useEffect(() => {
-    if (user) {
-      fetchAppointments();
-      if (currentMode === 'client') fetchBarbers();
-    }
-  }, [user, currentMode]);
+  // Salva no localStorage sempre que mudar
+  useEffect(() => { localStorage.setItem('barbers', JSON.stringify(barbers)); }, [barbers]);
+  useEffect(() => { localStorage.setItem('clients', JSON.stringify(clients)); }, [clients]);
+  useEffect(() => { localStorage.setItem('appointments', JSON.stringify(appointments)); }, [appointments]);
 
-  async function fetchBarbers() {
-    try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('role', 'profissional')
-        .eq('visivel', true);
-      
-      if (error) throw error;
-      if (data) setBarbersList(data);
-    } catch (err) {
-      console.error("Erro ao buscar barbeiros:", err.message);
-    }
-  }
-
-  async function fetchAppointments() {
-    try {
-      const { data, error } = await supabase
-        .from('agendamentos')
-        .select('*')
-        .or(`barberId.eq.${user.id},clientPhone.eq.${user.telefone}`);
-      
-      if (error) throw error;
-      if (data) setAppointments(data);
-    } catch (err) {
-      console.error("Erro ao buscar agendamentos:", err.message);
-    }
-  }
-
-  const handleLogin = async (phone, password) => {
-    try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('telefone', phone)
-        .eq('password_hack', password)
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        setUser(data);
-        setCurrentMode(data.role === 'profissional' ? 'barber' : 'client');
-      }
-    } catch (err) {
-      alert('Credenciais inválidas ou erro de conexão.');
+  // LOGIN LÓGICA
+  const handleLogin = (phone, password) => {
+    const list = currentMode === 'barber' ? barbers : clients;
+    const foundUser = list.find(u => u.phone === phone && u.password === password);
+    if (foundUser) {
+      setUser(foundUser);
+    } else {
+      alert('Credenciais inválidas!');
     }
   };
 
-  const handleRegister = async (name, phone, password) => {
-    try {
-      const roleValue = currentMode === 'barber' ? 'profissional' : 'cliente';
-      const newUser = {
-        full_name: name,
-        telefone: phone,
-        password_hack: password,
-        role: roleValue,
-        plano_ativo: false,
-        visivel: false,
-        horarios: ['09:00', '10:00', '18:00'],
-        servicos: []
-      };
-
-      const { data, error } = await supabase
-        .from('usuarios')
-        .insert([newUser])
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (data) setUser(data);
-    } catch (err) {
-      alert('Erro ao cadastrar: Verifique sua conexão com a internet.');
-      console.error(err);
+  const handleRegister = (name, phone, password) => {
+    const list = currentMode === 'barber' ? barbers : clients;
+    if (list.find(u => u.phone === phone)) {
+      alert('Telefone já cadastrado!');
+      return;
     }
+    const newUser = {
+      id: Date.now(),
+      name,
+      phone,
+      password,
+      photo: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+      ...(currentMode === 'barber' ? {
+        role: 'Barber Iniciante',
+        rating: 5.0,
+        distance: 0,
+        hasAccess: false, // Começa sem acesso (precisa pagar)
+        isVisible: false,
+        availableSlots: ['09:00', '18:00'],
+        myServices: []
+      } : {})
+    };
+    
+
+    if (currentMode === 'barber') setBarbers([...barbers, newUser]);
+    else setClients([...clients, newUser]);
+    
+    setUser(newUser);
   };
 
   const handleLogout = () => {
@@ -784,41 +760,47 @@ export default function App() {
     setCurrentMode(null);
   };
 
-  const handleUpdateProfile = async (updatedUser) => {
+  // ATUALIZAÇÃO DE DADOS
+  const handleUpdateProfile = (updatedUser) => {
+    // Atualiza o usuário logado
     setUser(updatedUser);
-    await supabase
-      .from('usuarios')
-      .update({
-        full_name: updatedUser.full_name,
-        plano_ativo: updatedUser.plano_ativo,
-        visivel: updatedUser.isVisible,
-        servicos: updatedUser.myServices,
-        horarios: updatedUser.availableSlots
-      })
-      .eq('id', updatedUser.id);
+    // Atualiza na "database"
+    if (currentMode === 'barber') {
+      setBarbers(barbers.map(b => b.id === updatedUser.id ? updatedUser : b));
+    } else {
+      setClients(clients.map(c => c.id === updatedUser.id ? updatedUser : c));
+    }
   };
 
-  const handleBookingSubmit = async (data) => {
+  // NOVO AGENDAMENTO
+  const handleBookingSubmit = (data) => {
     const newAppointment = {
-      client: user.full_name,
-      clientPhone: user.telefone,
+      id: Date.now(),
+      client: user.name,
+      clientPhone: user.phone,
       barberId: data.barber.id,
       service: data.service.name,
       price: data.price,
       date: data.date,
       time: data.time,
-      status: 'pending'
+      status: 'pending' // pending | confirmed | rejected | cancelled
     };
-
-    const { data: saved, error } = await supabase.from('agendamentos').insert([newAppointment]).select().single();
-    if (saved) setAppointments([...appointments, saved]);
+    setAppointments([...appointments, newAppointment]);
   };
 
-  const handleUpdateStatus = async (appId, newStatus) => {
-    setAppointments(appointments.map(a => a.id === appId ? { ...a, status: newStatus } : a));
-    await supabase.from('agendamentos').update({ status: newStatus }).eq('id', appId);
+  const handleUpdateStatus = (appId, newStatus) => {
+    setAppointments(appointments.map(a => 
+      a.id === appId ? { ...a, status: newStatus } : a
+    ));
   };
   
+  const handleCancelBooking = (appId) => {
+      if(window.confirm('Tem certeza que desejadsancelar?')) {
+          handleUpdateStatus(appId, 'cancelled');
+      }
+  }
+
+  // ROTEAMENTO SIMPLES
   if (!currentMode) return <WelcomeScreen onSelectMode={setCurrentMode} />;
   
   if (!user) return (
@@ -832,8 +814,8 @@ export default function App() {
 
   if (currentMode === 'barber') {
     return (
-      <ProDashboard 
-        profile={user} 
+      <BarberDashboard 
+        user={user} 
         appointments={appointments} 
         onUpdateStatus={handleUpdateStatus} 
         onLogout={handleLogout}
@@ -845,11 +827,11 @@ export default function App() {
   return (
     <ClientApp 
       user={user} 
-      barbers={barbersList} // Usando o nome correto aqui
+      barbers={barbers} 
       onLogout={handleLogout} 
       onBookingSubmit={handleBookingSubmit}
       appointments={appointments}
-      onCancelBooking={(id) => handleUpdateStatus(id, 'cancelled')}
+      onCancelBooking={handleCancelBooking}
     />
   );
 }
