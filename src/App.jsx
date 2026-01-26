@@ -177,6 +177,7 @@ function AuthModule({ isRegistering, setIsRegistering }) {
   async function handleAuth(e) {
     e.preventDefault();
     if (isSubmitting) return;
+    
     setIsSubmitting(true);
 
     try {
@@ -185,14 +186,17 @@ function AuthModule({ isRegistering, setIsRegistering }) {
           email: form.email, 
           password: form.password 
         });
+
         if (aErr) throw aErr;
 
-        if (auth?.user) {
-          await supabase.from('usuarios').insert([
+        if (auth.user) {
+          const { error: dbError } = await supabase.from('usuarios').insert([
             { id: auth.user.id, full_name: form.nome, telefone: form.telefone, role: role }
           ]);
+          if (dbError) throw dbError;
         }
-        alert("Sucesso! Verifique seu e-mail.");
+        
+        alert("Verifique seu e-mail para confirmar o cadastro!");
       } else {
         const { error: lErr } = await supabase.auth.signInWithPassword({ 
           email: form.email, 
@@ -200,8 +204,7 @@ function AuthModule({ isRegistering, setIsRegistering }) {
         });
         if (lErr) throw lErr;
       }
-    } catch (err) {
-      alert(err.message.includes("rate limit") ? "Aguarde 15 min ou use outro email." : err.message);
+  
     } finally {
       setIsSubmitting(false);
     }
@@ -226,20 +229,20 @@ function AuthModule({ isRegistering, setIsRegistering }) {
         <div className="relative"><Mail className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required type="email" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="E-mail" onChange={e => setForm({...form, email: e.target.value})}/></div>
         <div className="relative"><Lock className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required type="password" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="Senha" onChange={e => setForm({...form, password: e.target.value})}/></div>
         
-        <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg hover:bg-blue-600 transition uppercase tracking-widest text-sm disabled:opacity-50">
-          {isSubmitting ? 'CARREGANDO...' : (isRegistering ? 'CRIAR MINHA CONTA' : 'ENTRAR NA CONTA')}
+        <button 
+          type="submit" 
+          disabled={isSubmitting}
+          className={`w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg transition uppercase tracking-widest text-sm ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
+        >
+          {isSubmitting ? 'AGUARDE...' : (isRegistering ? 'CRIAR MINHA CONTA' : 'ENTRAR')}
         </button>
       </form>
 
-      <div className="text-center mt-6">
-        <button 
-          type="button" 
-          onClick={() => setIsRegistering(!isRegistering)} 
-          className="text-blue-600 font-bold underline italic text-sm"
-        >
+      <p className="text-center mt-6 text-sm font-bold text-slate-400">
+        <button onClick={() => setIsRegistering(!isRegistering)} className="text-blue-600 underline italic">
           {isRegistering ? 'Já possui conta? Faça login' : 'Novo aqui? Registre-se'}
         </button>
-      </div>
+      </p>
     </div>
   );
 }
