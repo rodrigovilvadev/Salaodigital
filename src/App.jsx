@@ -172,49 +172,28 @@ function Navbar({ session, profile }) {
 function AuthModule({ isRegistering, setIsRegistering }) {
   const [role, setRole] = useState('cliente');
   const [form, setForm] = useState({ email: '', password: '', nome: '', telefone: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleAuth(e) {
     e.preventDefault();
-    if (isSubmitting) return;
-    
-    setIsSubmitting(true);
-
     try {
       if (isRegistering) {
-        const { data: auth, error: aErr } = await supabase.auth.signUp({ 
-          email: form.email, 
-          password: form.password 
-        });
-
+        const { data: auth, error: aErr } = await supabase.auth.signUp({ email: form.email, password: form.password });
         if (aErr) throw aErr;
-
-        if (auth.user) {
-          const { error: dbError } = await supabase.from('usuarios').insert([
-            { id: auth.user.id, full_name: form.nome, telefone: form.telefone, role: role }
-          ]);
-          if (dbError) throw dbError;
-        }
-        
-        alert("Verifique seu e-mail para confirmar o cadastro!");
+        await supabase.from('usuarios').insert([{ id: auth.user.id, full_name: form.nome, telefone: form.telefone, role: role }]);
+        alert("Sucesso! Verifique seu e-mail.");
       } else {
-        const { error: lErr } = await supabase.auth.signInWithPassword({ 
-          email: form.email, 
-          password: form.password 
-        });
+        const { error: lErr } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
         if (lErr) throw lErr;
       }
-  
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (err) { alert(err.message); }
   }
 
   return (
     <div className="max-w-md mx-auto mt-10 bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-100">
       <h2 className="text-3xl font-black text-center mb-2">{isRegistering ? 'Criar Conta' : 'Acessar'}</h2>
-      
-      <form onSubmit={handleAuth} className="space-y-4 mt-8">
+      <p className="text-center text-slate-400 text-sm mb-8 italic font-medium">O próximo nível do seu negócio.</p>
+
+      <form onSubmit={handleAuth} className="space-y-4">
         {isRegistering && (
           <>
             <div className="flex bg-slate-100 p-1 rounded-2xl mb-4">
@@ -225,22 +204,18 @@ function AuthModule({ isRegistering, setIsRegistering }) {
             <div className="relative"><Phone className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="WhatsApp" onChange={e => setForm({...form, telefone: e.target.value})}/></div>
           </>
         )}
-        
         <div className="relative"><Mail className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required type="email" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="E-mail" onChange={e => setForm({...form, email: e.target.value})}/></div>
         <div className="relative"><Lock className="absolute left-4 top-3.5 text-slate-300" size={18}/><input required type="password" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border rounded-2xl outline-none" placeholder="Senha" onChange={e => setForm({...form, password: e.target.value})}/></div>
         
-        <button 
-          type="submit" 
-          disabled={isSubmitting}
-          className={`w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg transition uppercase tracking-widest text-sm ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
-        >
-          {isSubmitting ? 'AGUARDE...' : (isRegistering ? 'CRIAR MINHA CONTA' : 'ENTRAR')}
+        <button type="submit" className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg hover:bg-blue-600 transition uppercase tracking-widest text-sm transform active:scale-95">
+          {isRegistering ? 'Cadastrar Agora' : 'Entrar na Conta'}
         </button>
       </form>
 
       <p className="text-center mt-6 text-sm font-bold text-slate-400">
-        <button onClick={() => setIsRegistering(!isRegistering)} className="text-blue-600 underline italic">
-          {isRegistering ? 'Já possui conta? Faça login' : 'Novo aqui? Registre-se'}
+        {isRegistering ? 'Já tem conta?' : 'Novo aqui?'} 
+        <button onClick={() => setIsRegistering(!isRegistering)} className="ml-2 text-blue-600 underline italic">
+          {isRegistering ? 'Logar' : 'Registrar'}
         </button>
       </p>
     </div>
