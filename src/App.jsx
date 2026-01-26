@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO (SUBSTITUA PELOS SEUS DADOS) ---
-const SUPABASE_URL = "SUA_URL_AQUI";
-const SUPABASE_KEY = "SUA_KEY_ANON_AQUI";
+const SUPABASE_URL = "https://vqpbbodhhyvwtfvrpgrk.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxcGJib2RoaHl2d3RmdnJwZ3JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyMTE3NDksImV4cCI6MjA4NDc4Nzc0OX0.8Swb8y8YbzTtYuAEc9flAYyIGiYo5fNAqPQJvWqrZEs";
 const API_URL = "https://salaodigital.onrender.com";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
