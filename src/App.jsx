@@ -8,10 +8,10 @@ import {
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO SUPABASE ---
-// Substitua pelas suas credenciais reais
-const supabaseUrl = 'SUA_URL_SUPABASE_AQUI';
-const supabaseKey = 'SUA_KEY_ANON_AQUI';
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = 'https://tqyqcviddzspyvyfcuqy.supabase.co'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxeXFjdmlkZHpzcHl2eWZjdXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxNTEzNTAsImV4cCI6MjA4NTcyNzM1MH0.6z3DQb1HlVNp7Sxtyf45Q3XCFlxPTft6wltNBHVKiwI';
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- 1. CONSTANTES E UTILITÁRIOS ---
 const MASTER_SERVICES = [
