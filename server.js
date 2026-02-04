@@ -36,7 +36,7 @@ app.post('/criar-pagamento', async (req, res) => {
         items: [{
           title: "Assinatura Plano Profissional - Salaodigital",
           quantity: 1,
-          unit_price: 998.90,
+          unit_price: 1.90,
           currency_id: 'BRL'
         }],
         metadata: { barber_id: barberId },
@@ -70,9 +70,9 @@ app.post('/webhooks', async (req, res) => {
 
         // ATUALIZA NO SUPABASE para ATIVO
         const { error: updateError } = await supabase
-          .from('usuarios')
+          .from('profiles')
           .update({ plano_ativo: true })
-          .eq('barber_id', barberId);
+          .eq('id', barberId);
 
         if (updateError) {
           console.error("Erro ao ativar plano no Supabase:", updateError);

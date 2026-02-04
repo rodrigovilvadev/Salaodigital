@@ -363,25 +363,28 @@ export default function App() {
 
   // --- FUNÇÃO DE CADASTRO (CORRIGIDO) ---
   const handleRegister = async (name, phone, password) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert([{ 
-        name, 
-        phone, 
-        password, 
-        role: currentMode, 
-        is_visible: currentMode === 'barber',
-        has_access: true 
-      }])
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert([{ 
+      name, 
+      phone, 
+      password, 
+      role: currentMode, 
+      is_visible: false, // Começa offline até configurar e pagar
+      has_access: false, // Precisa pagar para ativar
+      my_services: [],   // Inicia vazio
+      available_slots: GLOBAL_TIME_SLOTS, // Inicia com todos e ele remove os que não quer
+      avatar_url: ''      // Campo para a foto
+    }])
+    .select()
+    .single();
 
-    if (error) {
-      if (error.code === '23505') throw new Error('Este WhatsApp já está cadastrado!');
-      throw new Error(error.message);
-    }
-    setUser(data);
-  };
+  if (error) {
+    if (error.code === '23505') throw new Error('Este WhatsApp já está cadastrado!');
+    throw new Error(error.message);
+  }
+  setUser(data);
+};
 
   // --- AGENDAMENTO NO BANCO (CORRIGIDO) ---
   const handleBookingSubmit = async (data) => {
@@ -438,13 +441,15 @@ export default function App() {
   );
 
   return currentMode === 'barber' ? (
-    <BarberDashboard 
-      user={user} 
-      appointments={appointments} 
-      onLogout={() => { setUser(null); setCurrentMode(null); }} 
-      onUpdateStatus={handleUpdateStatus}
-      onUpdateProfile={handleUpdateProfile}
-    />
+  <BarberDashboard 
+    user={user} 
+    appointments={appointments} 
+    onLogout={() => { setUser(null); setCurrentMode(null); }} 
+    onUpdateStatus={handleUpdateStatus} // Aqui você vai adicionar a lógica de WhatsApp no Dashboard
+    onUpdateProfile={handleUpdateProfile}
+    MASTER_SERVICES={MASTER_SERVICES} // Passa os serviços globais para ele escolher
+    GLOBAL_TIME_SLOTS={GLOBAL_TIME_SLOTS} // Passa os horários globais para ele escolher
+  />
   ) : (
     <ClientApp 
       user={user} 
