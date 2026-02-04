@@ -211,64 +211,84 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
              )}
 
              {/* PASSO 2: ESCOLHA DO PROFISSIONAL (QUADRADINHOS) */}
-             {step === 2 && (
-               <>
-                 <h3 className="font-bold text-lg mb-2">Escolha o Profissional</h3>
-                 <p className="text-xs text-slate-400 mb-4">Mostrando preço para: <b>{bookingData.service?.name}</b></p>
-                 
-                 {processedBarbers.length > 0 ? (
-                   <div className="grid grid-cols-2 gap-3">
-                     {processedBarbers.map(b => {
-                        // Lógica para pegar o preço específico deste barbeiro para o serviço escolhido
-                        const specificService = b.my_services?.find(s => s.id === bookingData.service?.id);
-                        const displayPrice = specificService ? specificService.price : bookingData.service?.defaultPrice;
+          
+{step === 2 && (
+  <>
+    <h3 className="font-bold text-lg mb-2">Escolha o Profissional</h3>
+    <p className="text-xs text-slate-400 mb-4">
+      Especialistas em: <b>{bookingData.service?.name}</b>
+    </p>
+    
+    <div className="grid grid-cols-2 gap-3">
+      {processedBarbers
+        // FILTRO: Só entra no grid se o ID do serviço escolhido estiver na lista 'my_services' do barbeiro
+        .filter(b => b.my_services?.some(s => s.id === bookingData.service?.id))
+        .map(b => {
+          // Busca o preço que este barbeiro especificamente cobra por este serviço
+          const barberServiceData = b.my_services.find(s => s.id === bookingData.service?.id);
+          const displayPrice = barberServiceData.price; 
+          const isSelected = bookingData.barber?.id === b.id;
 
-                        const isSelected = bookingData.barber?.id === b.id;
+          return (
+            <div 
+              key={b.id} 
+              onClick={() => setBookingData({...bookingData, barber: b, price: displayPrice})}
+              className={`relative flex flex-col items-center text-center p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm group ${
+                isSelected ? 'border-blue-600 bg-blue-50/50' : 'border-white bg-white hover:border-slate-200'
+              }`}
+            >
+              {/* Indicador de Seleção */}
+              {isSelected && (
+                <div className="absolute top-2 right-2 text-blue-600 animate-in zoom-in">
+                  <CheckCircle2 size={16} fill="currentColor" className="text-white"/>
+                </div>
+              )}
 
-                        return (
-                         <div 
-                           key={b.id} 
-                           onClick={() => setBookingData({...bookingData, barber: b, price: displayPrice})}
-                           className={`relative flex flex-col items-center text-center p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${isSelected ? 'border-slate-900 bg-slate-50' : 'border-white bg-white hover:border-slate-200'}`}
-                         >
-                            {/* Checkbox visual se selecionado */}
-                            {isSelected && <div className="absolute top-2 right-2 w-3 h-3 bg-slate-900 rounded-full"></div>}
+              {/* Avatar */}
+              <div className="w-16 h-16 rounded-full bg-slate-100 mb-3 overflow-hidden border-2 border-white shadow-inner flex items-center justify-center">
+                {b.avatar_url ? (
+                  <img src={b.avatar_url} alt={b.name} className="w-full h-full object-cover" />
+                ) : (
+                  <User size={28} className="text-slate-300" />
+                )}
+              </div>
 
-                            {/* Foto / Avatar */}
-                            <div className="w-16 h-16 rounded-full bg-slate-200 mb-3 overflow-hidden border border-slate-100">
-                               {b.avatar_url ? (
-                                 <img src={b.avatar_url} alt={b.name} className="w-full h-full object-cover" />
-                               ) : (
-                                 <div className="w-full h-full flex items-center justify-center text-slate-400"><User size={24}/></div>
-                               )}
-                            </div>
+              {/* Nome e Distância */}
+              <p className="font-bold text-slate-900 text-sm leading-tight mb-1 truncate w-full">
+                {b.name}
+              </p>
+              
+              {b.distance !== null && (
+                <p className="text-[10px] text-blue-600 font-bold flex items-center justify-center gap-1 mb-2">
+                  <MapPin size={10}/> {b.distance} km
+                </p>
+              )}
 
-                            {/* Nome */}
-                            <p className="font-bold text-slate-900 text-sm leading-tight mb-1 truncate w-full">{b.name}</p>
+              {/* Preço Customizado do Profissional */}
+              <div className="mt-auto pt-2 border-t border-slate-100 w-full">
+                <p className="text-green-600 font-black text-sm">R$ {displayPrice}</p>
+              </div>
+            </div>
+          );
+        })}
+    </div>
 
-                            {/* Distância */}
-                            {b.distance !== null && (
-                                <p className="text-[10px] text-slate-400 flex items-center justify-center gap-1 mb-2">
-                                    <MapPin size={10}/> {b.distance} km
-                                </p>
-                            )}
+    {/* Caso nenhum barbeiro faça o serviço escolhido */}
+    {processedBarbers.filter(b => b.my_services?.some(s => s.id === bookingData.service?.id)).length === 0 && (
+      <div className="text-center py-10 bg-white rounded-2xl border-2 border-dashed border-slate-100">
+        <p className="text-slate-400 text-sm">Nenhum profissional cadastrou este serviço ainda.</p>
+      </div>
+    )}
 
-                            {/* Preço do Serviço Escolhido */}
-                            <div className="mt-auto pt-2 border-t border-slate-100 w-full">
-                                <p className="text-green-600 font-black text-sm">R$ {displayPrice}</p>
-                            </div>
-                         </div>
-                        );
-                     })}
-                   </div>
-                 ) : (
-                   <div className="text-center p-8 bg-white rounded-2xl border border-dashed border-slate-300">
-                      <p className="text-slate-400">Nenhum profissional disponível na região.</p>
-                   </div>
-                 )}
-                 <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
-               </>
-             )}
+    <Button 
+      className="mt-6 shadow-lg" 
+      onClick={() => setStep(3)} 
+      disabled={!bookingData.barber}
+    >
+      Próximo
+    </Button>
+  </>
+)}
 
              {/* PASSO 3: DATA E HORA */}
              {step === 3 && (
