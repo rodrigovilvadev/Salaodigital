@@ -170,6 +170,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         <h1 className="font-black italic">SALÃO<span className="text-blue-600">DIGITAL</span></h1>
         <button onClick={onLogout} className="text-red-500 font-bold text-xs flex items-center gap-1"><LogOut size={14}/> Sair</button>
       </header>
+
       <main className="p-6 max-w-md mx-auto">
         {view === 'home' && (
           <div className="space-y-6 animate-in fade-in">
@@ -180,63 +181,142 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                 <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
               </div>
             </div>
+            {/* Aqui você pode adicionar uma lista de agendamentos futuros se quiser */}
           </div>
         )}
+
         {view === 'booking' && (
           <div className="space-y-4 animate-in slide-in-from-right">
              <button onClick={() => setStep(step - 1)} className={`${step === 1 ? 'hidden' : 'block'} text-slate-400 font-bold text-sm mb-2`}>← Voltar</button>
              
+             {/* PASSO 1: ESCOLHA DO SERVIÇO */}
              {step === 1 && (
                <>
                  <h3 className="font-bold text-lg mb-4">Escolha o Serviço</h3>
-                 {MASTER_SERVICES.map(s => (
-                   <Card key={s.id} selected={bookingData.service?.id === s.id} onClick={() => setBookingData({...bookingData, service: s})}>
-                     <div className="flex items-center gap-3">
-                         <div className="p-2 bg-slate-100 rounded-lg">{s.icon}</div>
-                         <div>
-                             <p className="font-bold">{s.name}</p>
-                             <p className="text-xs text-slate-400">{s.duration}</p>
-                         </div>
-                     </div>
-                   </Card>
-                 ))}
-                 <Button className="mt-4" onClick={() => setStep(2)} disabled={!bookingData.service}>Próximo</Button>
+                 <div className="space-y-3">
+                   {MASTER_SERVICES.map(s => (
+                     <Card key={s.id} selected={bookingData.service?.id === s.id} onClick={() => setBookingData({...bookingData, service: s})}>
+                       <div className="flex items-center gap-3">
+                           <div className="p-2 bg-slate-100 rounded-lg">{s.icon}</div>
+                           <div>
+                               <p className="font-bold">{s.name}</p>
+                               <p className="text-xs text-slate-400">{s.duration}</p>
+                           </div>
+                       </div>
+                     </Card>
+                   ))}
+                 </div>
+                 <Button className="mt-4 w-full" onClick={() => setStep(2)} disabled={!bookingData.service}>Próximo</Button>
                </>
              )}
 
+             {/* PASSO 2: ESCOLHA DO PROFISSIONAL (QUADRADINHOS) */}
              {step === 2 && (
                <>
                  <h3 className="font-bold text-lg mb-2">Escolha o Profissional</h3>
-                 <p className="text-xs text-slate-400 mb-4">Ordenado por proximidade</p>
-                 {processedBarbers.length > 0 ? processedBarbers.map(b => (
-                   <Card key={b.id} selected={bookingData.barber?.id === b.id} onClick={() => setBookingData({...bookingData, barber: b, price: bookingData.service?.defaultPrice})}>
-                     <div className="flex justify-between items-center">
-                        <div>
-                            <p className="font-bold">{b.name}</p>
+                 <p className="text-xs text-slate-400 mb-4">Mostrando preço para: <b>{bookingData.service?.name}</b></p>
+                 
+                 {processedBarbers.length > 0 ? (
+                   <div className="grid grid-cols-2 gap-3">
+                     {processedBarbers.map(b => {
+                        // Lógica para pegar o preço específico deste barbeiro para o serviço escolhido
+                        const specificService = b.my_services?.find(s => s.id === bookingData.service?.id);
+                        const displayPrice = specificService ? specificService.price : bookingData.service?.defaultPrice;
+
+                        const isSelected = bookingData.barber?.id === b.id;
+
+                        return (
+                         <div 
+                           key={b.id} 
+                           onClick={() => setBookingData({...bookingData, barber: b, price: displayPrice})}
+                           className={`relative flex flex-col items-center text-center p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${isSelected ? 'border-slate-900 bg-slate-50' : 'border-white bg-white hover:border-slate-200'}`}
+                         >
+                            {/* Checkbox visual se selecionado */}
+                            {isSelected && <div className="absolute top-2 right-2 w-3 h-3 bg-slate-900 rounded-full"></div>}
+
+                            {/* Foto / Avatar */}
+                            <div className="w-16 h-16 rounded-full bg-slate-200 mb-3 overflow-hidden border border-slate-100">
+                               {b.avatar_url ? (
+                                 <img src={b.avatar_url} alt={b.name} className="w-full h-full object-cover" />
+                               ) : (
+                                 <div className="w-full h-full flex items-center justify-center text-slate-400"><User size={24}/></div>
+                               )}
+                            </div>
+
+                            {/* Nome */}
+                            <p className="font-bold text-slate-900 text-sm leading-tight mb-1 truncate w-full">{b.name}</p>
+
+                            {/* Distância */}
                             {b.distance !== null && (
-                                <p className="text-[10px] text-blue-600 font-bold flex items-center gap-1 mt-1">
+                                <p className="text-[10px] text-slate-400 flex items-center justify-center gap-1 mb-2">
                                     <MapPin size={10}/> {b.distance} km
                                 </p>
                             )}
-                        </div>
-                        <p className="text-xs text-slate-400">Disponível</p>
-                     </div>
-                   </Card>
-                 )) : <p className="text-slate-400">Nenhum profissional disponível.</p>}
-                 <Button className="mt-4" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
+
+                            {/* Preço do Serviço Escolhido */}
+                            <div className="mt-auto pt-2 border-t border-slate-100 w-full">
+                                <p className="text-green-600 font-black text-sm">R$ {displayPrice}</p>
+                            </div>
+                         </div>
+                        );
+                     })}
+                   </div>
+                 ) : (
+                   <div className="text-center p-8 bg-white rounded-2xl border border-dashed border-slate-300">
+                      <p className="text-slate-400">Nenhum profissional disponível na região.</p>
+                   </div>
+                 )}
+                 <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
                </>
              )}
 
+             {/* PASSO 3: DATA E HORA */}
              {step === 3 && (
                <>
                  <h3 className="font-bold text-lg mb-4">Data e Hora</h3>
-                 <input type="date" className="w-full p-3 border rounded-xl mb-4" onChange={(e) => setBookingData({...bookingData, date: e.target.value})} />
-                 <div className="grid grid-cols-3 gap-2">
-                   {GLOBAL_TIME_SLOTS.map(t => (
-                     <button key={t} onClick={() => setBookingData({...bookingData, time: t})} className={`p-2 border rounded-lg font-bold text-xs ${bookingData.time === t ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}>{t}</button>
-                   ))}
+                 
+                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Dia</label>
+                 <input type="date" className="w-full p-4 bg-white border border-slate-200 rounded-xl mb-6 font-bold text-slate-700 outline-none focus:border-slate-900 transition-colors" onChange={(e) => setBookingData({...bookingData, date: e.target.value})} />
+                 
+                 <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Horários Disponíveis</label>
+                 <div className="grid grid-cols-4 gap-2">
+                   {GLOBAL_TIME_SLOTS.map(t => {
+                     // Verifica se o horário está nos "available_slots" do barbeiro escolhido
+                     // Se o barbeiro não configurou horários, assume que todos estão livres (ou bloqueados, dependendo da sua regra)
+                     const isSlotAvailable = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
+                     
+                     return (
+                       <button 
+                         key={t} 
+                         disabled={!isSlotAvailable}
+                         onClick={() => setBookingData({...bookingData, time: t})} 
+                         className={`py-2 rounded-lg font-bold text-xs transition-all ${
+                           bookingData.time === t ? 'bg-slate-900 text-white shadow-lg scale-105' : 
+                           isSlotAvailable ? 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400' : 
+                           'bg-slate-100 text-slate-300 cursor-not-allowed'
+                         }`}
+                       >
+                         {t}
+                       </button>
+                     );
+                   })}
                  </div>
-                 <Button className="mt-6" onClick={handleFinish} disabled={!bookingData.time || !bookingData.date}>Finalizar Agendamento</Button>
+
+                 {/* Resumo antes de confirmar */}
+                 {bookingData.time && bookingData.date && (
+                    <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                        <p className="text-xs text-amber-600 font-bold uppercase mb-1">Resumo</p>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-slate-900">{bookingData.service?.name}</span>
+                            <span className="font-bold text-slate-900">R$ {bookingData.price}</span>
+                        </div>
+                        <p className="text-sm text-slate-500 mt-1">Com {bookingData.barber?.name} às {bookingData.time}</p>
+                    </div>
+                 )}
+
+                 <Button className="mt-6 w-full py-4 text-lg" onClick={handleFinish} disabled={!bookingData.time || !bookingData.date}>
+                    Confirmar Agendamento
+                 </Button>
                </>
              )}
           </div>
