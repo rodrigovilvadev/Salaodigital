@@ -218,7 +218,8 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                  
                  {processedBarbers.length > 0 ? (
                    <div className="grid grid-cols-2 gap-3">
-                     {processedBarbers.map(b => {
+                     {processedBarbers.filter(b => b.my_services?.some(s => s.id === bookingData.service?.id)).map(b => {
+                      
                         // Lógica para pegar o preço específico deste barbeiro para o serviço escolhido
                         const specificService = b.my_services?.find(s => s.id === bookingData.service?.id);
                         const displayPrice = specificService ? specificService.price : bookingData.service?.defaultPrice;
