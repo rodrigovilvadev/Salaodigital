@@ -404,7 +404,9 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <p className="font-bold">{app.client}</p>
-                        <p className="text-xs text-blue-600 font-bold">{app.time} - {app.date.split('-').reverse().join('/')}</p>
+                        <p className="text-xs text-blue-600 font-bold">
+  {app.time} - {app.date?.split('-').reverse().join('/') || 'Data não definida'}
+</p>
                       </div>
                       <p className="font-bold">R$ {app.price}</p>
                     </div>
