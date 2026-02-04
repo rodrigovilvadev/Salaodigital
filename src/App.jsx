@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import imgMao from './img/mao.jpg';
+import imgMp from './img/mp.jpg';
+import imgTes from './img/tes.jpg';
 import { 
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, LogOut, Bell, DollarSign, 
   ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
@@ -195,8 +198,8 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     {/* Card de Imagem 1 */}
     <div className="min-w-[85%] md:min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm">
       <img 
-        src="./barber-saas/src/img/mao.jpg" 
-        alt="Banner 1" 
+        src={imgMao} 
+        alt="Mão" 
         className="w-full h-full object-cover"
       />
     </div>
