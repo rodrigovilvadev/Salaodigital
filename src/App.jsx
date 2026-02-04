@@ -140,7 +140,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       );
     }
   }, [view]);
-  
 
   // Filtra e ordena barbeiros por distância
   const processedBarbers = barbers
@@ -362,38 +361,41 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       }
 
       return (
-        <div className="grid grid-cols-4 gap-2">
-          {GLOBAL_TIME_SLOTS.map(t => {
-            // 2. Verificar se o barbeiro atende nesse horário (Configuração dele)
-            const isConfigured = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
+       <div className="grid grid-cols-4 gap-2">
+  {GLOBAL_TIME_SLOTS.map(t => {
+    // 2. Verificar se o barbeiro atende nesse horário (Configuração dele)
+    const isConfigured = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
 
-            // 3. Verificar se o horário já está ocupado no banco de dados
-            // Comparamos: Data, Horário e ID do Barbeiro
-            const isTaken = appointments.some(app => 
-              app.barberId === bookingData.barber.id && 
-              app.booking_date === bookingData.date && 
-              app.time === t &&
-              app.status !== 'rejected' // Horários de agendamentos rejeitados ficam livres
-            );
+    // 3. Verificar se o horário já está ocupado no banco de dados
+    const isTaken = appointments.some(app => {
+      const sameBarber = String(app.barberId) === String(bookingData.barber.id);
+      const sameDate = app.booking_date === bookingData.date;
+      const sameTime = app.time === t;
+      const isOccupied = app.status === 'confirmed' || app.status === 'pending';
+      return sameBarber && sameDate && sameTime && isOccupied;
+    });
 
-            const canSelect = isConfigured && !isTaken;
+    const canSelect = isConfigured && !isTaken;
 
-            return (
-              <button 
-                key={t} 
-                disabled={!canSelect}
-                onClick={() => setBookingData({...bookingData, time: t})} 
-                className={`py-2 rounded-lg font-bold text-[10px] transition-all ${
-                  bookingData.time === t ? 'bg-slate-900 text-white shadow-lg' : 
-                  canSelect ? 'bg-white text-slate-600 border border-slate-200' : 
-                  'bg-slate-100 text-slate-300 cursor-not-allowed'
-                }`}
-              >
-                {isTaken ? 'Ocupado' : t}
-              </button>
-            );
-          })}
-        </div>
+    // IMPORTANTE: Retornar o HTML do botão aqui embaixo
+    return (
+      <button 
+        key={t} 
+        disabled={!canSelect}
+        onClick={() => setBookingData({...bookingData, time: t})} 
+        className={`py-2 rounded-lg font-bold text-[10px] transition-all border ${
+          bookingData.time === t 
+            ? 'bg-slate-900 text-white border-slate-900 shadow-lg scale-105' // Selecionado
+            : canSelect 
+              ? 'bg-white text-slate-600 border-slate-200 active:bg-slate-50' // Disponível
+              : 'bg-slate-100 text-slate-300 border-transparent cursor-not-allowed' // Ocupado ou Não Configurado
+        }`}
+      >
+        {isTaken ? 'Ocupado' : t}
+      </button>
+    );
+  })}
+</div>
       );
     })()}
 
@@ -718,39 +720,34 @@ export default function App() {
   const [appointments, setAppointments] = useState([]);
 
   // --- BUSCA DADOS DO BANCO ---
-useEffect(() => {
-    const fetchData = async () => {
-      // 1. Busca barbeiros visíveis
-      const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber').eq('is_visible', true);
-      if (bData) setBarbers(bData);
+  useEffect(() => {
+    const fetchData = async () => {
+      // 1. Sempre busca barbeiros visíveis para a lista
+      const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber').eq('is_visible', true);
+      if (bData) setBarbers(bData);
 
-      // 2. BUSCA TODOS OS AGENDAMENTOS ATIVOS (Correção aqui)
-      // Removemos o filtro 'or' que limitava ao ID do usuário
-      // Assim, o cliente consegue ver que o horário 10:00 está tomado, mesmo que por outra pessoa.
-      const { data: aData } = await supabase
-        .from('appointments')
-        .select('*')
-        .neq('status', 'rejected'); // Pega 'pending' e 'confirmed' de todo mundo
-      
-      if (aData) {
-        const formatted = aData.map(a => ({
-          ...a,
-          client: a.client_name,
-          service: a.service_name,
-          time: a.booking_time,
-          barberId: a.barber_id
-        }));
-        setAppointments(formatted);
-      }
-    };
+      if (!user) return;
 
-    fetchData();
+      // 2. Busca Agendamentos vinculados ao usuário logado
+      const { data: aData } = await supabase
+        .from('appointments')
+        .select('*')
+        .or(`client_id.eq.${user.id},barber_id.eq.${user.id}`);
+      
+      if (aData) {
+        const formatted = aData.map(a => ({
+          ...a,
+          client: a.client_name,
+          service: a.service_name,
+          time: a.booking_time,
+          barberId: a.barber_id
+        }));
+        setAppointments(formatted);
+      }
+    };
+    fetchData();
+  }, [user]);
 
-    // OPCIONAL: Atualização automática a cada 30 segundos para não precisar dar F5
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-
-  }, [user]);
   // --- FUNÇÃO DE LOGIN (CORRIGIDO) ---
   const handleLogin = async (phone, password) => {
     const { data, error } = await supabase
