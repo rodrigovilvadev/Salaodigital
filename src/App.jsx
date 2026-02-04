@@ -303,42 +303,36 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     }
   };
 
-  const handleToggleVisibility = () => {
-    if (!user.plano_ativo && !user.isVisible) {
-      setShowPayModal(true);
-    } else {
-      onUpdateProfile({ ...user, isVisible: !user.isVisible });
-    }
-  };
+ const handleToggleVisibility = () => {
+  // Verifica se o plano está ativo no banco
+  if (user.plano_ativo) {
+    // Usa 'is_visible' para bater com a coluna do banco
+    onUpdateProfile({ ...user, is_visible: !user.is_visible });
+  } else if (!user.is_visible) {
+    setShowPayModal(true);
+  } else {
+    onUpdateProfile({ ...user, is_visible: false });
+  }
+};
 
-  const toggleService = (serviceId, defaultPrice) => {
-    const currentServices = user.myServices || [];
-    const exists = currentServices.find(s => s.id === serviceId);
-    let newServices = exists 
-      ? currentServices.filter(s => s.id !== serviceId) 
-      : [...currentServices, { id: serviceId, price: defaultPrice }];
-    onUpdateProfile({ ...user, myServices: newServices });
-  };
+const toggleService = (serviceId, defaultPrice) => {
+  // Alinhado com a coluna 'my_services' do seu print
+  const currentServices = user.my_services || [];
+  const exists = currentServices.find(s => s.id === serviceId);
+  let newServices = exists 
+    ? currentServices.filter(s => s.id !== serviceId) 
+    : [...currentServices, { id: serviceId, price: defaultPrice }];
+  onUpdateProfile({ ...user, my_services: newServices });
+};
 
-  const updateServicePrice = (serviceId, newPrice) => {
-    const newServices = (user.myServices || []).map(s => 
-      s.id === serviceId ? { ...s, price: Number(newPrice) } : s
-    );
-    onUpdateProfile({ ...user, myServices: newServices });
-  };
-
-  const toggleSlot = (slot) => {
-    const currentSlots = user.availableSlots || [];
-    const newSlots = currentSlots.includes(slot) 
-      ? currentSlots.filter(s => s !== slot) 
-      : [...currentSlots, slot].sort();
-    onUpdateProfile({ ...user, availableSlots: newSlots });
-  };
-
-  const myAppointments = appointments.filter(a => a.barberId === user.id && a.status !== 'cancelled');
-  const pending = myAppointments.filter(a => a.status === 'pending');
-  const confirmed = myAppointments.filter(a => a.status === 'confirmed');
-  const revenue = confirmed.reduce((acc, curr) => acc + curr.price, 0);
+const toggleSlot = (slot) => {
+  // Alinhado com a coluna 'available_slots' do seu print
+  const currentSlots = user.available_slots || [];
+  const newSlots = currentSlots.includes(slot) 
+    ? currentSlots.filter(s => s !== slot) 
+    : [...currentSlots, slot].sort();
+  onUpdateProfile({ ...user, available_slots: newSlots });
+};
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
