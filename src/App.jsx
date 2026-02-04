@@ -395,6 +395,18 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   const pending = myAppointments.filter(a => a.status === 'pending');
   const confirmed = myAppointments.filter(a => a.status === 'confirmed');
   const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+  const toggleDay = (dia) => {
+  // Pega os dias atuais do usuário ou um array vazio se não houver nada
+  const currentDays = user.available_days || [];
+  
+  // Se o dia já está lá, remove. Se não está, adiciona.
+  const newDays = currentDays.includes(dia) 
+    ? currentDays.filter(d => d !== dia) 
+    : [...currentDays, dia];
+
+  // Usa a função que você já tem para atualizar o Supabase e o estado
+  onUpdateProfile({ ...user, available_days: newDays });
+};
   // --------------------------------------------
 
   // Verifica se o usuário retornou do Mercado Pago com sucesso
@@ -620,6 +632,30 @@ const updateServicePrice = (serviceId, newPrice) => {
                 </div>
               </div>
             </div>
+            {/* SELEÇÃO DE DIAS DA SEMANA */}
+<div className="bg-white p-5 rounded-2xl border border-slate-200 mb-4">
+    <h3 className="font-bold text-slate-900 mb-4 text-sm">Dias de Atendimento</h3>
+    <div className="flex flex-wrap gap-2">
+        {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((dia, index) => {
+            // Usamos o índice (0-6) ou o nome para salvar no banco
+            const isDaySelected = user.available_days?.includes(dia);
+            
+            return (
+                <button 
+                    key={dia} 
+                    onClick={() => toggleDay(dia)} // Você precisará criar essa função toggleDay
+                    className={`flex-1 min-w-[60px] py-3 text-xs font-bold rounded-xl border transition-all ${
+                        isDaySelected 
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100' 
+                        : 'bg-slate-50 text-slate-400 border-slate-100'
+                    }`}
+                >
+                    {dia}
+                </button>
+            );
+        })}
+    </div>
+</div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
                 <h3 className="font-bold text-slate-900 mb-4 text-sm">Seus Horários</h3>
