@@ -175,40 +175,54 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       </header>
 
       <main className="p-6 max-w-md mx-auto">
-        {view === 'home' && (
-          <div className="space-y-6 animate-in fade-in">
-            <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
-              <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
-                <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
-              </div>
-            </div>
-            {/* Aqui você pode adicionar uma lista de agendamentos futuros se quiser */}
-          </div>
-        )}
-         {/* CARROSSEL DE IMAGENS - ABAIXO DOS BOTÕES */}
-<div className="mt-8">
-  <div className="flex gap-4 overflow-x-auto pb-4 snap-x scrollbar-hide">
-    {/* Card de Imagem 1 */}
-    <div className="min-w-[85%] md:min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm">
-      <img 
-        src={imgMao} 
-        alt="Mão" 
-        className="w-full h-full object-cover"
-      />
-    </div>
+  {view === 'home' && (
+    <div className="space-y-6 animate-in fade-in">
+      {/* CARD DE BOAS-VINDAS */}
+      <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
+        <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
+          <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
+        </div>
+      </div>
 
-    {/* Card de Imagem 2 */}
-    <div className="min-w-[85%] md:min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm">
-      <img 
-        src="URL_DA_SUA_FOTO_2" 
-        alt="Banner 2" 
-        className="w-full h-full object-cover"
-      />
+      {/* CARROSSEL RESPONSIVO - APENAS NA HOME */}
+      <div className="mt-2">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Destaques</h3>
+        <div className="flex gap-4 overflow-x-auto pb-4 snap-x scrollbar-hide">
+          
+          {/* Card 1 */}
+          <div className="min-w-[75%] sm:min-w-[280px] h-44 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
+            <img 
+              src={imgMao} 
+              alt="Mão" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Card 2 */}
+          <div className="min-w-[75%] sm:min-w-[280px] h-44 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
+            <img 
+              src={imgMp} 
+              alt="Material" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Card 3 */}
+          <div className="min-w-[75%] sm:min-w-[280px] h-44 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
+            <img 
+              src={imgTes} 
+              alt="Tesoura" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+  )}
+        
 
         {view === 'booking' && (
           <div className="space-y-4 animate-in slide-in-from-right">
