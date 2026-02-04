@@ -175,54 +175,73 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       </header>
 
       <main className="p-6 max-w-md mx-auto">
-  {view === 'home' && (
-    <div className="space-y-6 animate-in fade-in">
-      {/* CARD DE BOAS-VINDAS */}
-      <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
-        <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
-          <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
-        </div>
-      </div>
-
-      {/* CARROSSEL RESPONSIVO - APENAS NA HOME */}
-      <div className="mt-2">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Destaques</h3>
-        <div className="flex gap-4 overflow-x-auto pb-4 snap-x scrollbar-hide">
-          
-          {/* Card 1 */}
-          <div className="min-w-[40%] sm:min-w-[150px] h-24 bg-slate-200 rounded-2xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
-            <img 
-              src={imgMao} 
-              alt="Mão" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Card 2 */}
-          <div className="min-w-[40%] sm:min-w-[150px] h-24 bg-slate-200 rounded-2xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
-            <img 
-              src={imgMp} 
-              alt="Material" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Card 2 */}
-          <div className="min-w-[40%] sm:min-w-[150px] h-24 bg-slate-200 rounded-2xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
-            <img 
-              src={imgMp} 
-              alt="Material" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-        </div>
+{view === 'home' && (
+  <div className="space-y-6 animate-in fade-in">
+    {/* CARD DE BOAS-VINDAS */}
+    <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
+      <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
+      <div className="flex gap-2">
+        <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
+        <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
       </div>
     </div>
-  )}
+
+    {/* CARROSSEL MINIATURA ESTILO IPHONE 11 */}
+    <div className="mt-2">
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Galeria</h3>
+      
+      {/* Ajustado: gap menor e padding lateral para não colar na borda */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         
+        {/* Card 1: Largura fixa de 100px e altura de 110px (~3cm) */}
+        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+          <img 
+            src={imgMao} 
+            alt="Mão" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Card 2 */}
+        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+          <img 
+            src={imgMp} 
+            alt="Material" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Card 3 */}
+        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+          <img 
+            src={imgTes} 
+            alt="Tesoura" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Card 4 */}
+        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+          <img 
+            src={imgMao} 
+            alt="Extra" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Card 5 */}
+        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+          <img 
+            src={imgMp} 
+            alt="Extra 2" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
 
         {view === 'booking' && (
           <div className="space-y-4 animate-in slide-in-from-right">
