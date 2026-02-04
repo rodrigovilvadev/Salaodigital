@@ -258,10 +258,10 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     const status = queryParams.get('status');
     const paymentId = queryParams.get('payment_id');
 
-    if (status === 'approved' && !user.hasAccess) {
+    if (status === 'approved' && !user.plano_ativo) {
         // Atualiza o perfil para pago se detectar o parâmetro na URL
         alert('Pagamento confirmado! Bem-vindo ao plano Profissional.');
-        onUpdateProfile({ ...user, hasAccess: true, isVisible: true });
+        onUpdateProfile({ ...user, plano_ativo: true, isVisible: true });
         
         // Limpa a URL
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -304,7 +304,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   };
 
   const handleToggleVisibility = () => {
-    if (!user.hasAccess && !user.isVisible) {
+    if (!user.plano_ativo && !user.isVisible) {
       setShowPayModal(true);
     } else {
       onUpdateProfile({ ...user, isVisible: !user.isVisible });
