@@ -339,6 +339,15 @@ const toggleSlot = (slot) => {
     : [...currentSlots, slot].sort();
   onUpdateProfile({ ...user, available_slots: newSlots });
 };
+const updateServicePrice = (serviceId, newPrice) => {
+  // 1. Mapeia os serviços atuais e atualiza apenas o preço do ID que mudou
+  const newServices = (user.my_services || []).map(s => 
+    s.id === serviceId ? { ...s, price: Number(newPrice) } : s
+  );
+  
+  // 2. Envia a atualização para o Supabase (garantindo que use my_services)
+  onUpdateProfile({ ...user, my_services: newServices });
+};
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -451,6 +460,7 @@ const toggleSlot = (slot) => {
   placeholder="0.00"
 />
                     </div>
+                    
                   )}
                 </div>
               );
