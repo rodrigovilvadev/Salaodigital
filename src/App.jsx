@@ -468,7 +468,7 @@ const toggleSlot = (slot) => {
                 <h3 className="font-bold text-slate-900 mb-4 text-sm">Seus Horários</h3>
                 <div className="grid grid-cols-4 gap-2">
                 {GLOBAL_TIME_SLOTS.map(slot => (
-                    <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border ${user.availableSlots?.includes(slot) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
+                    <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border ${user.available_slots?.includes(slot) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
                         {slot}
                     </button>
                 ))}
