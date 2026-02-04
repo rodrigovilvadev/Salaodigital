@@ -187,12 +187,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
             {/* Aqui você pode adicionar uma lista de agendamentos futuros se quiser */}
           </div>
         )}
-        
-
-        {view === 'booking' && (
-          <div className="space-y-4 animate-in slide-in-from-right">
-             <button onClick={() => setStep(step - 1)} className={`${step === 1 ? 'hidden' : 'block'} text-slate-400 font-bold text-sm mb-2`}>← Voltar</button>
-             {/* CARROSSEL DE IMAGENS - ABAIXO DOS BOTÕES */}
+         {/* CARROSSEL DE IMAGENS - ABAIXO DOS BOTÕES */}
 <div className="mt-8">
   <div className="flex gap-4 overflow-x-auto pb-4 snap-x scrollbar-hide">
     {/* Card de Imagem 1 */}
@@ -214,6 +209,11 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     </div>
   </div>
 </div>
+
+        {view === 'booking' && (
+          <div className="space-y-4 animate-in slide-in-from-right">
+             <button onClick={() => setStep(step - 1)} className={`${step === 1 ? 'hidden' : 'block'} text-slate-400 font-bold text-sm mb-2`}>← Voltar</button>
+            
              {/* PASSO 1: ESCOLHA DO SERVIÇO */}
              {step === 1 && (
                <>
