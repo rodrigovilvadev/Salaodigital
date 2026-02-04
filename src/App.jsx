@@ -426,26 +426,36 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
 };
 
 // --- 5. BARBER DASHBOARD (Mantido igual) ---
-const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile }) => {
+const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile, GLOBAL_TIME_SLOTS }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [isPaying, setIsPaying] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
+  
+  // 1. ESTADO PARA A DATA (Resolve o erro do ReferenceError)
+  const [configDate, setConfigDate] = useState(new Date().toISOString().split('T')[0]);
 
   const myAppointments = appointments.filter(a => a.barberId === user.id && a.status !== 'rejected');
   const pending = myAppointments.filter(a => a.status === 'pending');
   const confirmed = myAppointments.filter(a => a.status === 'confirmed');
   const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
-  const toggleDay = (dia) => {
-  // Pega os dias atuais do usuário ou um array vazio se não houver nada
-  const currentDays = user.available_days || [];
-  
-  // Se o dia já está lá, remove. Se não está, adiciona.
-  const newDays = currentDays.includes(dia) 
-    ? currentDays.filter(d => d !== dia) 
-    : [...currentDays, dia];
 
-  // Usa a função que você já tem para atualizar o Supabase e o estado
-  onUpdateProfile({ ...user, available_days: newDays });
+  // 2. FUNÇÃO PARA ATIVAR/DESATIVAR DIAS
+  const toggleDay = (dia) => {
+    const currentDays = user.available_days || [];
+    const newDays = currentDays.includes(dia) 
+      ? currentDays.filter(d => d !== dia) 
+      : [...currentDays, dia];
+    onUpdateProfile({ ...user, available_days: newDays });
+  };
+
+  // 3. FUNÇÃO PARA ATIVAR/DESATIVAR HORÁRIOS (Slots)
+  const toggleSlot = (slot) => {
+    const currentSlots = user.available_slots || [];
+    const newSlots = currentSlots.includes(slot)
+      ? currentSlots.filter(s => s !== slot)
+      : [...currentSlots, slot];
+    onUpdateProfile({ ...user, available_slots: newSlots });
+  };
 };
   // --------------------------------------------
 
@@ -743,7 +753,7 @@ const updateServicePrice = (serviceId, newPrice) => {
       </main>
     </div>
   );
-};
+
 /// --- 6. ORQUESTRADOR PRINCIPAL ---
 export default function App() {
   const [currentMode, setCurrentMode] = useState(null); 
