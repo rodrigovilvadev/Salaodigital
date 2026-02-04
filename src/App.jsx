@@ -313,70 +313,121 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
 
 /// --- 6. ORQUESTRADOR PRINCIPAL ---
 export default function App() {
-  const [currentMode, setCurrentMode] = useState(null); // 'client' ou 'barber'
+  const [currentMode, setCurrentMode] = useState(null); 
   const [user, setUser] = useState(null);
   const [barbers, setBarbers] = useState([]);
-  const [appointments, setAppointments] = useState(() => 
-    JSON.parse(localStorage.getItem('appointments')) || []
-  );
+  const [appointments, setAppointments] = useState([]);
 
-  // --- BUSCA BARBEIROS (APENAS OS VISÍVEIS PARA O CLIENTE) ---
+  // --- BUSCA DADOS DO BANCO ---
   useEffect(() => {
-  const fetchData = async () => {
-    if (!user) return;
+    const fetchData = async () => {
+      // 1. Sempre busca barbeiros visíveis para a lista
+      const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber').eq('is_visible', true);
+      if (bData) setBarbers(bData);
 
-    // 1. Busca Barbeiros
-    const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber').eq('is_visible', true);
-    if (bData) setBarbers(bData);
+      if (!user) return;
 
-    // 2. Busca Agendamentos Reais do Banco
-    const { data: aData } = await supabase
-      .from('appointments')
-      .select('*')
-      .or(`client_id.eq.${user.id},barber_id.eq.${user.id}`); // Busca se eu sou o cliente OU o barbeiro
-    
-    if (aData) {
-      // Ajusta os nomes das colunas para bater com o seu componente
-      const formatted = aData.map(a => ({
-        ...a,
-        client: a.client_name,
-        service: a.service_name,
-        time: a.booking_time,
-        barberId: a.barber_id
-      }));
-      setAppointments(formatted);
-    }
-  };
+      // 2. Busca Agendamentos vinculados ao usuário logado
+      const { data: aData } = await supabase
+        .from('appointments')
+        .select('*')
+        .or(`client_id.eq.${user.id},barber_id.eq.${user.id}`);
+      
+      if (aData) {
+        const formatted = aData.map(a => ({
+          ...a,
+          client: a.client_name,
+          service: a.service_name,
+          time: a.booking_time,
+          barberId: a.barber_id
+        }));
+        setAppointments(formatted);
+      }
+    };
+    fetchData();
+  }, [user]);
 
-  fetchData();
-}, [user]);
-
-  // --- ATUALIZAÇÃO DE PERFIL (EX: VISIBILIDADE) ---
-  const handleUpdateProfile = async (updatedUser) => {
-    const { error } = await supabase
+  // --- FUNÇÃO DE LOGIN (CORRIGIDO) ---
+  const handleLogin = async (phone, password) => {
+    const { data, error } = await supabase
       .from('profiles')
-      .update(updatedUser)
-      .eq('id', updatedUser.id);
-    
-    if (error) {
-      alert("Erro ao atualizar dados: " + error.message);
-      return;
-    }
+      .select('*')
+      .eq('phone', phone)
+      .eq('password', password)
+      .eq('role', currentMode)
+      .single();
 
-    setUser(updatedUser);
-    
-    // Se for barbeiro, atualiza na lista global para os clientes verem a mudança
-    if (updatedUser.role === 'barber') {
-      setBarbers(prev => prev.map(b => b.id === updatedUser.id ? updatedUser : b));
+    if (error || !data) throw new Error('Telefone ou senha incorretos.');
+    setUser(data);
+  };
+
+  // --- FUNÇÃO DE CADASTRO (CORRIGIDO) ---
+  const handleRegister = async (name, phone, password) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert([{ 
+        name, 
+        phone, 
+        password, 
+        role: currentMode, 
+        is_visible: currentMode === 'barber',
+        has_access: true 
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') throw new Error('Este WhatsApp já está cadastrado!');
+      throw new Error(error.message);
+    }
+    setUser(data);
+  };
+
+  // --- AGENDAMENTO NO BANCO (CORRIGIDO) ---
+  const handleBookingSubmit = async (data) => {
+    const newBooking = {
+      client_id: user.id,
+      client_name: user.name,
+      barber_id: data.barber.id,
+      service_name: data.service.name,
+      booking_date: data.date,
+      booking_time: data.time,
+      price: data.price,
+      status: 'pending'
+    };
+
+    const { data: saved, error } = await supabase
+      .from('appointments')
+      .insert([newBooking])
+      .select()
+      .single();
+
+    if (!error && saved) {
+      setAppointments(prev => [...prev, {
+        ...saved,
+        client: saved.client_name,
+        service: saved.service_name,
+        barberId: saved.barber_id,
+        time: saved.booking_time
+      }]);
+    } else {
+      alert("Erro ao agendar: " + error.message);
     }
   };
 
-  // --- RENDERIZAÇÃO CONDICIONAL ---
+  const handleUpdateStatus = async (id, status) => {
+    const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
+    if (!error) setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+  };
 
-  // 1. Tela de Seleção Inicial
+  const handleUpdateProfile = async (updatedUser) => {
+    const { error } = await supabase.from('profiles').update(updatedUser).eq('id', updatedUser.id);
+    if (!error) setUser(updatedUser);
+  };
+
+  // --- RENDERIZAÇÃO ---
   if (!currentMode) return <WelcomeScreen onSelectMode={setCurrentMode} />;
 
-  // 2. Telas de Login/Cadastro
   if (!user) return (
     <AuthScreen 
       userType={currentMode} 
@@ -386,15 +437,12 @@ export default function App() {
     />
   );
 
-  // 3. Dashboards após Login
   return currentMode === 'barber' ? (
     <BarberDashboard 
       user={user} 
       appointments={appointments} 
       onLogout={() => { setUser(null); setCurrentMode(null); }} 
-      onUpdateStatus={(id, status) => 
-        setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a))
-      }
+      onUpdateStatus={handleUpdateStatus}
       onUpdateProfile={handleUpdateProfile}
     />
   ) : (
@@ -403,19 +451,7 @@ export default function App() {
       barbers={barbers} 
       appointments={appointments} 
       onLogout={() => { setUser(null); setCurrentMode(null); }}
-      onBookingSubmit={(data) => {
-        const newBooking = { 
-          ...data, 
-          id: Date.now(), 
-          client: user.name, 
-          clientPhone: user.phone, 
-          status: 'pending', 
-          service: data.service.name, 
-          barberId: data.barber.id, 
-          price: data.price 
-        };
-        setAppointments(prev => [...prev, newBooking]);
-      }}
+      onBookingSubmit={handleBookingSubmit}
     />
   );
 }
