@@ -194,7 +194,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         
         {/* Card 1: Largura fixa de 100px e altura de 110px (~3cm) */}
-        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
           <img 
             src={imgMao} 
             alt="Mão" 
@@ -203,7 +203,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         </div>
 
         {/* Card 2 */}
-        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
           <img 
             src={imgMp} 
             alt="Material" 
@@ -212,7 +212,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         </div>
 
         {/* Card 3 */}
-        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
           <img 
             src={imgTes} 
             alt="Tesoura" 
@@ -221,7 +221,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         </div>
 
         {/* Card 4 */}
-        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
           <img 
             src={imgMao} 
             alt="Extra" 
@@ -230,7 +230,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         </div>
 
         {/* Card 5 */}
-        <div className="w-[100px] h-[110px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
           <img 
             src={imgMp} 
             alt="Extra 2" 
@@ -425,7 +425,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
         body: JSON.stringify({ 
           barberId: user.id,
           price: 29.90,
-          title: "Plano Profissional SalaoDigital"
+          title: "Plano Profissional Salao Digital"
         })
       });
 
