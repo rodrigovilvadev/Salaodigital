@@ -140,6 +140,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       );
     }
   }, [view]);
+  
 
   // Filtra e ordena barbeiros por distância
   const processedBarbers = barbers
@@ -717,34 +718,39 @@ export default function App() {
   const [appointments, setAppointments] = useState([]);
 
   // --- BUSCA DADOS DO BANCO ---
-  useEffect(() => {
-    const fetchData = async () => {
-      // 1. Sempre busca barbeiros visíveis para a lista
-      const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber').eq('is_visible', true);
-      if (bData) setBarbers(bData);
+useEffect(() => {
+    const fetchData = async () => {
+      // 1. Busca barbeiros visíveis
+      const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber').eq('is_visible', true);
+      if (bData) setBarbers(bData);
 
-      if (!user) return;
+      // 2. BUSCA TODOS OS AGENDAMENTOS ATIVOS (Correção aqui)
+      // Removemos o filtro 'or' que limitava ao ID do usuário
+      // Assim, o cliente consegue ver que o horário 10:00 está tomado, mesmo que por outra pessoa.
+      const { data: aData } = await supabase
+        .from('appointments')
+        .select('*')
+        .neq('status', 'rejected'); // Pega 'pending' e 'confirmed' de todo mundo
+      
+      if (aData) {
+        const formatted = aData.map(a => ({
+          ...a,
+          client: a.client_name,
+          service: a.service_name,
+          time: a.booking_time,
+          barberId: a.barber_id
+        }));
+        setAppointments(formatted);
+      }
+    };
 
-      // 2. Busca Agendamentos vinculados ao usuário logado
-      const { data: aData } = await supabase
-        .from('appointments')
-        .select('*')
-        .or(`client_id.eq.${user.id},barber_id.eq.${user.id}`);
-      
-      if (aData) {
-        const formatted = aData.map(a => ({
-          ...a,
-          client: a.client_name,
-          service: a.service_name,
-          time: a.booking_time,
-          barberId: a.barber_id
-        }));
-        setAppointments(formatted);
-      }
-    };
-    fetchData();
-  }, [user]);
+    fetchData();
 
+    // OPCIONAL: Atualização automática a cada 30 segundos para não precisar dar F5
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+
+  }, [user]);
   // --- FUNÇÃO DE LOGIN (CORRIGIDO) ---
   const handleLogin = async (phone, password) => {
     const { data, error } = await supabase
