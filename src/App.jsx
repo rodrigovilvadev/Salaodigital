@@ -184,16 +184,13 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
             {/* Aqui você pode adicionar uma lista de agendamentos futuros se quiser */}
           </div>
         )}
-        {view === 'home' && (
+        
+
+        {view === 'booking' && (
+          <div className="space-y-4 animate-in slide-in-from-right">
+             <button onClick={() => setStep(step - 1)} className={`${step === 1 ? 'hidden' : 'block'} text-slate-400 font-bold text-sm mb-2`}>← Voltar</button>
+             {view === 'home' && (
   <div className="space-y-6 animate-in fade-in">
-    {/* CARD DE BOAS-VINDAS */}
-    <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
-      <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
-      <div className="flex gap-2">
-        <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
-        <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
-      </div>
-    </div>
 
     {/* CARROSSEL LIVRE (SUBSTITUA AS URLS PELAS SUAS FOTOS) */}
     <div className="space-y-3">
@@ -202,7 +199,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         {/* Card de Foto 1 */}
         <div className="min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center shadow-md flex-shrink-0">
           <img 
-            src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=500" 
+            src="./barber-saas/src/img/mao.jpg"
             alt="Banner 1" 
             className="w-full h-full object-cover"
           />
@@ -230,11 +227,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     </div>
   </div>
 )}
-
-        {view === 'booking' && (
-          <div className="space-y-4 animate-in slide-in-from-right">
-             <button onClick={() => setStep(step - 1)} className={`${step === 1 ? 'hidden' : 'block'} text-slate-400 font-bold text-sm mb-2`}>← Voltar</button>
-             
              {/* PASSO 1: ESCOLHA DO SERVIÇO */}
              {step === 1 && (
                <>
