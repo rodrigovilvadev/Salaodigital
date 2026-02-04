@@ -127,9 +127,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
   const [step, setStep] = useState(1);
   const [bookingData, setBookingData] = useState({ service: null, barber: null, price: null, date: null, time: null });
   const [userCoords, setUserCoords] = useState(null);
-  
-  // NOVO: Estado para busca por nome
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Captura localização ao entrar no fluxo de agendamento
   useEffect(() => {
@@ -141,27 +138,9 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     }
   }, [view]);
 
-  // --- LÓGICA DE FILTRAGEM ATUALIZADA ---
+  // Filtra e ordena barbeiros por distância
   const processedBarbers = barbers
-    .filter(b => {
-      // 1. Filtra visibilidade básica
-      if (!b.is_visible) return false;
-
-      // 2. NOVO: Filtra se o barbeiro realiza o serviço escolhido no Passo 1
-      if (bookingData.service) {
-        // Verifica se o serviço escolhido existe na lista de serviços do barbeiro
-        // (Assumindo que b.my_services é um array de serviços ou ids)
-        const performsService = b.my_services?.some(s => s.id === bookingData.service.id);
-        if (!performsService) return false;
-      }
-
-      // 3. NOVO: Filtra pelo nome pesquisado
-      if (searchTerm && !b.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-
-      return true;
-    })
+    .filter(b => b.is_visible)
     .map(b => ({
       ...b,
       distance: calculateDistance(userCoords?.lat, userCoords?.lng, b.latitude, b.longitude)
@@ -177,35 +156,11 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     setView('success');
   };
 
-  // NOVO: Função para facilitar o reagendamento
-  const handleRebook = (pastAppointment) => {
-    // Encontra o barbeiro atual na lista para garantir que ele ainda existe/está ativo
-    const currentBarber = barbers.find(b => b.id === pastAppointment.barber.id);
-    
-    if (!currentBarber) {
-      alert("Este profissional não está mais disponível no momento.");
-      return;
-    }
-
-    // Preenche os dados automaticamente
-    setBookingData({
-      service: pastAppointment.service,
-      barber: currentBarber,
-      price: pastAppointment.price, // Ou recalcular baseado no preço atual
-      date: null, // Usuário precisa escolher nova data
-      time: null  // Usuário precisa escolher novo horário
-    });
-
-    // Pula direto para o passo 3 (Data e Hora)
-    setStep(3);
-    setView('booking');
-  };
-
   if (view === 'success') return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-white">
       <Check size={60} className="text-green-500 mb-4" />
       <h2 className="text-2xl font-bold mb-8">Agendamento Realizado!</h2>
-      <Button onClick={() => {setView('home'); setStep(1); setBookingData({}); setSearchTerm('');}}>Voltar ao Início</Button>
+      <Button onClick={() => {setView('home'); setStep(1);}}>Voltar ao Início</Button>
     </div>
   );
 
@@ -222,40 +177,11 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
             <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
               <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => { setStep(1); setView('booking'); }}>Novo Agendamento</Button>
+                <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
                 <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
               </div>
             </div>
-
-            {/* NOVO: Seção de Reagendamento Rápido */}
-            {appointments && appointments.length > 0 && (
-              <div className="mt-6">
-                <h3 className="font-bold text-slate-700 mb-3 ml-1">Agendar Novamente</h3>
-                <div className="space-y-3">
-                  {appointments.slice(0, 3).map((hist, idx) => (
-                    <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center">
-                            {hist.barber?.avatar_url ? (
-                              <img src={hist.barber.avatar_url} className="w-full h-full object-cover" alt="" />
-                            ) : (<User className="text-slate-400" size={20}/>)}
-                         </div>
-                         <div>
-                            <p className="font-bold text-sm text-slate-900">{hist.service?.name}</p>
-                            <p className="text-xs text-slate-500">{hist.barber?.name}</p>
-                         </div>
-                      </div>
-                      <button 
-                        onClick={() => handleRebook(hist)}
-                        className="text-blue-600 bg-blue-50 p-2 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-blue-100 transition-colors"
-                      >
-                        <RotateCcw size={14}/> Repetir
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Aqui você pode adicionar uma lista de agendamentos futuros se quiser */}
           </div>
         )}
 
@@ -280,33 +206,23 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                      </Card>
                    ))}
                  </div>
-                 <Button className="mt-4 w-full" onClick={() => { setSearchTerm(''); setStep(2); }} disabled={!bookingData.service}>Próximo</Button>
+                 <Button className="mt-4 w-full" onClick={() => setStep(2)} disabled={!bookingData.service}>Próximo</Button>
                </>
              )}
 
-             {/* PASSO 2: ESCOLHA DO PROFISSIONAL */}
+             {/* PASSO 2: ESCOLHA DO PROFISSIONAL (QUADRADINHOS) */}
              {step === 2 && (
                <>
                  <h3 className="font-bold text-lg mb-2">Escolha o Profissional</h3>
-                 <p className="text-xs text-slate-400 mb-2">Especialistas em: <b>{bookingData.service?.name}</b></p>
-                 
-                 {/* NOVO: Input de Pesquisa */}
-                 <div className="relative mb-4">
-                    <Search className="absolute left-3 top-3 text-slate-400" size={16} />
-                    <input 
-                      type="text" 
-                      placeholder="Pesquisar profissional..." 
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-slate-900 outline-none shadow-sm"
-                    />
-                 </div>
+                 <p className="text-xs text-slate-400 mb-4">Mostrando preço para: <b>{bookingData.service?.name}</b></p>
                  
                  {processedBarbers.length > 0 ? (
                    <div className="grid grid-cols-2 gap-3">
                      {processedBarbers.map(b => {
+                        // Lógica para pegar o preço específico deste barbeiro para o serviço escolhido
                         const specificService = b.my_services?.find(s => s.id === bookingData.service?.id);
                         const displayPrice = specificService ? specificService.price : bookingData.service?.defaultPrice;
+
                         const isSelected = bookingData.barber?.id === b.id;
 
                         return (
@@ -315,41 +231,46 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                            onClick={() => setBookingData({...bookingData, barber: b, price: displayPrice})}
                            className={`relative flex flex-col items-center text-center p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${isSelected ? 'border-slate-900 bg-slate-50' : 'border-white bg-white hover:border-slate-200'}`}
                          >
-                           {isSelected && <div className="absolute top-2 right-2 w-3 h-3 bg-slate-900 rounded-full"></div>}
+                            {/* Checkbox visual se selecionado */}
+                            {isSelected && <div className="absolute top-2 right-2 w-3 h-3 bg-slate-900 rounded-full"></div>}
 
-                           <div className="w-16 h-16 rounded-full bg-slate-200 mb-3 overflow-hidden border border-slate-100">
-                              {b.avatar_url ? (
-                                <img src={b.avatar_url} alt={b.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-400"><User size={24}/></div>
-                              )}
-                           </div>
+                            {/* Foto / Avatar */}
+                            <div className="w-16 h-16 rounded-full bg-slate-200 mb-3 overflow-hidden border border-slate-100">
+                               {b.avatar_url ? (
+                                 <img src={b.avatar_url} alt={b.name} className="w-full h-full object-cover" />
+                               ) : (
+                                 <div className="w-full h-full flex items-center justify-center text-slate-400"><User size={24}/></div>
+                               )}
+                            </div>
 
-                           <p className="font-bold text-slate-900 text-sm leading-tight mb-1 truncate w-full">{b.name}</p>
+                            {/* Nome */}
+                            <p className="font-bold text-slate-900 text-sm leading-tight mb-1 truncate w-full">{b.name}</p>
 
-                           {b.distance !== null && (
-                               <p className="text-[10px] text-slate-400 flex items-center justify-center gap-1 mb-2">
-                                   <MapPin size={10}/> {b.distance} km
-                               </p>
-                           )}
+                            {/* Distância */}
+                            {b.distance !== null && (
+                                <p className="text-[10px] text-slate-400 flex items-center justify-center gap-1 mb-2">
+                                    <MapPin size={10}/> {b.distance} km
+                                </p>
+                            )}
 
-                           <div className="mt-auto pt-2 border-t border-slate-100 w-full">
-                               <p className="text-green-600 font-black text-sm">R$ {displayPrice}</p>
-                           </div>
+                            {/* Preço do Serviço Escolhido */}
+                            <div className="mt-auto pt-2 border-t border-slate-100 w-full">
+                                <p className="text-green-600 font-black text-sm">R$ {displayPrice}</p>
+                            </div>
                          </div>
                         );
                      })}
                    </div>
                  ) : (
                    <div className="text-center p-8 bg-white rounded-2xl border border-dashed border-slate-300">
-                      <p className="text-slate-400 text-sm">Nenhum profissional encontrado.</p>
+                      <p className="text-slate-400">Nenhum profissional disponível na região.</p>
                    </div>
                  )}
                  <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
                </>
              )}
 
-             {/* PASSO 3: DATA E HORA (Mantido igual) */}
+             {/* PASSO 3: DATA E HORA */}
              {step === 3 && (
                <>
                  <h3 className="font-bold text-lg mb-4">Data e Hora</h3>
@@ -360,6 +281,8 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                  <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Horários Disponíveis</label>
                  <div className="grid grid-cols-4 gap-2">
                    {GLOBAL_TIME_SLOTS.map(t => {
+                     // Verifica se o horário está nos "available_slots" do barbeiro escolhido
+                     // Se o barbeiro não configurou horários, assume que todos estão livres (ou bloqueados, dependendo da sua regra)
                      const isSlotAvailable = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
                      
                      return (
@@ -379,6 +302,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                    })}
                  </div>
 
+                 {/* Resumo antes de confirmar */}
                  {bookingData.time && bookingData.date && (
                     <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-100">
                         <p className="text-xs text-amber-600 font-bold uppercase mb-1">Resumo</p>
