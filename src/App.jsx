@@ -189,44 +189,28 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         {view === 'booking' && (
           <div className="space-y-4 animate-in slide-in-from-right">
              <button onClick={() => setStep(step - 1)} className={`${step === 1 ? 'hidden' : 'block'} text-slate-400 font-bold text-sm mb-2`}>← Voltar</button>
-             {view === 'home' && (
-  <div className="space-y-6 animate-in fade-in">
+             {/* CARROSSEL DE IMAGENS - ABAIXO DOS BOTÕES */}
+<div className="mt-8">
+  <div className="flex gap-4 overflow-x-auto pb-4 snap-x scrollbar-hide">
+    {/* Card de Imagem 1 */}
+    <div className="min-w-[85%] md:min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm">
+      <img 
+        src="./barber-saas/src/img/mao.jpg" 
+        alt="Banner 1" 
+        className="w-full h-full object-cover"
+      />
+    </div>
 
-    {/* CARROSSEL LIVRE (SUBSTITUA AS URLS PELAS SUAS FOTOS) */}
-    <div className="space-y-3">
-      <div className="flex gap-4 overflow-x-auto pb-4 snap-x cursor-grab active:cursor-grabbing scrollbar-hide">
-        
-        {/* Card de Foto 1 */}
-        <div className="min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center shadow-md flex-shrink-0">
-          <img 
-            src="./barber-saas/src/img/mao.jpg"
-            alt="Banner 1" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Card de Foto 2 */}
-        <div className="min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center shadow-md flex-shrink-0">
-          <img 
-            src="https://images.unsplash.com/photo-1621605815841-28791748a815?q=80&w=500" 
-            alt="Banner 2" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Card de Foto 3 */}
-        <div className="min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center shadow-md flex-shrink-0">
-          <img 
-            src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=500" 
-            alt="Banner 3" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-      </div>
+    {/* Card de Imagem 2 */}
+    <div className="min-w-[85%] md:min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm">
+      <img 
+        src="URL_DA_SUA_FOTO_2" 
+        alt="Banner 2" 
+        className="w-full h-full object-cover"
+      />
     </div>
   </div>
-)}
+</div>
              {/* PASSO 1: ESCOLHA DO SERVIÇO */}
              {step === 1 && (
                <>
