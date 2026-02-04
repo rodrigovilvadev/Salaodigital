@@ -252,6 +252,12 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   const [isPaying, setIsPaying] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
 
+  const myAppointments = appointments.filter(a => a.barberId === user.id && a.status !== 'rejected');
+  const pending = myAppointments.filter(a => a.status === 'pending');
+  const confirmed = myAppointments.filter(a => a.status === 'confirmed');
+  const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+  // --------------------------------------------
+
   // Verifica se o usuário retornou do Mercado Pago com sucesso
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
