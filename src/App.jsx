@@ -441,7 +441,15 @@ const toggleSlot = (slot) => {
                   {isActive && (
                     <div className="mt-3 pt-3 border-t flex items-center justify-between">
                       <span className="text-[10px] font-bold text-slate-400">PREÇO (R$)</span>
-                      <input type="number" value={userServiceData.price} onChange={(e) => updateServicePrice(service.id, e.target.value)} className="w-20 text-right font-bold outline-none"/>
+                      <input 
+  type="number" 
+  // Garante que o valor apareça, ou 0 se estiver vazio
+  value={userServiceData.price || ''} 
+  // Chama a função que agora está definida acima
+  onChange={(e) => updateServicePrice(service.id, e.target.value)} 
+  className="w-20 text-right font-bold outline-none bg-transparent border-b border-transparent focus:border-slate-200"
+  placeholder="0.00"
+/>
                     </div>
                   )}
                 </div>
