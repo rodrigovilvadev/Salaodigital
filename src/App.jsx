@@ -261,7 +261,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     if (status === 'approved' && !user.plano_ativo) {
         // Atualiza o perfil para pago se detectar o parâmetro na URL
         alert('Pagamento confirmado! Bem-vindo ao plano Profissional.');
-        onUpdateProfile({ ...user, plano_ativo: true, isVisible: true });
+        onUpdateProfile({ ...user, plano_ativo: true, is_visible: true });
         
         // Limpa a URL
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -360,8 +360,8 @@ const toggleSlot = (slot) => {
           <div>
             <h2 className="text-xl font-black text-slate-900">Painel Profissional</h2>
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${user.isVisible ? 'bg-green-500' : 'bg-slate-300'}`}></span>
-              <p className="text-xs text-slate-500 font-bold uppercase">{user.isVisible ? 'Online' : 'Offline'}</p>
+              <span className={`w-2 h-2 rounded-full ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}></span>
+              <p className="text-xs text-slate-500 font-bold uppercase">{user.is_visible ? 'Online' : 'Offline'}</p>
             </div>
           </div>
           <button onClick={onLogout} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-red-500"><LogOut size={18}/></button>
@@ -452,7 +452,7 @@ const toggleSlot = (slot) => {
                   <h3 className="font-bold text-slate-900">Visibilidade da Loja</h3>
                   <p className="text-xs text-slate-500 mt-1">Aparecer para clientes na lista.</p>
                 </div>
-                <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.isVisible ? 'bg-green-500' : 'bg-slate-300'}`}>
+                <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}>
                   <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.is_Visible ? 'translate-x-6' : 'translate-x-0'}`}/>
                 </div>
               </div>
