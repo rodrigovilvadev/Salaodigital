@@ -424,7 +424,7 @@ const toggleSlot = (slot) => {
         {activeTab === 'services' && (
           <div className="space-y-3">
             {MASTER_SERVICES.map(service => {
-              const userServiceData = user.myServices?.find(s => s.id === service.id);
+              const userServiceData = user.my_services?.find(s => s.id === service.id);
               const isActive = !!userServiceData;
               return (
                 <div key={service.id} className={`p-4 rounded-2xl border-2 transition-all ${isActive ? 'border-slate-900 bg-white' : 'border-slate-100 bg-slate-50'}`}>
