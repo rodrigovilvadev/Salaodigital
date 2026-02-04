@@ -453,7 +453,7 @@ const toggleSlot = (slot) => {
                   <p className="text-xs text-slate-500 mt-1">Aparecer para clientes na lista.</p>
                 </div>
                 <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.isVisible ? 'bg-green-500' : 'bg-slate-300'}`}>
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.isVisible ? 'translate-x-6' : 'translate-x-0'}`}/>
+                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.is_Visible ? 'translate-x-6' : 'translate-x-0'}`}/>
                 </div>
               </div>
             </div>
