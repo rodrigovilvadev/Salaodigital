@@ -184,6 +184,52 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
             {/* Aqui você pode adicionar uma lista de agendamentos futuros se quiser */}
           </div>
         )}
+        {view === 'home' && (
+  <div className="space-y-6 animate-in fade-in">
+    {/* CARD DE BOAS-VINDAS */}
+    <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
+      <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
+      <div className="flex gap-2">
+        <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
+        <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
+      </div>
+    </div>
+
+    {/* CARROSSEL LIVRE (SUBSTITUA AS URLS PELAS SUAS FOTOS) */}
+    <div className="space-y-3">
+      <div className="flex gap-4 overflow-x-auto pb-4 snap-x cursor-grab active:cursor-grabbing scrollbar-hide">
+        
+        {/* Card de Foto 1 */}
+        <div className="min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center shadow-md flex-shrink-0">
+          <img 
+            src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=500" 
+            alt="Banner 1" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Card de Foto 2 */}
+        <div className="min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center shadow-md flex-shrink-0">
+          <img 
+            src="https://images.unsplash.com/photo-1621605815841-28791748a815?q=80&w=500" 
+            alt="Banner 2" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Card de Foto 3 */}
+        <div className="min-w-[300px] h-48 bg-slate-200 rounded-3xl overflow-hidden snap-center shadow-md flex-shrink-0">
+          <img 
+            src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=500" 
+            alt="Banner 3" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
 
         {view === 'booking' && (
           <div className="space-y-4 animate-in slide-in-from-right">
