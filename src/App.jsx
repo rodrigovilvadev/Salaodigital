@@ -192,7 +192,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         <div className="flex gap-4 overflow-x-auto pb-4 snap-x scrollbar-hide">
           
           {/* Card 1 */}
-          <div className="min-w-[55%] sm:min-w-[280px] h-34 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
+          <div className="min-w-[40%] sm:min-w-[150px] h-24 bg-slate-200 rounded-2xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
             <img 
               src={imgMao} 
               alt="Mão" 
@@ -201,7 +201,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
           </div>
 
           {/* Card 2 */}
-          <div className="min-w-[55%] sm:min-w-[280px] h-34 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
+          <div className="min-w-[40%] sm:min-w-[150px] h-24 bg-slate-200 rounded-2xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
             <img 
               src={imgMp} 
               alt="Material" 
@@ -209,11 +209,11 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
             />
           </div>
 
-          {/* Card 3 */}
-          <div className="min-w-[55%] sm:min-w-[280px] h-34 bg-slate-200 rounded-3xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
+          {/* Card 2 */}
+          <div className="min-w-[40%] sm:min-w-[150px] h-24 bg-slate-200 rounded-2xl overflow-hidden snap-center flex-shrink-0 shadow-sm border border-slate-100">
             <img 
-              src={imgTes} 
-              alt="Tesoura" 
+              src={imgMp} 
+              alt="Material" 
               className="w-full h-full object-cover"
             />
           </div>
