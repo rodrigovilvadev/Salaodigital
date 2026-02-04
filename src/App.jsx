@@ -322,68 +322,34 @@ export default function App() {
 
   // --- BUSCA BARBEIROS (APENAS OS VISÍVEIS PARA O CLIENTE) ---
   useEffect(() => {
-    const fetchBarbers = async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'barber')
-        .eq('is_visible', true); // Busca apenas quem está online/visível
-      
-      if (data) setBarbers(data);
-      if (error) console.error("Erro ao carregar barbeiros:", error.message);
-    };
+  const fetchData = async () => {
+    if (!user) return;
 
-    fetchBarbers();
-  }, [user]); // Recarrega se o usuário mudar (ex: após login)
+    // 1. Busca Barbeiros
+    const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber').eq('is_visible', true);
+    if (bData) setBarbers(bData);
 
-  // Persistência local temporária dos agendamentos
-  useEffect(() => {
-    localStorage.setItem('appointments', JSON.stringify(appointments));
-  }, [appointments]);
-
-  // --- LOGIN ---
-  const handleLogin = async (phone, password) => {
-    const { data, error } = await supabase
-      .from('profiles')
+    // 2. Busca Agendamentos Reais do Banco
+    const { data: aData } = await supabase
+      .from('appointments')
       .select('*')
-      .eq('phone', phone)
-      .eq('password', password)
-      .eq('role', currentMode)
-      .single();
-
-    if (error || !data) {
-      throw new Error('Telefone ou senha incorretos para esta área.');
-    }
-    setUser(data);
-  };
-
-  // --- CADASTRO (CORRIGIDO PARA ID AUTOMÁTICO) ---
-  const handleRegister = async (name, phone, password) => {
-    const newUser = { 
-        name, 
-        phone, 
-        password, 
-        role: currentMode,
-        has_access: true, 
-        is_visible: currentMode === 'barber', // Barbeiro começa visível, cliente não precisa
-    };
-
-    const { data, error } = await supabase
-        .from('profiles')
-        .insert([newUser])
-        .select() // Importante: Retorna o objeto criado com o ID do banco
-        .single();
-
-    if (error) {
-      if (error.code === '23505') throw new Error('Este número de WhatsApp já está cadastrado!');
-      throw new Error('Erro ao salvar no banco: ' + error.message);
-    }
-
-    // Atualiza lista de barbeiros se o novo registro for um profissional
-    if (currentMode === 'barber') setBarbers(prev => [...prev, data]);
+      .or(`client_id.eq.${user.id},barber_id.eq.${user.id}`); // Busca se eu sou o cliente OU o barbeiro
     
-    setUser(data);
+    if (aData) {
+      // Ajusta os nomes das colunas para bater com o seu componente
+      const formatted = aData.map(a => ({
+        ...a,
+        client: a.client_name,
+        service: a.service_name,
+        time: a.booking_time,
+        barberId: a.barber_id
+      }));
+      setAppointments(formatted);
+    }
   };
+
+  fetchData();
+}, [user]);
 
   // --- ATUALIZAÇÃO DE PERFIL (EX: VISIBILIDADE) ---
   const handleUpdateProfile = async (updatedUser) => {
