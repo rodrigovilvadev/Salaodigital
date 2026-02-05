@@ -632,28 +632,43 @@ const updateServicePrice = (serviceId, newPrice) => {
                 </div>
               </div>
             </div>
-           {/* SELEÇÃO DE DIAS DA SEMANA */}
-<div className="bg-white p-5 rounded-2xl border border-slate-200 mb-4 shadow-sm">
-    <h3 className="font-bold text-slate-900 mb-4 text-sm">Dias de Atendimento</h3>
-    <div className="flex flex-wrap gap-2">
-        {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((dia) => {
-            const isDaySelected = user.available_days?.includes(dia);
-            
-            return (
-                <button 
-                    key={dia} 
-                    onClick={() => toggleDay(dia)} // Agora a função existe!
-                    className={`flex-1 min-w-[60px] py-3 text-xs font-bold rounded-xl border transition-all ${
-                        isDaySelected 
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100' 
-                        : 'bg-slate-50 text-slate-400 border-slate-100'
-                    }`}
-                >
-                    {dia}
-                </button>
-            );
-        })}
-    </div>
+          {/* CONFIGURAÇÃO DE HORÁRIOS DO BARBEIRO */}
+<div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
+  <h3 className="font-bold text-lg mb-4 text-slate-900">Configurar Meus Horários</h3>
+  
+  <p className="text-xs text-slate-500 mb-6">
+    Toque nos horários abaixo para ativar ou desativar sua disponibilidade para os clientes.
+  </p>
+
+  <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Meus Horários de Atendimento</label>
+  
+  <div className="grid grid-cols-4 gap-2">
+    {GLOBAL_TIME_SLOTS.map(t => {
+      // Verifica se o horário está ativo na lista do barbeiro logado
+      const isActive = user.available_slots?.includes(t);
+      
+      return (
+        <button 
+          key={t} 
+          onClick={() => toggleSlot(t)} // Função que explicamos antes para salvar no banco
+          className={`py-3 rounded-xl font-bold text-xs transition-all border ${
+            isActive 
+              ? 'bg-slate-900 text-white border-slate-900 shadow-lg scale-105' // Ativo (Estilo igual ao selecionado do cliente)
+              : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300' // Inativo
+          }`}
+        >
+          {t}
+        </button>
+      );
+    })}
+  </div>
+
+  <div className="mt-6 pt-4 border-t border-slate-50 flex items-center gap-2">
+    <div className="w-3 h-3 bg-slate-900 rounded-full"></div>
+    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Horário Ativo</span>
+    <div className="w-3 h-3 bg-white border border-slate-200 rounded-full ml-4"></div>
+    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Desativado</span>
+  </div>
 </div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
