@@ -674,7 +674,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     
     // 3. Monta a mensagem personalizada
     const mensagem = `Olá ${app.client}! Aqui é da barbearia. Seu agendamento para o dia *${dataFormatada}* às *${app.time}* foi *CONFIRMADO*! Te esperamos lá.`;
-    
+    onst [configDate, setConfigDate] = useState(new Date().toISOString().split('T')[0]);
     // 4. Pega o número da coluna 'phone' e limpa (deixa só números)
     // Usamos o opcional chaining ?. e toString() para evitar erros se o campo estiver nulo ou for numérico
     const fone = app.phone?.toString().replace(/\D/g, '');
