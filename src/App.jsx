@@ -256,36 +256,36 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
           <div className="space-y-4 animate-in slide-in-from-right">
              <button onClick={() => setStep(step - 1)} className={`${step === 1 ? 'hidden' : 'block'} text-slate-400 font-bold text-sm mb-2`}>← Voltar</button>
             
-             {/* PASSO 1: ESCOLHA DO SERVIÇO */}
-             {step === 1 && (
-               <>
-                 <h3 className="font-bold text-lg mb-4">Escolha o Serviço</h3>
-                 <div className="space-y-3">
-                   {MASTER_SERVICES.map(s => (
-                     <Card key={s.id} selected={bookingData.service?.id === s.id} onClick={() => setBookingData({...bookingData, service: s})}>
-                       <div className="flex items-center gap-3">
-                           <div className="p-2 bg-slate-100 rounded-lg">{s.icon}</div>
-                           <div>
-                               <p className="font-bold">{s.name}</p>
-                               <p className="text-xs text-slate-400">{s.duration}</p>
-                           </div>
-                       </div>
-                     </Card>
-                   ))}
-                 </div>
-                 <Button className="mt-4 w-full" onClick={() => setStep(2)} disabled={!bookingData.service}>Próximo</Button>
-               </>
-             )}
+            {/* PASSO 1: ESCOLHA DO SERVIÇO */}
+            {step === 1 && (
+                <>
+                  <h3 className="font-bold text-lg mb-4">Escolha o Serviço</h3>
+                  <div className="space-y-3">
+                    {MASTER_SERVICES.map(s => (
+                      <Card key={s.id} selected={bookingData.service?.id === s.id} onClick={() => setBookingData({...bookingData, service: s})}>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-slate-100 rounded-lg">{s.icon}</div>
+                            <div>
+                                <p className="font-bold">{s.name}</p>
+                                <p className="text-xs text-slate-400">{s.duration}</p>
+                            </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                  <Button className="mt-4 w-full" onClick={() => setStep(2)} disabled={!bookingData.service}>Próximo</Button>
+                </>
+            )}
 
-             {/* PASSO 2: ESCOLHA DO PROFISSIONAL (QUADRADINHOS) */}
-             {step === 2 && (
-               <>
-                 <h3 className="font-bold text-lg mb-2">Escolha o Profissional</h3>
-                 <p className="text-xs text-slate-400 mb-4">Mostrando preço para: <b>{bookingData.service?.name}</b></p>
-                 
-                 {processedBarbers.length > 0 ? (
-                   <div className="grid grid-cols-2 gap-3">
-                     {processedBarbers.filter(b => b.my_services?.some(s => s.id === bookingData.service?.id)).map(b => {
+            {/* PASSO 2: ESCOLHA DO PROFISSIONAL (QUADRADINHOS) */}
+            {step === 2 && (
+                <>
+                  <h3 className="font-bold text-lg mb-2">Escolha o Profissional</h3>
+                  <p className="text-xs text-slate-400 mb-4">Mostrando preço para: <b>{bookingData.service?.name}</b></p>
+                  
+                  {processedBarbers.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {processedBarbers.filter(b => b.my_services?.some(s => s.id === bookingData.service?.id)).map(b => {
                       
                         // Lógica para pegar o preço específico deste barbeiro para o serviço escolhido
                         const specificService = b.my_services?.find(s => s.id === bookingData.service?.id);
@@ -294,11 +294,11 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                         const isSelected = bookingData.barber?.id === b.id;
 
                         return (
-                         <div 
-                           key={b.id} 
-                           onClick={() => setBookingData({...bookingData, barber: b, price: displayPrice})}
-                           className={`relative flex flex-col items-center text-center p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${isSelected ? 'border-slate-900 bg-slate-50' : 'border-white bg-white hover:border-slate-200'}`}
-                         >
+                          <div 
+                            key={b.id} 
+                            onClick={() => setBookingData({...bookingData, barber: b, price: displayPrice})}
+                            className={`relative flex flex-col items-center text-center p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${isSelected ? 'border-slate-900 bg-slate-50' : 'border-white bg-white hover:border-slate-200'}`}
+                          >
                             {/* Checkbox visual se selecionado */}
                             {isSelected && <div className="absolute top-2 right-2 w-3 h-3 bg-slate-900 rounded-full"></div>}
 
@@ -314,6 +314,13 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                             {/* Nome */}
                             <p className="font-bold text-slate-900 text-sm leading-tight mb-1 truncate w-full">{b.name}</p>
 
+                            {/* --- NOVO: Endereço (Se existir) --- */}
+                            {b.address && (
+                                <p className="text-[9px] text-slate-500 leading-tight mb-1 line-clamp-2 px-1 w-full break-words">
+                                    {b.address}
+                                </p>
+                            )}
+
                             {/* Distância */}
                             {b.distance !== null && (
                                 <p className="text-[10px] text-slate-400 flex items-center justify-center gap-1 mb-2">
@@ -325,18 +332,18 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                             <div className="mt-auto pt-2 border-t border-slate-100 w-full">
                                 <p className="text-green-600 font-black text-sm">R$ {displayPrice}</p>
                             </div>
-                         </div>
+                          </div>
                         );
-                     })}
-                   </div>
-                 ) : (
-                   <div className="text-center p-8 bg-white rounded-2xl border border-dashed border-slate-300">
-                      <p className="text-slate-400">Nenhum profissional disponível na região.</p>
-                   </div>
-                 )}
-                 <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
-               </>
-             )}
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 bg-white rounded-2xl border border-dashed border-slate-300">
+                       <p className="text-slate-400">Nenhum profissional disponível na região.</p>
+                    </div>
+                  )}
+                  <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
+                </>
+            )}
 
 {/* PASSO 3: DATA E HORA */}
 {step === 3 && (
