@@ -619,7 +619,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
               const mensagem = `Olá ${app.client}! Aqui é da barbearia. Seu agendamento para o dia ${dataFormatada} às ${app.time} foi *CONFIRMADO*! Te esperamos lá.`;
               
               // 3. Formata o número (remove caracteres não numéricos)
-              const fone = app.clientPhone?.replace(/\D/g, ''); 
+              const fone = app.phone?.toString().replace(/\D/g, '');
               
               if (fone) {
                 const url = `https://api.whatsapp.com/send?phone=55${fone}&text=${encodeURIComponent(mensagem)}`;
