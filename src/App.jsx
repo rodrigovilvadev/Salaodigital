@@ -155,19 +155,25 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     });
 
   const handleFinish = () => {
-    // Criamos um novo objeto com TUDO o que o barbeiro precisa ver
-    const finalData = {
-      ...bookingData,
-      phone: user.phone, // Pega o telefone do cliente logado
-      client: user.name, // Garante que o nome do cliente está indo
-      // O 'date' e 'time' já devem estar dentro do bookingData se o cliente selecionou
-    };
+  // Verificação de segurança
+  if (!bookingData.date || !bookingData.time) {
+    alert("Por favor, selecione o dia e o horário.");
+    return;
+  }
 
-    // Agora enviamos esse pacote completo para a função que salva no Supabase
-    onBookingSubmit(finalData); 
-    
-    setView('success');
+  // Montamos o objeto final para o banco
+  const payload = {
+    ...bookingData,
+    client: user.name, // Nome do cliente logado
+    phone: user.phone  // O telefone que você salvou no Supabase em 'profiles'
   };
+
+  // Chama a função do componente pai que faz o INSERT no Supabase
+  onBookingSubmit(payload); 
+  
+  // Muda para a tela de sucesso
+  setView('success');
+};
 
   if (view === 'success') return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-white">
@@ -427,9 +433,13 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       </div>
     )}
 
-    <Button className="mt-6 w-full py-4 text-lg" onClick={handleFinish} disabled={!bookingData.time || !bookingData.date}>
-      Confirmar Agendamento
-    </Button>
+    <Button 
+  className="mt-6 w-full py-4 text-lg" 
+  onClick={handleFinish} // <--- Certifique-se que o nome é handleFinish
+  disabled={!bookingData.time || !bookingData.date}
+>
+  Confirmar Agendamento
+</Button>
   </>
 )}
           </div>
