@@ -617,39 +617,64 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
               </div>
             </div>
 
-            {/* --- NOVO: SEÇÃO DE CALENDÁRIO --- */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200">
-                <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
-                  <CalendarDays size={18} className="text-blue-600" /> Dias de Atendimento
-                </h3>
-                
-                <div className="grid grid-cols-7 gap-1 mb-2 text-center text-[10px] font-bold text-slate-300">
-                    {['D','S','T','Q','Q','S','S'].map(d => <div key={d}>{d}</div>)}
-                </div>
+          {/* --- SEÇÃO DE CALENDÁRIO RETRÁTIL --- */}
+<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
+  {/* Cabeçalho Clicável */}
+  <button 
+    onClick={() => setShowCalendar(!showCalendar)}
+    className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+  >
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+        <CalendarDays size={20} />
+      </div>
+      <div className="text-left">
+        <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
+        <p className="text-[10px] text-slate-500">Selecione os dias disponíveis</p>
+      </div>
+    </div>
+    <ChevronRight 
+      size={18} 
+      className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
+    />
+  </button>
 
-                <div className="grid grid-cols-7 gap-2">
-                    {/* Renderiza 28 dias para Fevereiro/2026 */}
-                    {Array.from({ length: 28 }, (_, i) => {
-                        const day = (i + 1).toString().padStart(2, '0');
-                        const fullDate = `2026-02-${day}`; 
-                        const isSelected = user.available_dates?.includes(fullDate);
+  {/* Conteúdo do Calendário (Só aparece se showCalendar for true) */}
+  {showCalendar && (
+    <div className="p-5 pt-0 border-t border-slate-50 animate-in slide-in-from-top-2 duration-300">
+      <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase tracking-wider">
+        {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
+      </div>
 
-                        return (
-                            <button
-                                key={i}
-                                onClick={() => toggleDate(fullDate)}
-                                className={`aspect-square flex items-center justify-center rounded-xl text-[11px] font-bold border transition-all
-                                ${isSelected 
-                                    ? 'bg-slate-900 text-white border-slate-900 shadow-sm scale-105' 
-                                    : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'}`}
-                            >
-                                {i + 1}
-                            </button>
-                        );
-                    })}
-                </div>
-                <p className="text-[9px] text-slate-400 mt-4 text-center">Clique nos dias que você atenderá neste mês.</p>
-            </div>
+      <div className="grid grid-cols-7 gap-2">
+        {Array.from({ length: 28 }, (_, i) => {
+          const day = (i + 1).toString().padStart(2, '0');
+          const fullDate = `2026-02-${day}`; 
+          const isSelected = user.available_dates?.includes(fullDate);
+
+          return (
+            <button
+              key={i}
+              onClick={() => toggleDate(fullDate)}
+              className={`aspect-square flex items-center justify-center rounded-xl text-[11px] font-bold border transition-all
+                ${isSelected 
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
+                  : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+      
+      <div className="mt-4 p-3 bg-blue-50 rounded-xl">
+        <p className="text-[9px] text-blue-700 font-medium text-center">
+          Os dias marcados em <b>preto</b> estarão visíveis para seus clientes agendarem.
+        </p>
+      </div>
+    </div>
+  )}
+</div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
                 <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
