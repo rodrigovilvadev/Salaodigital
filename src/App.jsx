@@ -330,54 +330,106 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
              )}
 
              {/* PASSO 3: DATA E HORA */}
-             {step === 3 && (
-               <>
-                 <h3 className="font-bold text-lg mb-4">Data e Hora</h3>
-                 
-                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Dia</label>
-                 <input type="date" className="w-full p-4 bg-white border border-slate-200 rounded-xl mb-6 font-bold text-slate-700 outline-none focus:border-slate-900 transition-colors" onChange={(e) => setBookingData({...bookingData, date: e.target.value})} />
-                 
-                 <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Horários Disponíveis</label>
-                 <div className="grid grid-cols-4 gap-2">
-                   {GLOBAL_TIME_SLOTS.map(t => {
-                     // Verifica se o horário está nos "available_slots" do barbeiro escolhido
-                     // Se o barbeiro não configurou horários, assume que todos estão livres (ou bloqueados, dependendo da sua regra)
-                     const isSlotAvailable = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
-                     
-                     return (
-                       <button 
-                         key={t} 
-                         disabled={!isSlotAvailable}
-                         onClick={() => setBookingData({...bookingData, time: t})} 
-                         className={`py-2 rounded-lg font-bold text-xs transition-all ${
-                           bookingData.time === t ? 'bg-slate-900 text-white shadow-lg scale-105' : 
-                           isSlotAvailable ? 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400' : 
-                           'bg-slate-100 text-slate-300 cursor-not-allowed'
-                         }`}
-                       >
-                         {t}
-                       </button>
-                     );
-                   })}
-                 </div>
+             Entendido. O seu código atual usa um <input type="date" />, que é problemático porque ele abre o calendário padrão do celular/computador e permite que o cliente escolha qualquer dia do ano, mesmo que você não esteja trabalhando.
 
-                 {/* Resumo antes de confirmar */}
-                 {bookingData.time && bookingData.date && (
-                    <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                        <p className="text-xs text-amber-600 font-bold uppercase mb-1">Resumo</p>
-                        <div className="flex justify-between items-center">
-                            <span className="font-bold text-slate-900">{bookingData.service?.name}</span>
-                            <span className="font-bold text-slate-900">R$ {bookingData.price}</span>
-                        </div>
-                        <p className="text-sm text-slate-500 mt-1">Com {bookingData.barber?.name} às {bookingData.time}</p>
-                    </div>
-                 )}
+Para integrar com o seu novo sistema, vamos remover o input e colocar uma grade de dias (Calendar) que só deixa clicar nos dias que você ativou no seu painel.
 
-                 <Button className="mt-6 w-full py-4 text-lg" onClick={handleFinish} disabled={!bookingData.time || !bookingData.date}>
-                    Confirmar Agendamento
-                 </Button>
-               </>
-             )}
+Aqui está o seu Passo 3 atualizado e pronto para uso:
+
+JavaScript
+{/* PASSO 3: DATA E HORA */}
+{step === 3 && (
+  <>
+    <h3 className="font-bold text-lg mb-4">Data e Hora</h3>
+    
+    <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Selecione um dia disponível</label>
+    
+    {/* Grade de Dias dinâmica baseada no que o barbeiro marcou */}
+    <div className="grid grid-cols-7 gap-2 mb-6">
+      {/* Dias da Semana (Cabeçalho) */}
+      {['D','S','T','Q','Q','S','S'].map(d => (
+        <div key={d} className="text-[10px] font-black text-slate-300 text-center py-1">{d}</div>
+      ))}
+
+      {/* Gerador de dias para Fevereiro/2026 */}
+      {Array.from({ length: 28 }, (_, i) => {
+        const dia = (i + 1).toString().padStart(2, '0');
+        const dataFormatada = `2026-02-${dia}`;
+        
+        // SÓ PERMITE SE A DATA ESTIVER NO ARRAY available_dates DO BARBEIRO
+        const isAvailable = bookingData.barber?.available_dates?.includes(dataFormatada);
+        const isSelected = bookingData.date === dataFormatada;
+
+        return (
+          <button
+            key={i}
+            disabled={!isAvailable}
+            onClick={() => setBookingData({...bookingData, date: dataFormatada, time: null})}
+            className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] font-bold border transition-all
+              ${isSelected 
+                ? 'bg-slate-900 text-white border-slate-900 shadow-lg scale-105' 
+                : isAvailable 
+                  ? 'bg-white text-slate-600 border-slate-200 hover:border-slate-400' 
+                  : 'bg-slate-50 text-slate-200 border-transparent opacity-50 cursor-not-allowed'}`}
+          >
+            {i + 1}
+            {isAvailable && !isSelected && <div className="w-1 h-1 bg-blue-500 rounded-full mt-0.5"></div>}
+          </button>
+        );
+      })}
+    </div>
+    
+    {/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
+    {bookingData.date ? (
+      <>
+        <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
+          Horários para {bookingData.date.split('-').reverse().join('/')}
+        </label>
+        <div className="grid grid-cols-4 gap-2">
+          {GLOBAL_TIME_SLOTS.map(t => {
+            const isSlotAvailable = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
+            
+            return (
+              <button 
+                key={t} 
+                disabled={!isSlotAvailable}
+                onClick={() => setBookingData({...bookingData, time: t})} 
+                className={`py-2 rounded-lg font-bold text-xs transition-all ${
+                  bookingData.time === t ? 'bg-slate-900 text-white shadow-lg scale-105' : 
+                  isSlotAvailable ? 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400' : 
+                  'bg-slate-100 text-slate-300 cursor-not-allowed'
+                }`}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
+      </>
+    ) : (
+      <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+        <Calendar size={24} className="mx-auto text-slate-300 mb-2" />
+        <p className="text-xs text-slate-400 font-bold">Selecione um dia acima primeiro</p>
+      </div>
+    )}
+
+    {/* Resumo antes de confirmar */}
+    {bookingData.time && bookingData.date && (
+      <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-100 animate-in fade-in zoom-in duration-300">
+        <p className="text-xs text-amber-600 font-bold uppercase mb-1">Resumo</p>
+        <div className="flex justify-between items-center">
+          <span className="font-bold text-slate-900">{bookingData.service?.name}</span>
+          <span className="font-bold text-slate-900">R$ {bookingData.price}</span>
+        </div>
+        <p className="text-sm text-slate-500 mt-1">Com {bookingData.barber?.name} às {bookingData.time}</p>
+      </div>
+    )}
+
+    <Button className="mt-6 w-full py-4 text-lg" onClick={handleFinish} disabled={!bookingData.time || !bookingData.date}>
+      Confirmar Agendamento
+    </Button>
+  </>
+)}
           </div>
         )}
       </main>
