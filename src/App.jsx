@@ -586,30 +586,64 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
               </div>
             </div>
 
-            <section>
-              <h3 className="font-bold text-slate-900 mb-4">Novas Solicitações</h3>
-              {pending.length === 0 ? (
-                <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">Nenhum pedido pendente.</div>
-              ) : (
-                pending.map(app => (
-                  <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 mb-3 shadow-sm">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="font-bold">{app.client}</p>
-                        <p className="text-xs text-blue-600 font-bold">
-                          {app.time} - {app.date?.split('-').reverse().join('/') || 'Data não definida'}
-                        </p>
-                      </div>
-                      <p className="font-bold">R$ {app.price}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => onUpdateStatus(app.id, 'confirmed')} className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-xs font-bold">Aceitar</button>
-                      <button onClick={() => onUpdateStatus(app.id, 'rejected')} className="flex-1 bg-slate-100 text-slate-500 py-2 rounded-lg text-xs font-bold">Recusar</button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </section>
+           {/* Seção de Novas Solicitações */}
+<section>
+  <h3 className="font-bold text-slate-900 mb-4">Novas Solicitações</h3>
+  {pending.length === 0 ? (
+    <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
+      Nenhum pedido pendente.
+    </div>
+  ) : (
+    pending.map(app => (
+      <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 mb-3 shadow-sm">
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <p className="font-bold text-slate-900">{app.client}</p>
+            {/* Garantindo que a data apareça corretamente */}
+            <p className="text-xs text-blue-600 font-bold">
+              {app.time} - {app.date ? app.date.split('-').reverse().join('/') : 'Data não informada'}
+            </p>
+          </div>
+          <p className="font-bold text-slate-900">R$ {app.price}</p>
+        </div>
+
+        <div className="flex gap-2">
+          {/* Botão Aceitar com disparador de WhatsApp */}
+          <button 
+            onClick={() => {
+              // 1. Atualiza o status no banco
+              onUpdateStatus(app.id, 'confirmed');
+              
+              // 2. Prepara a mensagem do WhatsApp
+              const dataFormatada = app.date ? app.date.split('-').reverse().join('/') : '';
+              const mensagem = `Olá ${app.client}! Aqui é da barbearia. Seu agendamento para o dia ${dataFormatada} às ${app.time} foi *CONFIRMADO*! Te esperamos lá.`;
+              
+              // 3. Formata o número (remove caracteres não numéricos)
+              const fone = app.clientPhone?.replace(/\D/g, ''); 
+              
+              if (fone) {
+                const url = `https://api.whatsapp.com/send?phone=55${fone}&text=${encodeURIComponent(mensagem)}`;
+                window.open(url, '_blank');
+              } else {
+                alert("Cliente não possui telefone cadastrado.");
+              }
+            }} 
+            className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 transition-colors"
+          >
+            Aceitar e Avisar
+          </button>
+
+          <button 
+            onClick={() => onUpdateStatus(app.id, 'rejected')} 
+            className="flex-1 bg-slate-100 text-slate-500 py-2 rounded-lg text-xs font-bold"
+          >
+            Recusar
+          </button>
+        </div>
+      </div>
+    ))
+  )}
+</section>
           </div>
         )}
 
