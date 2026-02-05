@@ -611,27 +611,31 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
           {/* Botão Aceitar com disparador de WhatsApp */}
           <button 
             onClick={() => {
-              // 1. Atualiza o status no banco
-              onUpdateStatus(app.id, 'confirmed');
-              
-              // 2. Prepara a mensagem do WhatsApp
-              const dataFormatada = app.date ? app.date.split('-').reverse().join('/') : '';
-              const mensagem = `Olá ${app.client}! Aqui é da barbearia. Seu agendamento para o dia ${dataFormatada} às ${app.time} foi *CONFIRMADO*! Te esperamos lá.`;
-              
-              // 3. Formata o número (remove caracteres não numéricos)
-              const fone = app.phone?.toString().replace(/\D/g, '');
-              
-              if (fone) {
-                const url = `https://api.whatsapp.com/send?phone=55${fone}&text=${encodeURIComponent(mensagem)}`;
-                window.open(url, '_blank');
-              } else {
-                alert("Cliente não possui telefone cadastrado.");
-              }
-            }} 
-            className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 transition-colors"
-          >
-            Aceitar e Avisar
-          </button>
+    // 1. Atualiza o status no banco para 'confirmed'
+    onUpdateStatus(app.id, 'confirmed');
+    
+    // 2. Prepara a data para a mensagem (Ex: 2026-02-10 -> 10/02/2026)
+    const dataFormatada = app.date ? app.date.split('-').reverse().join('/') : 'a combinar';
+    
+    // 3. Monta a mensagem personalizada
+    const mensagem = `Olá ${app.client}! Aqui é da barbearia. Seu agendamento para o dia *${dataFormatada}* às *${app.time}* foi *CONFIRMADO*! Te esperamos lá.`;
+    
+    // 4. Pega o número da coluna 'phone' e limpa (deixa só números)
+    // Usamos o opcional chaining ?. e toString() para evitar erros se o campo estiver nulo ou for numérico
+    const foneLimpo = app.phone?.toString().replace(/\D/g, '');
+    
+    if (foneLimpo) {
+      // Abre o WhatsApp com o DDI 55 (Brasil) + número limpo + mensagem
+      const url = `https://api.whatsapp.com/send?phone=55${foneLimpo}&text=${encodeURIComponent(mensagem)}`;
+      window.open(url, '_blank');
+    } else {
+      alert("Não foi possível encontrar o número (coluna 'phone') deste cliente no banco.");
+    }
+  }} 
+  className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+>
+  <MessageCircle size={14} /> Aceitar e Avisar
+</button>
 
           <button 
             onClick={() => onUpdateStatus(app.id, 'rejected')} 
