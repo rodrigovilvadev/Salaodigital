@@ -548,6 +548,36 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     );
     onUpdateProfile({ ...user, my_services: newServices });
   };
+  const handleUploadPhoto = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    // 1. Envia para o Storage
+    const { error: uploadError } = await supabase.storage
+      .from('barber-photos')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    // 2. Pega a URL pública
+    const { data: { publicUrl } } = supabase.storage
+      .from('barber-photos')
+      .getPublicUrl(filePath);
+
+    // 3. Atualiza o perfil do barbeiro com a nova foto
+    const currentPhotos = user.photos || [];
+    onUpdateProfile({ ...user, photos: [...currentPhotos, publicUrl] });
+    
+    alert('Foto carregada com sucesso!');
+  } catch (error) {
+    alert('Erro ao carregar foto: ' + error.message);
+  }
+};
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -791,8 +821,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                 ))}
                 </div>
             </div>
-
-            {/* 1. LOCALIZAÇÃO (CASINHA) - AGORA NO LUGAR CERTO */}
+{/* 1. LOCALIZAÇÃO */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -817,7 +846,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                 {user.address && <p className="mt-3 text-xs font-medium text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">{user.address}</p>}
             </div>
 
-            {/* 2. FOTO DE PERFIL (PERSONAGEM) - AGORA NO LUGAR CERTO */}
+            {/* 2. FOTO DE PERFIL */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -846,6 +875,27 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                     <p className="text-[10px] text-slate-400">Esta foto aparecerá para os clientes.</p>
                 </div>
             </div>
+
+            {/* 3. SEÇÃO DE FOTOS DA GALERIA */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-black text-slate-900 text-lg">Minha Galeria</h3>
+                <div className="relative">
+                  <div className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2">
+                    <Plus size={16} /> Adicionar
+                  </div>
+                  <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleUploadPhoto} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {user.photos?.map((url, index) => (
+                  <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100">
+                    <img src={url} alt="Trabalho" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         )}
       </main>
