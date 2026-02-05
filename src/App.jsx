@@ -843,9 +843,6 @@ export default function App() {
         // ADICIONADO: Inicia o array de datas vazio para o calendário funcionar
         available_dates: [], 
         avatar_url: '',
-        // ADICIONADO: Garante que o campo bio ou outros campos de perfil existam
-        bio: '',
-        address: ''
       }])
       .select()
       .single();
