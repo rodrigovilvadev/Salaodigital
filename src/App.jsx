@@ -875,37 +875,44 @@ export default function App() {
 
     setUser(data);
   };
-  // --- AGENDAMENTO NO BANCO (CORRIGIDO) ---
-  const handleBookingSubmit = async (data) => {
-    const newBooking = {
-      client_id: user.id,
-      client_name: user.name,
-      barber_id: data.barber.id,
-      service_name: data.service.name,
-      booking_date: data.date,
-      booking_time: data.time,
-      price: data.price,
-      status: 'pending'
-    };
-
-    const { data: saved, error } = await supabase
-      .from('appointments')
-      .insert([newBooking])
-      .select()
-      .single();
-
-    if (!error && saved) {
-      setAppointments(prev => [...prev, {
-        ...saved,
-        client: saved.client_name,
-        service: saved.service_name,
-        barberId: saved.barber_id,
-        time: saved.booking_time
-      }]);
-    } else {
-      alert("Erro ao agendar: " + error.message);
-    }
+  // --- AGENDAMENTO NO BANCO (VERSÃO SINCRONIZADA COM A TABELA) ---
+const handleBookingSubmit = async (data) => {
+  const newBooking = {
+    client_id: user.id,
+    client_name: user.name,
+    barber_id: data.barber.id,
+    service_name: data.service.name,
+    price: data.price,
+    status: 'pending',
+    
+    // CORREÇÃO: Use os nomes EXATOS das colunas que aparecem na sua foto
+    date: data.date,    // Antes era booking_date (por isso dava NULL)
+    phone: data.phone,  // Adicionado para salvar o telefone no banco
+    time: data.time     // Certifique-se que a coluna 'time' também existe
   };
+
+  const { data: saved, error } = await supabase
+    .from('appointments')
+    .insert([newBooking])
+    .select()
+    .single();
+
+  if (!error && saved) {
+    setAppointments(prev => [...prev, {
+      ...saved,
+      client: saved.client_name,
+      service: saved.service_name,
+      barberId: saved.barber_id,
+      // Mapeia para o estado local para o barbeiro ver na hora
+      time: saved.time,
+      date: saved.date,
+      phone: saved.phone
+    }]);
+  } else {
+    console.error("Erro detalhado:", error);
+    alert("Erro ao agendar: " + (error?.message || "Erro de conexão"));
+  }
+};
 
   const handleUpdateStatus = async (id, status) => {
     const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
