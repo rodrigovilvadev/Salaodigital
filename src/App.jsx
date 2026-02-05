@@ -783,6 +783,61 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                 ))}
                 </div>
             </div>
+
+            {/* 1. LOCALIZAÇÃO (CASINHA) - AGORA NO LUGAR CERTO */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                            <Home size={20} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 text-sm">Localização</h3>
+                            <p className="text-[10px] text-slate-500">Endereço do estabelecimento</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => {
+                            const novoEndereco = prompt("Digite o endereço da barbearia:", user.address || "");
+                            if (novoEndereco !== null) onUpdateProfile({ ...user, address: novoEndereco });
+                        }}
+                        className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 transition-all"
+                    >
+                        <MapPin size={18} />
+                    </button>
+                </div>
+                {user.address && <p className="mt-3 text-xs font-medium text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">{user.address}</p>}
+            </div>
+
+            {/* 2. FOTO DE PERFIL (PERSONAGEM) - AGORA NO LUGAR CERTO */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                            <User size={20} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 text-sm">Foto de Perfil</h3>
+                            <p className="text-[10px] text-slate-500">Mude a imagem do seu perfil</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => {
+                            const novaFoto = prompt("Cole o link (URL) da sua nova foto:", user.avatar_url || "");
+                            if (novaFoto !== null) onUpdateProfile({ ...user, avatar_url: novaFoto });
+                        }}
+                        className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 transition-all"
+                    >
+                        <Camera size={18} />
+                    </button>
+                </div>
+                <div className="mt-3 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100">
+                        <img src={user.avatar_url || 'https://via.placeholder.com/150'} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-[10px] text-slate-400">Esta foto aparecerá para os clientes.</p>
+                </div>
+            </div>
           </div>
         )}
       </main>
