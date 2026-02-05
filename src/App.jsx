@@ -193,120 +193,63 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       <main className="p-6 max-w-md mx-auto">
 {view === 'home' && (
   <div className="space-y-6 animate-in fade-in">
-    {/* CARD DE BOAS-VINDAS */}
-    <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
-      <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
-      <div className="flex gap-2">
-        <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
-        <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
+   {/* CARD DE BOAS-VINDAS */}
+      <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
+        <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
+          <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
+        </div>
+      </div>
+
+      {/* SEU CARROSSEL (AQUI ELE VOLTA A APARECER) */}
+      <div className="mt-2">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Galeria</h3>
+        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+          <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+            <img src={imgMao} alt="Mão" className="w-full h-full object-cover" />
+          </div>
+          <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+            <img src={imgMp} alt="Material" className="w-full h-full object-cover" />
+          </div>
+          <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
+            <img src={imgTes} alt="Tesoura" className="w-full h-full object-cover" />
+          </div>
+        </div>
       </div>
     </div>
-    {view === 'history' && (
-  <div className="space-y-4 animate-in slide-in-from-right">
-    <button 
-      onClick={() => setView('home')} 
-      className="text-slate-400 font-bold text-sm mb-2 flex items-center gap-1"
-    >
-      ← Voltar
-    </button>
+  )}
 
-    <h3 className="font-bold text-slate-900 mb-4">Meus Agendamentos</h3>
-
-    {/* Filtrando para mostrar apenas os agendamentos do cliente logado */}
-    {appointments.filter(a => a.client_id === user.id).length === 0 ? (
-      <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
-        Você ainda não possui agendamentos.
-      </div>
-    ) : (
-      <div className="space-y-3">
-        {appointments
-          .filter(a => a.client_id === user.id)
-          .sort((a, b) => b.id - a.id) // Mostra os mais recentes primeiro
-          .map(app => (
-            <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="font-bold text-slate-900 text-sm uppercase">{app.service_name}</p>
-                  <p className="text-xs text-slate-500">
-                    {app.date ? app.date.split('-').reverse().join('/') : 'A combinar'} às {app.time}
-                  </p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                  app.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                  app.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                  'bg-yellow-100 text-yellow-600'
-                }`}>
-                  {app.status === 'confirmed' ? 'Confirmado' : 
-                   app.status === 'rejected' ? 'Recusado' : 'Pendente'}
-                </span>
-              </div>
-              <div className="text-[10px] font-bold text-slate-400 border-t pt-2 flex justify-between">
-                <span>VALOR: R$ {app.price}</span>
-                {app.status === 'confirmed' && <span className="text-green-600 italic">Confirmado pelo profissional</span>}
-              </div>
-            </div>
-          ))}
-      </div>
-    )}
-  </div>
-)}
-
-    {/* CARROSSEL MINIATURA ESTILO IPHONE 11 */}
-    <div className="mt-2">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Galeria</h3>
+  {/* --- TELA DE HISTÓRICO (FORA DA HOME) --- */}
+  {view === 'history' && (
+    <div className="space-y-4 animate-in slide-in-from-right">
+      <button 
+        onClick={() => setView('home')} 
+        className="text-slate-400 font-bold text-sm mb-4 flex items-center gap-1"
+      >
+        ← Voltar
+      </button>
+      <h3 className="font-bold text-lg text-slate-900 mb-4">Meus Agendamentos</h3>
       
-      {/* Ajustado: gap menor e padding lateral para não colar na borda */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        
-        {/* Card 1: Largura fixa de 100px e altura de 110px (~3cm) */}
-        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
-          <img 
-            src={imgMao} 
-            alt="Mão" 
-            className="w-full h-full object-cover"
-          />
+      {/* Lista de agendamentos (o filtro que corrigimos antes) */}
+      {appointments.filter(a => String(a.client_id) === String(user.id)).length === 0 ? (
+        <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
+          Ainda não tem agendamentos.
         </div>
-
-        {/* Card 2 */}
-        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
-          <img 
-            src={imgMp} 
-            alt="Material" 
-            className="w-full h-full object-cover"
-          />
+      ) : (
+        <div className="space-y-3">
+          {appointments
+            .filter(a => String(a.client_id) === String(user.id))
+            .map(app => (
+              <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                <p className="font-bold text-sm">{app.service_name}</p>
+                <p className="text-xs text-slate-500">{app.date} às {app.time}</p>
+              </div>
+            ))}
         </div>
-
-        {/* Card 3 */}
-        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
-          <img 
-            src={imgTes} 
-            alt="Tesoura" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Card 4 */}
-        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
-          <img 
-            src={imgMao} 
-            alt="Extra" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Card 5 */}
-        <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
-          <img 
-            src={imgMp} 
-            alt="Extra 2" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-      </div>
+      )}
     </div>
-  </div>
-)}
+  )}
 
         {view === 'booking' && (
           <div className="space-y-4 animate-in slide-in-from-right">
