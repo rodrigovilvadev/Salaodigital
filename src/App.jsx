@@ -569,70 +569,70 @@ const updateServicePrice = (serviceId, newPrice) => {
           </div>
         )}
 
-        {activeTab === 'services' && (
-          <div className="space-y-3">
-            {MASTER_SERVICES.map(service => {
-              const userServiceData = user.my_services?.find(s => s.id === service.id);
-              const isActive = !!userServiceData;
-              return (
-                <div key={service.id} className={`p-4 rounded-2xl border-2 transition-all ${isActive ? 'border-slate-900 bg-white' : 'border-slate-100 bg-slate-50'}`}>
-                  <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleService(service.id, service.defaultPrice)}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-400'}`}>{service.icon}</div>
-                      <div>
-                        <p className={`text-sm font-bold ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>{service.name}</p>
-                        <p className="text-[10px] text-slate-400">{service.duration}</p>
-                      </div>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 ${isActive ? 'bg-green-500 border-green-500' : 'border-slate-300'}`} />
-                  </div>
-                  {isActive && (
-                    <div className="mt-3 pt-3 border-t flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-400">PREÇO (R$)</span>
-                      <input 
-  type="number" 
-  // Garante que o valor apareça, ou 0 se estiver vazio
-  value={userServiceData.price || ''} 
-  // Chama a função que agora está definida acima
-  onChange={(e) => updateServicePrice(service.id, e.target.value)} 
-  className="w-20 text-right font-bold outline-none bg-transparent border-b border-transparent focus:border-slate-200"
-  placeholder="0.00"
-/>
-                    </div>
-                    
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         {activeTab === 'config' && (
-          <div className="space-y-6">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-900">Visibilidade da Loja</h3>
-                  <p className="text-xs text-slate-500 mt-1">Aparecer para clientes na lista.</p>
-                </div>
-                <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}>
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.is_Visible ? 'translate-x-6' : 'translate-x-0'}`}/>
-                </div>
-              </div>
-            </div>
-            
+  <div className="space-y-6">
+    {/* ... (seu código de Visibilidade da Loja aqui) */}
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200">
-                <h3 className="font-bold text-slate-900 mb-4 text-sm">Seus Horários</h3>
-                <div className="grid grid-cols-4 gap-2">
-                {GLOBAL_TIME_SLOTS.map(slot => (
-                    <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border ${user.available_slots?.includes(slot) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
-                        {slot}
-                    </button>
-                ))}
-                </div>
-            </div>
-          </div>
+    {/* NOVO: SELETOR DE DATAS DISPONÍVEIS */}
+    <div className="bg-white p-5 rounded-2xl border border-slate-200">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
+        <div className="flex gap-2">
+          {/* Você pode adicionar setas de navegação de mês aqui se desejar */}
+          <span className="text-[10px] font-bold uppercase text-slate-400">Fevereiro 2026</span>
+        </div>
+      </div>
+
+      {/* Cabeçalho dos dias da semana */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => (
+          <div key={d} className="text-center text-[10px] font-black text-slate-300 py-1">{d}</div>
+        ))}
+      </div>
+
+      {/* Grade do Calendário */}
+      <div className="grid grid-cols-7 gap-2">
+        {/* Lógica para renderizar os dias (Exemplo simplificado de 28 dias) */}
+        {Array.from({ length: 28 }, (_, i) => {
+          const day = (i + 1).toString().padStart(2, '0');
+          const fullDate = `2026-02-${day}`; // Formato ISO para salvar no banco
+          const isSelected = user.available_dates?.includes(fullDate);
+
+          return (
+            <button
+              key={fullDate}
+              onClick={() => toggleDate(fullDate)} // Você precisará criar essa função similar ao toggleSlot
+              className={`
+                aspect-square flex flex-col items-center justify-center rounded-xl border transition-all
+                ${isSelected 
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
+                  : 'bg-white text-slate-500 border-slate-100 hover:border-slate-300'}
+              `}
+            >
+              <span className="text-[11px] font-bold">{day}</span>
+              {isSelected && <div className="w-1 h-1 bg-blue-400 rounded-full mt-0.5"></div>}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] text-slate-400 mt-4 italic text-center">
+        Toque nos dias que você estará aberto para novos agendamentos.
+      </p>
+    </div>
+
+    {/* Seus Horários (Mantido igual) */}
+    <div className="bg-white p-5 rounded-2xl border border-slate-200">
+        <h3 className="font-bold text-slate-900 mb-4 text-sm">Seus Horários</h3>
+        <div className="grid grid-cols-4 gap-2">
+        {GLOBAL_TIME_SLOTS.map(slot => (
+            <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border ${user.available_slots?.includes(slot) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
+                {slot}
+            </button>
+        ))}
+        </div>
+    </div>
+  </div>
+
         )}
       </main>
     </div>
