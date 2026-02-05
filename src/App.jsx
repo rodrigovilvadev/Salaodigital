@@ -361,41 +361,24 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       }
 
       return (
-       <div className="grid grid-cols-4 gap-2">
-  {GLOBAL_TIME_SLOTS.map(t => {
-    // 2. Verificar se o barbeiro atende nesse horário (Configuração dele)
-    const isConfigured = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
+        <div className="grid grid-cols-4 gap-2">
+          {GLOBAL_TIME_SLOTS.map(t => {
+            // 2. Verificar se o barbeiro atende nesse horário (Configuração dele)
+            const isConfigured = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
 
-    // 3. Verificar se o horário já está ocupado no banco de dados
-    const isTaken = appointments.some(app => {
-      const sameBarber = String(app.barberId) === String(bookingData.barber.id);
-      const sameDate = app.booking_date === bookingData.date;
-      const sameTime = app.time === t;
-      const isOccupied = app.status === 'confirmed' || app.status === 'pending';
-      return sameBarber && sameDate && sameTime && isOccupied;
-    });
+            // 3. Verificar se o horário já está ocupado no banco de dados
+            // Comparamos: Data, Horário e ID do Barbeiro
+            const isTaken = appointments.some(app => {
+  const sameBarber = String(app.barberId) === String(bookingData.barber.id);
+  const sameDate = app.booking_date === bookingData.date;
+  const sameTime = app.time === t;
+  // Ocupa se for confirmado ou se ainda estiver pendente de aprovação
+  const isOccupied = app.status === 'confirmed' || app.status === 'pending';
 
-    const canSelect = isConfigured && !isTaken;
-
-    // IMPORTANTE: Retornar o HTML do botão aqui embaixo
-    return (
-      <button 
-        key={t} 
-        disabled={!canSelect}
-        onClick={() => setBookingData({...bookingData, time: t})} 
-        className={`py-2 rounded-lg font-bold text-[10px] transition-all border ${
-          bookingData.time === t 
-            ? 'bg-slate-900 text-white border-slate-900 shadow-lg scale-105' // Selecionado
-            : canSelect 
-              ? 'bg-white text-slate-600 border-slate-200 active:bg-slate-50' // Disponível
-              : 'bg-slate-100 text-slate-300 border-transparent cursor-not-allowed' // Ocupado ou Não Configurado
-        }`}
-      >
-        {isTaken ? 'Ocupado' : t}
-      </button>
-    );
-  })}
-</div>
+  return sameBarber && sameDate && sameTime && isOccupied;
+});
+          })}
+        </div>
       );
     })()}
 
@@ -426,36 +409,26 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
 };
 
 // --- 5. BARBER DASHBOARD (Mantido igual) ---
-const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile, GLOBAL_TIME_SLOTS }) => {
+const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [isPaying, setIsPaying] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
-  
-  // 1. ESTADO PARA A DATA (Resolve o erro do ReferenceError)
-  const [configDate, setConfigDate] = useState(new Date().toISOString().split('T')[0]);
 
   const myAppointments = appointments.filter(a => a.barberId === user.id && a.status !== 'rejected');
   const pending = myAppointments.filter(a => a.status === 'pending');
   const confirmed = myAppointments.filter(a => a.status === 'confirmed');
   const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
-
-  // 2. FUNÇÃO PARA ATIVAR/DESATIVAR DIAS
   const toggleDay = (dia) => {
-    const currentDays = user.available_days || [];
-    const newDays = currentDays.includes(dia) 
-      ? currentDays.filter(d => d !== dia) 
-      : [...currentDays, dia];
-    onUpdateProfile({ ...user, available_days: newDays });
-  };
+  // Pega os dias atuais do usuário ou um array vazio se não houver nada
+  const currentDays = user.available_days || [];
+  
+  // Se o dia já está lá, remove. Se não está, adiciona.
+  const newDays = currentDays.includes(dia) 
+    ? currentDays.filter(d => d !== dia) 
+    : [...currentDays, dia];
 
-  // 3. FUNÇÃO PARA ATIVAR/DESATIVAR HORÁRIOS (Slots)
-  const toggleSlot = (slot) => {
-    const currentSlots = user.available_slots || [];
-    const newSlots = currentSlots.includes(slot)
-      ? currentSlots.filter(s => s !== slot)
-      : [...currentSlots, slot];
-    onUpdateProfile({ ...user, available_slots: newSlots });
-  };
+  // Usa a função que você já tem para atualizar o Supabase e o estado
+  onUpdateProfile({ ...user, available_days: newDays });
 };
   // --------------------------------------------
 
@@ -548,6 +521,7 @@ const updateServicePrice = (serviceId, newPrice) => {
   
   // 2. Envia a atualização para o Supabase (garantindo que use my_services)
   onUpdateProfile({ ...user, my_services: newServices });
+};
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -681,60 +655,28 @@ const updateServicePrice = (serviceId, newPrice) => {
                 </div>
               </div>
             </div>
-           {/* SEÇÃO DE HORÁRIOS FORMATO CLIENTE */}
-<div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-  <h3 className="font-bold text-lg mb-4 text-slate-900">Configurar Horários</h3>
-  
-  <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Selecione o Dia</label>
-  <input 
-    type="date" 
-    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl mb-6 font-bold text-slate-700 outline-none focus:border-slate-900 transition-colors" 
-    value={configDate}
-    onChange={(e) => setConfigDate(e.target.value)} 
-  />
-  
-  <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Seus Horários para este dia</label>
-  
-  {(() => {
-    if (!configDate) return <p className="text-sm text-slate-400 italic p-4 text-center">Selecione uma data para ajustar seus horários...</p>;
-
-    // 1. Validar Dia da Semana (Mesma lógica do cliente)
-    const dateObj = new Date(configDate + 'T00:00:00');
-    const diasNome = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const diaSelecionadoNome = diasNome[dateObj.getDay()];
-    const isDayAvailable = user.available_days?.includes(diaSelecionadoNome);
-
-    if (!isDayAvailable) {
-      return (
-        <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-center border border-amber-100">
-          <p className="font-bold text-sm">Você marcou {diaSelecionadoNome} como dia de folga.</p>
-          <p className="text-[10px] uppercase mt-1">Ative este dia nos "Dias de Atendimento" acima para liberar horários.</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="grid grid-cols-4 gap-2">
-        {GLOBAL_TIME_SLOTS.map(slot => {
-          const isSelected = user.available_slots?.includes(slot);
-          
-          return (
-            <button 
-              key={slot} 
-              onClick={() => toggleSlot(slot)} 
-              className={`py-3 rounded-xl font-bold text-[10px] transition-all border ${
-                isSelected 
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
-                  : 'bg-white text-slate-400 border-slate-100'
-              }`}
-            >
-              {slot}
-            </button>
-          );
+           {/* SELEÇÃO DE DIAS DA SEMANA */}
+<div className="bg-white p-5 rounded-2xl border border-slate-200 mb-4 shadow-sm">
+    <h3 className="font-bold text-slate-900 mb-4 text-sm">Dias de Atendimento</h3>
+    <div className="flex flex-wrap gap-2">
+        {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((dia) => {
+            const isDaySelected = user.available_days?.includes(dia);
+            
+            return (
+                <button 
+                    key={dia} 
+                    onClick={() => toggleDay(dia)} // Agora a função existe!
+                    className={`flex-1 min-w-[60px] py-3 text-xs font-bold rounded-xl border transition-all ${
+                        isDaySelected 
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100' 
+                        : 'bg-slate-50 text-slate-400 border-slate-100'
+                    }`}
+                >
+                    {dia}
+                </button>
+            );
         })}
-      </div>
-    );
-  })()}
+    </div>
 </div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
