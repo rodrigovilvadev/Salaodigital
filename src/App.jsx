@@ -548,7 +548,6 @@ const updateServicePrice = (serviceId, newPrice) => {
   
   // 2. Envia a atualização para o Supabase (garantindo que use my_services)
   onUpdateProfile({ ...user, my_services: newServices });
-};
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -753,7 +752,7 @@ const updateServicePrice = (serviceId, newPrice) => {
       </main>
     </div>
   );
-
+};
 /// --- 6. ORQUESTRADOR PRINCIPAL ---
 export default function App() {
   const [currentMode, setCurrentMode] = useState(null); 
