@@ -827,31 +827,37 @@ export default function App() {
     setUser(data);
   };
 
-  // --- FUNÇÃO DE CADASTRO (CORRIGIDO) ---
+// --- FUNÇÃO DE CADASTRO (CORRIGIDO E COMPLETO) ---
   const handleRegister = async (name, phone, password) => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .insert([{ 
-      name, 
-      phone, 
-      password, 
-      role: currentMode, 
-      is_visible: false, // Começa offline até configurar e pagar
-      has_access: false, // Precisa pagar para ativar
-      my_services: [],   // Inicia vazio
-      available_slots: GLOBAL_TIME_SLOTS, // Inicia com todos e ele remove os que não quer
-      avatar_url: ''      // Campo para a foto
-    }])
-    .select()
-    .single();
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert([{ 
+        name, 
+        phone, 
+        password, 
+        role: currentMode, 
+        is_visible: false,
+        has_access: false,
+        my_services: [],
+        available_slots: GLOBAL_TIME_SLOTS,
+        // ADICIONADO: Inicia o array de datas vazio para o calendário funcionar
+        available_dates: [], 
+        avatar_url: '',
+        // ADICIONADO: Garante que o campo bio ou outros campos de perfil existam
+        bio: '',
+        address: ''
+      }])
+      .select()
+      .single();
 
-  if (error) {
-    if (error.code === '23505') throw new Error('Este WhatsApp já está cadastrado!');
-    throw new Error(error.message);
-  }
-  setUser(data);
-};
+    if (error) {
+      // Erro 23505 é o código do Postgres para "Unique Violation" (duplicidade)
+      if (error.code === '23505') throw new Error('Este WhatsApp já está cadastrado!');
+      throw new Error(error.message);
+    }
 
+    setUser(data);
+  };
   // --- AGENDAMENTO NO BANCO (CORRIGIDO) ---
   const handleBookingSubmit = async (data) => {
     const newBooking = {
