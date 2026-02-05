@@ -1,14 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import imgMao from './img/mao.jpg';
-import imgMp from './img/mp.jpg';
-import imgTes from './img/tes.jpg';
 import { 
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, LogOut, Bell, DollarSign, 
   ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
   CreditCard, Lock, Clock, CalendarDays, Sparkles, Palette, Briefcase, Edit3, 
   MessageCircle, Phone, XCircle, History, Loader2,
-  Home, Camera // <--- ADICIONADOS AQUI
+  Home, Camera, Plus // <--- ADICIONEI O PLUS AQUI
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO SUPABASE ---
