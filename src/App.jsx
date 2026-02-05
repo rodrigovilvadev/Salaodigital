@@ -755,147 +755,89 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
               </div>
             </div>
 
-          {/* --- SEÇÃO DE CALENDÁRIO RETRÁTIL --- */}
-<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
-  {/* Cabeçalho Clicável */}
-  <button 
-    onClick={() => setShowCalendar(!showCalendar)}
-    className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
-  >
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-        <CalendarDays size={20} />
-      </div>
-      <div className="text-left">
-        <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
-        <p className="text-[10px] text-slate-500">Selecione os dias disponíveis</p>
-      </div>
-    </div>
-    <ChevronRight 
-      size={18} 
-      className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
-    />
-  </button>
-
-  {/* Conteúdo do Calendário (Só aparece se showCalendar for true) */}
-  {showCalendar && (
-    <div className="p-5 pt-0 border-t border-slate-50 animate-in slide-in-from-top-2 duration-300">
-      <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase tracking-wider">
-        {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
-      </div>
-
-      <div className="grid grid-cols-7 gap-2">
-        {Array.from({ length: 28 }, (_, i) => {
-          const day = (i + 1).toString().padStart(2, '0');
-          const fullDate = `2026-02-${day}`; 
-          const isSelected = user.available_dates?.includes(fullDate);
-
-          return (
-            <button
-              key={i}
-              onClick={() => toggleDate(fullDate)}
-              className={`aspect-square flex items-center justify-center rounded-xl text-[11px] font-bold border transition-all
-                ${isSelected 
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
-                  : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}
-            >
-              {i + 1}
-            </button>
-          );
-        })}
-      </div>
-      
-      <div className="mt-4 p-3 bg-blue-50 rounded-xl">
-        <p className="text-[9px] text-blue-700 font-medium text-center">
-          Os dias marcados em <b>preto</b> estarão visíveis para seus clientes agendarem.
-        </p>
-      </div>
-    </div>
-  )}
-</div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200">
-                <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
-                   <Clock size={18} className="text-blue-600" /> Seus Horários
-                </h3>
-                <div className="grid grid-cols-4 gap-2">
-                {GLOBAL_TIME_SLOTS.map(slot => (
-                    <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border ${user.available_slots?.includes(slot) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
-                        {slot}
-                    </button>
-                ))}
+          {/* CALENDÁRIO PREMIUM (O ÍCONE QUE ABRE O CALENDÁRIO REAL) */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-black text-slate-900 text-lg">Minha Agenda</h3>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider italic">Toque no ícone para gerenciar</p>
                 </div>
-            </div>
-{/* 1. LOCALIZAÇÃO */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
-                            <Home size={20} />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-slate-900 text-sm">Localização</h3>
-                            <p className="text-[10px] text-slate-500">Endereço do estabelecimento</p>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={() => {
-                            const novoEndereco = prompt("Digite o endereço da barbearia:", user.address || "");
-                            if (novoEndereco !== null) onUpdateProfile({ ...user, address: novoEndereco });
-                        }}
-                        className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 transition-all"
-                    >
-                        <MapPin size={18} />
-                    </button>
-                </div>
-                {user.address && <p className="mt-3 text-xs font-medium text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">{user.address}</p>}
-            </div>
-
-            {/* 2. FOTO DE PERFIL */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                            <User size={20} />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-slate-900 text-sm">Foto de Perfil</h3>
-                            <p className="text-[10px] text-slate-500">Mude a imagem do seu perfil</p>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={() => {
-                            const novaFoto = prompt("Cole o link (URL) da sua nova foto:", user.avatar_url || "");
-                            if (novaFoto !== null) onUpdateProfile({ ...user, avatar_url: novaFoto });
-                        }}
-                        className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 transition-all"
-                    >
-                        <Camera size={18} />
-                    </button>
-                </div>
-                <div className="mt-3 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100">
-                        <img src={user.avatar_url || 'https://via.placeholder.com/150'} alt="Preview" className="w-full h-full object-cover" />
-                    </div>
-                    <p className="text-[10px] text-slate-400">Esta foto aparecerá para os clientes.</p>
-                </div>
-            </div>
-
-            {/* 3. SEÇÃO DE FOTOS DA GALERIA */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-black text-slate-900 text-lg">Minha Galeria</h3>
                 <div className="relative">
-                  <div className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2">
-                    <Plus size={16} /> Adicionar
+                  <div className="p-3 bg-slate-900 text-white rounded-2xl shadow-lg shadow-slate-200"><Calendar size={22} /></div>
+                  <input type="date" value={configDate} onChange={(e) => setConfigDate(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                </div>
+              </div>
+
+              {/* Status do Dia Selecionado */}
+              {(() => {
+                const dateObj = new Date(configDate + 'T00:00:00');
+                const diasNome = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                const diaSemana = diasNome[dateObj.getDay()];
+                const isWorking = user.available_days?.includes(diaSemana);
+                
+                return (
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase block">Data Visualizada</span>
+                        <span className="font-bold text-slate-700">{dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })} ({diaSemana})</span>
+                      </div>
+                      <button 
+                        onClick={() => toggleDay(diaSemana)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${isWorking ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}
+                      >
+                        {isWorking ? 'ABERTO' : 'FOLGA'}
+                      </button>
+                    </div>
+
+                    {isWorking && (
+                      <div className="grid grid-cols-4 gap-2">
+                        {GLOBAL_TIME_SLOTS.map(t => (
+                          <button 
+                            key={t} 
+                            onClick={() => toggleSlot(t)}
+                            className={`py-3 rounded-xl font-bold text-[10px] border transition-all ${user.available_slots?.includes(t) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleUploadPhoto} />
+                );
+              })()}
+            </div>
+
+            {/* LOCALIZAÇÃO */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Home size={20} /></div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Localização</h3>
+                  <p className="text-[10px] text-slate-500 truncate w-32">{user.address || 'Não definido'}</p>
+                </div>
+              </div>
+              <button onClick={() => {
+                const n = prompt("Endereço:", user.address || "");
+                if (n !== null) onUpdateProfile({...user, address: n});
+              }} className="p-2 bg-slate-100 rounded-full"><MapPin size={18}/></button>
+            </div>
+
+            {/* GALERIA DE FOTOS */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-black text-slate-900 text-lg">Galeria</h3>
+                <div className="relative">
+                  <div className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-100">
+                    <Plus size={16} /> Foto
+                  </div>
+                  <input type="file" accept="image/*" className="absolute inset-0 opacity-0" onChange={handleUploadPhoto} />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {user.photos?.map((url, index) => (
-                  <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100">
-                    <img src={url} alt="Trabalho" className="w-full h-full object-cover" />
+                {user.photos?.map((url, i) => (
+                  <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-slate-100">
+                    <img src={url} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
