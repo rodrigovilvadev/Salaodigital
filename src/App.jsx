@@ -7,7 +7,8 @@ import {
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, LogOut, Bell, DollarSign, 
   ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
   CreditCard, Lock, Clock, CalendarDays, Sparkles, Palette, Briefcase, Edit3, 
-  MessageCircle, Phone, XCircle, History, Loader2
+  MessageCircle, Phone, XCircle, History, Loader2,
+  Home, Camera // <--- ADICIONADOS AQUI
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO SUPABASE ---
