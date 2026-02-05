@@ -386,45 +386,15 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
 };
 
 // --- 5. BARBER DASHBOARD (Mantido igual) ---
-const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile, GLOBAL_TIME_SLOTS }) => {
+const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [isPaying, setIsPaying] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
-  
-  // 1. ESTADO PARA O CALENDÁRIO (Para o barbeiro selecionar o dia)
-  const [configDate, setConfigDate] = useState(new Date().toISOString().split('T')[0]);
 
   const myAppointments = appointments.filter(a => a.barberId === user.id && a.status !== 'rejected');
   const pending = myAppointments.filter(a => a.status === 'pending');
   const confirmed = myAppointments.filter(a => a.status === 'confirmed');
   const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
-
-  // 2. FUNÇÃO TOGGLE DAY (Completada com o onUpdateProfile)
-  const toggleDay = (dia) => {
-    const currentDays = user.available_days || [];
-    const newDays = currentDays.includes(dia) 
-      ? currentDays.filter(d => d !== dia) 
-      : [...currentDays, dia];
-    
-    // Salva a alteração no banco e atualiza o estado do barbeiro
-    onUpdateProfile({ ...user, available_days: newDays });
-  };
-
-  // 3. FUNÇÃO TOGGLE SLOT (Para ligar/desligar horários específicos)
-  const toggleSlot = (slot) => {
-    const currentSlots = user.available_slots || [];
-    const newSlots = currentSlots.includes(slot)
-      ? currentSlots.filter(s => s !== slot)
-      : [...currentSlots, slot].sort();
-    
-    onUpdateProfile({ ...user, available_slots: newSlots });
-  };
-
-  // Aqui continua o resto do seu componente...
-
-  // Usa a função que você já tem para atualizar o Supabase e o estado
-  onUpdateProfile({ ...user, available_days: newDays });
-};
   // --------------------------------------------
 
   // Verifica se o usuário retornou do Mercado Pago com sucesso
@@ -650,35 +620,7 @@ const updateServicePrice = (serviceId, newPrice) => {
                 </div>
               </div>
             </div>
-         {/* SELETOR DE CALENDÁRIO PARA O BARBEIRO */}
-<div className="bg-white p-5 rounded-2xl border border-slate-200 mb-4 shadow-sm">
-  <h3 className="font-bold text-slate-900 mb-4 text-sm">Gerenciar Atendimento</h3>
-  
-  <input 
-    type="date" 
-    value={configDate}
-    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4 font-bold text-slate-700 outline-none focus:border-slate-900 transition-colors" 
-    onChange={(e) => setConfigDate(e.target.value)} 
-  />
-
-  {configDate && (() => {
-    const dateObj = new Date(configDate + 'T00:00:00');
-    const diasNome = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const diaSemana = diasNome[dateObj.getDay()];
-    const isWorking = user.available_days?.includes(diaSemana);
-
-    return (
-      <button 
-        onClick={() => toggleDay(diaSemana)}
-        className={`w-full py-3 rounded-xl font-bold text-xs border transition-all ${
-          isWorking ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-200'
-        }`}
-      >
-        {isWorking ? `Atendendo aos ${diaSemana}s` : `Folga aos ${diaSemana}s`}
-      </button>
-    );
-  })()}
-</div>
+            
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
                 <h3 className="font-bold text-slate-900 mb-4 text-sm">Seus Horários</h3>
@@ -695,7 +637,7 @@ const updateServicePrice = (serviceId, newPrice) => {
       </main>
     </div>
   );
-
+};
 /// --- 6. ORQUESTRADOR PRINCIPAL ---
 export default function App() {
   const [currentMode, setCurrentMode] = useState(null); 
