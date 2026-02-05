@@ -201,6 +201,55 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
       </div>
     </div>
+    {view === 'history' && (
+  <div className="space-y-4 animate-in slide-in-from-right">
+    <button 
+      onClick={() => setView('home')} 
+      className="text-slate-400 font-bold text-sm mb-2 flex items-center gap-1"
+    >
+      ← Voltar
+    </button>
+
+    <h3 className="font-bold text-slate-900 mb-4">Meus Agendamentos</h3>
+
+    {/* Filtrando para mostrar apenas os agendamentos do cliente logado */}
+    {appointments.filter(a => a.client_id === user.id).length === 0 ? (
+      <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
+        Você ainda não possui agendamentos.
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {appointments
+          .filter(a => a.client_id === user.id)
+          .sort((a, b) => b.id - a.id) // Mostra os mais recentes primeiro
+          .map(app => (
+            <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <p className="font-bold text-slate-900 text-sm uppercase">{app.service_name}</p>
+                  <p className="text-xs text-slate-500">
+                    {app.date ? app.date.split('-').reverse().join('/') : 'A combinar'} às {app.time}
+                  </p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                  app.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                  app.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                  'bg-yellow-100 text-yellow-600'
+                }`}>
+                  {app.status === 'confirmed' ? 'Confirmado' : 
+                   app.status === 'rejected' ? 'Recusado' : 'Pendente'}
+                </span>
+              </div>
+              <div className="text-[10px] font-bold text-slate-400 border-t pt-2 flex justify-between">
+                <span>VALOR: R$ {app.price}</span>
+                {app.status === 'confirmed' && <span className="text-green-600 italic">Confirmado pelo profissional</span>}
+              </div>
+            </div>
+          ))}
+      </div>
+    )}
+  </div>
+)}
 
     {/* CARROSSEL MINIATURA ESTILO IPHONE 11 */}
     <div className="mt-2">
