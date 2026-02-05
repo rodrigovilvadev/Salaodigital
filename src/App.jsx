@@ -329,14 +329,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                </>
              )}
 
-             {/* PASSO 3: DATA E HORA */}
-             Entendido. O seu código atual usa um <input type="date" />, que é problemático porque ele abre o calendário padrão do celular/computador e permite que o cliente escolha qualquer dia do ano, mesmo que você não esteja trabalhando.
-
-Para integrar com o seu novo sistema, vamos remover o input e colocar uma grade de dias (Calendar) que só deixa clicar nos dias que você ativou no seu painel.
-
-Aqui está o seu Passo 3 atualizado e pronto para uso:
-
-JavaScript
 {/* PASSO 3: DATA E HORA */}
 {step === 3 && (
   <>
