@@ -867,41 +867,35 @@ export default function App() {
   };
   // --- AGENDAMENTO NO BANCO (CORRIGIDO) ---
   const handleBookingSubmit = async (data) => {
-  const newBooking = {
-    client_id: user.id,
-    client_name: user.name,
-    // ADICIONADO: Salvando o telefone do cliente no agendamento
-    phone: user.phone, 
-    barber_id: data.barber.id,
-    service_name: data.service.name,
-    // AJUSTADO: Usando nomes simples para facilitar a leitura no painel
-    date: data.date, 
-    time: data.time,
-    price: data.price,
-    status: 'pending'
+    const newBooking = {
+      client_id: user.id,
+      client_name: user.name,
+      barber_id: data.barber.id,
+      service_name: data.service.name,
+      booking_date: data.date,
+      booking_time: data.time,
+      price: data.price,
+      status: 'pending'
+    };
+
+    const { data: saved, error } = await supabase
+      .from('appointments')
+      .insert([newBooking])
+      .select()
+      .single();
+
+    if (!error && saved) {
+      setAppointments(prev => [...prev, {
+        ...saved,
+        client: saved.client_name,
+        service: saved.service_name,
+        barberId: saved.barber_id,
+        time: saved.booking_time
+      }]);
+    } else {
+      alert("Erro ao agendar: " + error.message);
+    }
   };
-
-  const { data: saved, error } = await supabase
-    .from('appointments')
-    .insert([newBooking])
-    .select()
-    .single();
-
-  if (!error && saved) {
-    setAppointments(prev => [...prev, {
-      ...saved,
-      client: saved.client_name,
-      service: saved.service_name,
-      barberId: saved.barber_id,
-      // Garante que o estado local tenha as chaves que o Dashboard usa
-      date: saved.date,
-      time: saved.time,
-      phone: saved.phone 
-    }]);
-  } else {
-    alert("Erro ao agendar: " + (error?.message || "Erro desconhecido"));
-  }
-};
 
   const handleUpdateStatus = async (id, status) => {
     const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
