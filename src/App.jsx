@@ -155,7 +155,17 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     });
 
   const handleFinish = () => {
-    onBookingSubmit(bookingData);
+    // Criamos um novo objeto com TUDO o que o barbeiro precisa ver
+    const finalData = {
+      ...bookingData,
+      phone: user.phone, // Pega o telefone do cliente logado
+      client: user.name, // Garante que o nome do cliente está indo
+      // O 'date' e 'time' já devem estar dentro do bookingData se o cliente selecionou
+    };
+
+    // Agora enviamos esse pacote completo para a função que salva no Supabase
+    onBookingSubmit(finalData); 
+    
     setView('success');
   };
 
@@ -622,11 +632,11 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     
     // 4. Pega o número da coluna 'phone' e limpa (deixa só números)
     // Usamos o opcional chaining ?. e toString() para evitar erros se o campo estiver nulo ou for numérico
-    const foneLimpo = app.phone?.toString().replace(/\D/g, '');
+    const fone = app.phone?.toString().replace(/\D/g, '');
     
-    if (foneLimpo) {
+    if (fone) {
       // Abre o WhatsApp com o DDI 55 (Brasil) + número limpo + mensagem
-      const url = `https://api.whatsapp.com/send?phone=55${foneLimpo}&text=${encodeURIComponent(mensagem)}`;
+      const url = `https://api.whatsapp.com/send?phone=55${fone}&text=${encodeURIComponent(mensagem)}`;
       window.open(url, '_blank');
     } else {
       alert("Não foi possível encontrar o número (coluna 'phone') deste cliente no banco.");
@@ -857,35 +867,41 @@ export default function App() {
   };
   // --- AGENDAMENTO NO BANCO (CORRIGIDO) ---
   const handleBookingSubmit = async (data) => {
-    const newBooking = {
-      client_id: user.id,
-      client_name: user.name,
-      barber_id: data.barber.id,
-      service_name: data.service.name,
-      booking_date: data.date,
-      booking_time: data.time,
-      price: data.price,
-      status: 'pending'
-    };
-
-    const { data: saved, error } = await supabase
-      .from('appointments')
-      .insert([newBooking])
-      .select()
-      .single();
-
-    if (!error && saved) {
-      setAppointments(prev => [...prev, {
-        ...saved,
-        client: saved.client_name,
-        service: saved.service_name,
-        barberId: saved.barber_id,
-        time: saved.booking_time
-      }]);
-    } else {
-      alert("Erro ao agendar: " + error.message);
-    }
+  const newBooking = {
+    client_id: user.id,
+    client_name: user.name,
+    // ADICIONADO: Salvando o telefone do cliente no agendamento
+    phone: user.phone, 
+    barber_id: data.barber.id,
+    service_name: data.service.name,
+    // AJUSTADO: Usando nomes simples para facilitar a leitura no painel
+    date: data.date, 
+    time: data.time,
+    price: data.price,
+    status: 'pending'
   };
+
+  const { data: saved, error } = await supabase
+    .from('appointments')
+    .insert([newBooking])
+    .select()
+    .single();
+
+  if (!error && saved) {
+    setAppointments(prev => [...prev, {
+      ...saved,
+      client: saved.client_name,
+      service: saved.service_name,
+      barberId: saved.barber_id,
+      // Garante que o estado local tenha as chaves que o Dashboard usa
+      date: saved.date,
+      time: saved.time,
+      phone: saved.phone 
+    }]);
+  } else {
+    alert("Erro ao agendar: " + (error?.message || "Erro desconhecido"));
+  }
+};
 
   const handleUpdateStatus = async (id, status) => {
     const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
