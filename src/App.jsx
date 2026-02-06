@@ -696,7 +696,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                                `Aqui é da barbearia. Seu agendamento foi *CONFIRMADO*!%0A%0A` +
                                `📌 *Serviço:* ${servicoFmt}%0A` +
                                `📅 *Data:* ${dataFmt}%0A` +
-                               `⏰ *Horário:* ${horaFmt}%0A%0A` +
+                               `⏰ *Horário:* ${timeFmt}%0A%0A` +
                                `Te esperamos lá!`;
               
               // 4. Limpa o telefone do cliente
@@ -798,6 +798,59 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
       className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
     />
   </button>
+  <div className="bg-white p-5 rounded-2xl border border-slate-200">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Home size={20} /></div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Localização</h3>
+                    <p className="text-[10px] text-slate-500 truncate w-32">{user.address || 'Endereço não definido'}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => {
+                    const n = prompt("Digite o endereço completo:", user.address || "");
+                    if (n !== null) onUpdateProfile({...user, address: n});
+                  }} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+                    <MapPin size={18} className="text-slate-600" />
+                  </button>
+                  
+                  <button onClick={() => {
+                    const latLng = prompt("Cole a URL do Google Maps ou Coordenadas:", user.map_link || "");
+                    if (latLng !== null) onUpdateProfile({...user, map_link: latLng});
+                  }} className="p-2 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors">
+                    <Navigation size={18} className="text-blue-600" />
+                  </button>
+                </div>
+              </div>
+              
+              {user.map_link && (
+                <div className="mt-2 text-[9px] bg-slate-50 p-2 rounded-lg border border-dashed border-slate-200 text-slate-400 italic">
+                  📍 Mapa vinculado: {user.map_link.substring(0, 30)}...
+                </div>
+              )}
+            </div>
+
+            {/* GALERIA DE FOTOS */}
+            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-black text-slate-900 text-base">Galeria</h3>
+                <div className="relative">
+                  <div className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-2 shadow-md">
+                    <Plus size={14} /> Adicionar
+                  </div>
+                  <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleUploadPhoto} />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+                {user.photos?.map((url, i) => (
+                  <div key={i} className="aspect-square rounded-lg overflow-hidden border border-slate-100 group relative">
+                    <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={`foto-${i}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
 
   {/* Conteúdo do Calendário (Só aparece se showCalendar for true) */}
   {showCalendar && (
