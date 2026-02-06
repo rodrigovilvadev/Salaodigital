@@ -768,58 +768,99 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
               </div>
             </div>
 
-          {/* CALENDÁRIO PREMIUM (O ÍCONE QUE ABRE O CALENDÁRIO REAL) */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-black text-slate-900 text-lg">Minha Agenda</h3>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider italic">Toque no ícone para gerenciar</p>
-                </div>
-                <div className="relative">
-                  <div className="p-3 bg-slate-900 text-white rounded-2xl shadow-lg shadow-slate-200"><Calendar size={22} /></div>
-                  <input type="date" value={configDate} onChange={(e) => setConfigDate(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
-                </div>
-              </div>
+         {/* CALENDÁRIO PREMIUM (GERENCIAMENTO) */}
+<div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+  <div className="flex items-center justify-between mb-6">
+    <div>
+      <h3 className="font-black text-slate-900 text-lg">Minha Agenda</h3>
+      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider italic">
+        Toque no ícone para mudar o dia
+      </p>
+    </div>
+    
+    {/* Seletor de Data Oculto */}
+    <div className="relative group cursor-pointer">
+      <div className="p-3 bg-slate-900 text-white rounded-2xl shadow-lg shadow-slate-200 group-hover:scale-105 transition-transform">
+        <Calendar size={22} />
+      </div>
+      <input 
+        type="date" 
+        value={configDate} 
+        onChange={(e) => setConfigDate(e.target.value)} 
+        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+      />
+    </div>
+  </div>
 
-              {/* Status do Dia Selecionado */}
-              {(() => {
-                const dateObj = new Date(configDate + 'T00:00:00');
-                const diasNome = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-                const diaSemana = diasNome[dateObj.getDay()];
-                const isWorking = user.available_days?.includes(diaSemana);
-                
-                return (
-                  <div className="space-y-4">
-                    <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase block">Data Visualizada</span>
-                        <span className="font-bold text-slate-700">{dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })} ({diaSemana})</span>
-                      </div>
-                      <button 
-                        onClick={() => toggleDay(diaSemana)}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${isWorking ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}
-                      >
-                        {isWorking ? 'ABERTO' : 'FOLGA'}
-                      </button>
-                    </div>
+  {/* Lógica de Exibição do Dia */}
+  {(() => {
+    // 1. Pega a data selecionada no input
+    const dateObj = new Date(configDate + 'T00:00:00');
+    
+    // 2. Define os dias (ATENÇÃO: Deve ser idêntico ao usado no Passo 3)
+    const diasNome = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const diaSemana = diasNome[dateObj.getDay()];
+    
+    // 3. Verifica se o barbeiro trabalha neste dia (com proteção || [])
+    const isWorking = (user.available_days || []).includes(diaSemana);
+    
+    return (
+      <div className="space-y-4">
+        {/* Card de Controle do Dia (Folga/Aberto) */}
+        <div className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${isWorking ? 'bg-slate-50 border-slate-100' : 'bg-red-50 border-red-100'}`}>
+          <div>
+            <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">
+              Editando: {diaSemana}
+            </span>
+            <span className={`font-bold text-sm ${isWorking ? 'text-slate-700' : 'text-red-400'}`}>
+              {dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+            </span>
+          </div>
+          
+          <button 
+            onClick={() => toggleDay(diaSemana)}
+            className={`px-5 py-2 rounded-xl text-[10px] font-black tracking-wide transition-all shadow-sm transform active:scale-95
+              ${isWorking 
+                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                : 'bg-red-500 text-white shadow-red-200 hover:bg-red-600'}`}
+          >
+            {isWorking ? 'DIA ABERTO' : 'FECHADO'}
+          </button>
+        </div>
 
-                    {isWorking && (
-                      <div className="grid grid-cols-4 gap-2">
-                        {GLOBAL_TIME_SLOTS.map(t => (
-                          <button 
-                            key={t} 
-                            onClick={() => toggleSlot(t)}
-                            className={`py-3 rounded-xl font-bold text-[10px] border transition-all ${user.available_slots?.includes(t) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+        {/* Grade de Horários (Só aparece se estiver Aberto) */}
+        {isWorking ? (
+          <div>
+             <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 ml-1">Toque nos horários para ativar/desativar</p>
+             <div className="grid grid-cols-4 gap-2">
+               {GLOBAL_TIME_SLOTS.map(t => {
+                 // Verifica se o horário está ativo (com proteção || [])
+                 const isActive = (user.available_slots || []).includes(t);
+                 
+                 return (
+                   <button 
+                     key={t} 
+                     onClick={() => toggleSlot(t)}
+                     className={`py-3 rounded-xl font-bold text-[10px] border transition-all duration-200
+                       ${isActive 
+                         ? 'bg-slate-900 text-white border-slate-900 shadow-md transform scale-105' 
+                         : 'bg-white text-slate-300 border-slate-100 hover:border-slate-300 hover:text-slate-400'}`}
+                   >
+                     {t}
+                   </button>
+                 );
+               })}
+             </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-300 text-xs font-medium border-2 border-dashed border-red-100 rounded-2xl bg-white">
+            Você marcou folga neste dia.
+          </div>
+        )}
+      </div>
+    );
+  })()}
+</div>
 
             {/* LOCALIZAÇÃO */}
             <div className="bg-white p-5 rounded-2xl border border-slate-100 flex items-center justify-between">
