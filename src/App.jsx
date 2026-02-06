@@ -719,7 +719,7 @@ useEffect(() => {
                                `Aqui é da barbearia. Seu agendamento foi *CONFIRMADO*!%0A%0A` +
                                `📌 *Serviço:* ${servicoFmt}%0A` +
                                `📅 *Data:* ${dataFmt}%0A` +
-                               `⏰ *Horário:* ${horaFmt}%0A%0A` +
+                               `⏰ *Horário:*${booking.data.price}%0A%0A` +
                                `Te esperamos lá!`;
               
               // 4. Limpa o telefone do cliente
