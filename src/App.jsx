@@ -137,6 +137,16 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
   const [bookingData, setBookingData] = useState({ service: null, barber: null, price: null, date: null, time: null });
   const [userCoords, setUserCoords] = useState(null);
 
+  useEffect(() => {
+  // Configura o intervalo de 30.000 milissegundos (30 segundos)
+  const interval = setInterval(() => {
+    window.location.reload();
+  }, 30000);
+
+  // Limpa o intervalo se o componente for desmontado para evitar vazamento de memória
+  return () => clearInterval(interval);
+}, []);
+
   // Captura localização ao entrar no fluxo de agendamento
   useEffect(() => {
     if (view === 'booking' && navigator.geolocation) {
@@ -490,7 +500,16 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     // Utiliza sua função onUpdateProfile original
     onUpdateProfile({ ...user, available_dates: newDates });
   };
+useEffect(() => {
+  // Configura o intervalo de 30.000 milissegundos (30 segundos)
+  const interval = setInterval(() => {
+    window.location.reload();
+  }, 30000);
 
+  // Limpa o intervalo se o componente for desmontado para evitar vazamento de memória
+  return () => clearInterval(interval);
+}, []);
+  
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
     const status = queryParams.get('status');
