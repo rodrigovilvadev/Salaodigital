@@ -597,6 +597,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   }
 };
 
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
       {showPayModal && (
