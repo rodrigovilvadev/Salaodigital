@@ -137,11 +137,13 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
   const [bookingData, setBookingData] = useState({ service: null, barber: null, price: null, date: null, time: null });
   const [userCoords, setUserCoords] = useState(null);
 
-  useEffect(() => {
-  // Configura o intervalo de 30.000 milissegundos (30 segundos)
+ useEffect(() => {
   const interval = setInterval(() => {
-    window.location.reload();
-  }, 30000);
+    // Chame aqui as funções que buscam dados do banco
+    fetchBarbers(); 
+    fetchAppointments();
+    console.log("Dados atualizados silenciosamente!");
+  }, 30000); // 30 segu
 
   // Limpa o intervalo se o componente for desmontado para evitar vazamento de memória
   return () => clearInterval(interval);
@@ -501,10 +503,12 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     onUpdateProfile({ ...user, available_dates: newDates });
   };
 useEffect(() => {
-  // Configura o intervalo de 30.000 milissegundos (30 segundos)
   const interval = setInterval(() => {
-    window.location.reload();
-  }, 30000);
+    // Chame aqui as funções que buscam dados do banco
+    fetchBarbers(); 
+    fetchAppointments();
+    console.log("Dados atualizados silenciosamente!");
+  }, 30000); // 30 segu
 
   // Limpa o intervalo se o componente for desmontado para evitar vazamento de memória
   return () => clearInterval(interval);
