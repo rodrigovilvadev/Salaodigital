@@ -655,7 +655,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
               </div>
             </div>
 
-           {/* Seção de Novas Solicitações */}
+          {/* Seção de Novas Solicitações */}
 <section>
   <h3 className="font-bold text-slate-900 mb-4">Novas Solicitações</h3>
   {pending.length === 0 ? (
@@ -668,7 +668,10 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
         <div className="flex justify-between items-start mb-3">
           <div>
             <p className="font-bold text-slate-900">{app.client}</p>
-            {/* Garantindo que a data apareça corretamente */}
+            {/* Exibe Serviço, Horário e Data no Card */}
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
+              {app.service?.name || 'Serviço'}
+            </p>
             <p className="text-xs text-blue-600 font-bold">
               {app.time} - {app.date ? app.date.split('-').reverse().join('/') : 'Data não informada'}
             </p>
@@ -680,35 +683,40 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
           {/* Botão Aceitar com disparador de WhatsApp */}
           <button 
             onClick={() => {
-    // 1. Atualiza o status no banco para 'confirmed'
-    onUpdateStatus(app.id, 'confirmed');
-    
-    // 2. Prepara a data para a mensagem (Ex: 2026-02-10 -> 10/02/2026)
-    const dataFormatada = app.date ? app.date.split('-').reverse().join('/') : 'a combinar';
-    
-    // 3. Monta a mensagem personalizada
-    const mensagem = `Olá ${app.client}! Aqui é da barbearia. Seu agendamento para o dia *${dataFormatada}* às *${app.time}* foi *CONFIRMADO*! Te esperamos lá.`;
-    onst [configDate, setConfigDate] = useState(new Date().toISOString().split('T')[0]);
-    // 4. Pega o número da coluna 'phone' e limpa (deixa só números)
-    // Usamos o opcional chaining ?. e toString() para evitar erros se o campo estiver nulo ou for numérico
-    const fone = app.phone?.toString().replace(/\D/g, '');
-    
-    if (fone) {
-      // Abre o WhatsApp com o DDI 55 (Brasil) + número limpo + mensagem
-      const url = `https://api.whatsapp.com/send?phone=55${fone}&text=${encodeURIComponent(mensagem)}`;
-      window.open(url, '_blank');
-    } else {
-      alert("Não foi possível encontrar o número (coluna 'phone') deste cliente no banco.");
-    }
-  }} 
-  className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2"
->
-  <MessageCircle size={14} /> Aceitar e Avisar
-</button>
+              // 1. Atualiza o status no banco
+              onUpdateStatus(app.id, 'confirmed');
+              
+              // 2. Formata a data e o horário para a mensagem
+              const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'a combinar';
+              const horaFmt = app.time || 'horário não definido';
+              const servicoFmt = app.service?.name || 'serviço agendado';
+              
+              // 3. Monta a mensagem (sem o erro 'onst')
+              const mensagem = `Olá ${app.client}! 👋%0A%0A` +
+                               `Aqui é da barbearia. Seu agendamento foi *CONFIRMADO*!%0A%0A` +
+                               `📌 *Serviço:* ${servicoFmt}%0A` +
+                               `📅 *Data:* ${dataFmt}%0A` +
+                               `⏰ *Horário:* ${horaFmt}%0A%0A` +
+                               `Te esperamos lá!`;
+              
+              // 4. Limpa o telefone do cliente
+              const fone = app.phone?.toString().replace(/\D/g, '');
+              
+              if (fone) {
+                const url = `https://api.whatsapp.com/send?phone=55${fone}&text=${mensagem}`;
+                window.open(url, '_blank');
+              } else {
+                alert("O cliente não tem telefone cadastrado.");
+              }
+            }} 
+            className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+          >
+            <MessageCircle size={14} /> Aceitar e Avisar
+          </button>
 
           <button 
             onClick={() => onUpdateStatus(app.id, 'rejected')} 
-            className="flex-1 bg-slate-100 text-slate-500 py-2 rounded-lg text-xs font-bold"
+            className="flex-1 bg-slate-100 text-slate-500 py-2 rounded-lg text-xs font-bold hover:bg-slate-200"
           >
             Recusar
           </button>
