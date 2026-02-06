@@ -307,15 +307,30 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                             {/* Checkbox visual se selecionado */}
                             {isSelected && <div className="absolute top-2 right-2 w-3 h-3 bg-slate-900 rounded-full"></div>}
 
-                            {/* Foto / Avatar */}
-                            <div className="w-16 h-16 rounded-full bg-slate-200 mb-3 overflow-hidden border border-slate-100">
-                               {b.avatar_url ? (
-                                 <img src={b.avatar_url} alt={b.name} className="w-full h-full object-cover" />
-                               ) : (
-                                 <div className="w-full h-full flex items-center justify-center text-slate-400"><User size={24}/></div>
-                               )}
-                            </div>
+                           {/* Foto / Avatar - Priorizando Galeria */}
+<div className="w-16 h-16 rounded-full bg-slate-200 mb-3 overflow-hidden border border-slate-100 shadow-inner">
+  {(() => {
+    // Pega a última foto do array de galeria, se existir
+    const lastGalleryPhoto = b.photos && b.photos.length > 0 
+      ? b.photos[b.photos.length - 1] 
+      : null;
+    
+    // Define qual imagem mostrar (Prioridade: Galeria > Avatar > Nulo)
+    const imageToShow = lastGalleryPhoto || b.avatar_url;
 
+    return imageToShow ? (
+      <img 
+        src={imageToShow} 
+        alt={b.name} 
+        className="w-full h-full object-cover" 
+      />
+    ) : (
+      <div className="w-full h-full flex items-center justify-center text-slate-400">
+        <User size={24}/>
+      </div>
+    );
+  })()}
+</div>
                             {/* Nome */}
                             <p className="font-bold text-slate-900 text-sm leading-tight mb-1 truncate w-full">{b.name}</p>
 
