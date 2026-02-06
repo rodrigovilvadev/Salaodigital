@@ -711,7 +711,7 @@ useEffect(() => {
               
               // 2. Formata a data e o horário para a mensagem
               const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'a combinar';
-              const horaFmt = app.time || 'horário não definido';
+              const horaFmt = booking.data.price || 'horário não definido';
               const servicoFmt = app.service?.name || 'serviço agendado';
               
               // 3. Monta a mensagem (sem o erro 'onst')
