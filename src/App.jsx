@@ -755,8 +755,10 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
           </div>
         )}
 
-       {activeTab === 'config' && (
+      {activeTab === 'config' && (
           <div className="space-y-6">
+            
+            {/* VISIBILIDADE DA LOJA */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -769,65 +771,66 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
               </div>
             </div>
 
-          {/* --- SEÇÃO DE CALENDÁRIO RETRÁTIL --- */}
-<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
-  {/* Cabeçalho Clicável */}
-  <button 
-    onClick={() => setShowCalendar(!showCalendar)}
-    className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
-  >
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-        <CalendarDays size={20} />
-      </div>
-      <div className="text-left">
-        <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
-        <p className="text-[10px] text-slate-500">Selecione os dias disponíveis</p>
-      </div>
-    </div>
-    <ChevronRight 
-      size={18} 
-      className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
-    />
-  </button>
+            {/* SEÇÃO DE CALENDÁRIO RETRÁTIL */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
+              {/* Cabeçalho Clicável */}
+              <button 
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                    <CalendarDays size={20} />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
+                    <p className="text-[10px] text-slate-500">Selecione os dias disponíveis</p>
+                  </div>
+                </div>
+                <ChevronRight 
+                  size={18} 
+                  className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
+                />
+              </button>
 
-  {/* Conteúdo do Calendário (Só aparece se showCalendar for true) */}
-  {showCalendar && (
-    <div className="p-5 pt-0 border-t border-slate-50 animate-in slide-in-from-top-2 duration-300">
-      <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase tracking-wider">
-        {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
-      </div>
+              {/* Conteúdo do Calendário */}
+              {showCalendar && (
+                <div className="p-5 pt-0 border-t border-slate-50 animate-in slide-in-from-top-2 duration-300">
+                  <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase tracking-wider">
+                    {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
+                  </div>
 
-      <div className="grid grid-cols-7 gap-2">
-        {Array.from({ length: 28 }, (_, i) => {
-          const day = (i + 1).toString().padStart(2, '0');
-          const fullDate = `2026-02-${day}`; 
-          const isSelected = user.available_dates?.includes(fullDate);
+                  <div className="grid grid-cols-7 gap-2">
+                    {Array.from({ length: 28 }, (_, i) => {
+                      const day = (i + 1).toString().padStart(2, '0');
+                      const fullDate = `2026-02-${day}`; 
+                      const isSelected = user.available_dates?.includes(fullDate);
 
-          return (
-            <button
-              key={i}
-              onClick={() => toggleDate(fullDate)}
-              className={`aspect-square flex items-center justify-center rounded-xl text-[11px] font-bold border transition-all
-                ${isSelected 
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
-                  : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}
-            >
-              {i + 1}
-            </button>
-          );
-        })}
-      </div>
-      
-      <div className="mt-4 p-3 bg-blue-50 rounded-xl">
-        <p className="text-[9px] text-blue-700 font-medium text-center">
-          Os dias marcados em <b>preto</b> estarão visíveis para seus clientes agendarem.
-        </p>
-      </div>
-    </div>
-  )}
-</div>
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => toggleDate(fullDate)}
+                          className={`aspect-square flex items-center justify-center rounded-xl text-[11px] font-bold border transition-all
+                            ${isSelected 
+                              ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
+                              : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}
+                        >
+                          {i + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-xl">
+                    <p className="text-[9px] text-blue-700 font-medium text-center">
+                      Os dias marcados em <b>preto</b> estarão visíveis para seus clientes agendarem.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
 
+            {/* SEUS HORÁRIOS */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
                 <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
                    <Clock size={18} className="text-blue-600" /> Seus Horários
@@ -840,13 +843,49 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                 ))}
                 </div>
             </div>
-          </div>
+
+            {/* LOCALIZAÇÃO */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Home size={20} /></div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Localização</h3>
+                  <p className="text-[10px] text-slate-500 truncate w-32">{user.address || 'Não definido'}</p>
+                </div>
+              </div>
+              <button onClick={() => {
+                const n = prompt("Endereço:", user.address || "");
+                if (n !== null) onUpdateProfile({...user, address: n});
+              }} className="p-2 bg-slate-100 rounded-full"><MapPin size={18}/></button>
+            </div>
+
+            {/* GALERIA DE FOTOS */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-black text-slate-900 text-lg">Galeria</h3>
+                <div className="relative">
+                  <div className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-100">
+                    <Plus size={16} /> Foto
+                  </div>
+                  <input type="file" accept="image/*" className="absolute inset-0 opacity-0" onChange={handleUploadPhoto} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {user.photos?.map((url, i) => (
+                  <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-slate-100">
+                    <img src={url} className="w-full h-full object-cover" alt={`foto-${i}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div> 
         )}
+        
       </main>
     </div>
   );
 };
-/// --- 6. ORQUESTRADOR PRINCIPAL ---
 export default function App() {
   const [currentMode, setCurrentMode] = useState(null); 
   const [user, setUser] = useState(null);
