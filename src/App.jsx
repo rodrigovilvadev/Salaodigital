@@ -365,27 +365,40 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                 </>
             )}
 
-{/* PASSO 3: DATA E HORA */}
+{/* PASSO 3: DATA E HORA (CORRIGIDO PARA DIAS DA SEMANA) */}
 {step === 3 && (
   <>
     <h3 className="font-bold text-lg mb-4">Data e Hora</h3>
     
-    <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Selecione um dia disponível</label>
+    <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
+      Dias Disponíveis de {bookingData.barber?.name}
+    </label>
     
-    {/* Grade de Dias dinâmica baseada no que o barbeiro marcou */}
+    {/* Grade de Dias */}
     <div className="grid grid-cols-7 gap-2 mb-6">
-      {/* Dias da Semana (Cabeçalho) */}
-      {['D','S','T','Q','Q','S','S'].map(d => (
-        <div key={d} className="text-[10px] font-black text-slate-300 text-center py-1">{d}</div>
+      {/* Cabeçalho */}
+      {['D','S','T','Q','Q','S','S'].map((d, i) => (
+        <div key={i} className="text-[10px] font-black text-slate-300 text-center py-1">{d}</div>
       ))}
 
-      {/* Gerador de dias para Fevereiro/2026 */}
+      {/* Gerador de dias Fev/2026 */}
       {Array.from({ length: 28 }, (_, i) => {
-        const dia = (i + 1).toString().padStart(2, '0');
-        const dataFormatada = `2026-02-${dia}`;
+        const diaNum = i + 1;
+        const diaStr = diaNum.toString().padStart(2, '0');
+        const dataFormatada = `2026-02-${diaStr}`;
         
-        // SÓ PERMITE SE A DATA ESTIVER NO ARRAY available_dates DO BARBEIRO
-        const isAvailable = bookingData.barber?.available_dates?.includes(dataFormatada);
+        // --- A MÁGICA ACONTECE AQUI ---
+        // 1. Cria a data
+        const dateObj = new Date(dataFormatada + 'T00:00:00');
+        // 2. Lista de nomes iguais aos que salvamos no banco
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        // 3. Descobre qual dia da semana é essa data
+        const diaDaSemana = diasSemana[dateObj.getDay()];
+        
+        // 4. Verifica: O barbeiro atende nesse dia da semana?
+        // (Usa "|| []" para não quebrar se o barbeiro não tiver configurado nada)
+        const isAvailable = (bookingData.barber?.available_days || []).includes(diaDaSemana);
+        
         const isSelected = bookingData.date === dataFormatada;
 
         return (
@@ -398,24 +411,25 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                 ? 'bg-slate-900 text-white border-slate-900 shadow-lg scale-105' 
                 : isAvailable 
                   ? 'bg-white text-slate-600 border-slate-200 hover:border-slate-400' 
-                  : 'bg-slate-50 text-slate-200 border-transparent opacity-50 cursor-not-allowed'}`}
+                  : 'bg-slate-50 text-slate-200 border-transparent opacity-40 cursor-not-allowed'}`}
           >
-            {i + 1}
+            {diaNum}
             {isAvailable && !isSelected && <div className="w-1 h-1 bg-blue-500 rounded-full mt-0.5"></div>}
           </button>
         );
       })}
     </div>
     
-    {/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
+    {/* Lista de Horários */}
     {bookingData.date ? (
       <>
         <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
-          Horários para {bookingData.date.split('-').reverse().join('/')}
+          Horários Livres
         </label>
         <div className="grid grid-cols-4 gap-2">
           {GLOBAL_TIME_SLOTS.map(t => {
-            const isSlotAvailable = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
+            // Verifica se o horário está na lista de slots do barbeiro
+            const isSlotAvailable = (bookingData.barber?.available_slots || []).includes(t);
             
             return (
               <button 
@@ -423,9 +437,11 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                 disabled={!isSlotAvailable}
                 onClick={() => setBookingData({...bookingData, time: t})} 
                 className={`py-2 rounded-lg font-bold text-xs transition-all ${
-                  bookingData.time === t ? 'bg-slate-900 text-white shadow-lg scale-105' : 
-                  isSlotAvailable ? 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400' : 
-                  'bg-slate-100 text-slate-300 cursor-not-allowed'
+                  bookingData.time === t 
+                    ? 'bg-slate-900 text-white shadow-lg scale-105' 
+                    : isSlotAvailable 
+                      ? 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400' 
+                      : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-50'
                 }`}
               >
                 {t}
@@ -435,31 +451,20 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         </div>
       </>
     ) : (
-      <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
-        <Calendar size={24} className="mx-auto text-slate-300 mb-2" />
-        <p className="text-xs text-slate-400 font-bold">Selecione um dia acima primeiro</p>
+      <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center">
+        <p className="text-xs text-slate-400">Selecione um dia acima para ver os horários.</p>
       </div>
     )}
 
-    {/* Resumo antes de confirmar */}
-    {bookingData.time && bookingData.date && (
-      <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-100 animate-in fade-in zoom-in duration-300">
-        <p className="text-xs text-amber-600 font-bold uppercase mb-1">Resumo</p>
-        <div className="flex justify-between items-center">
-          <span className="font-bold text-slate-900">{bookingData.service?.name}</span>
-          <span className="font-bold text-slate-900">R$ {bookingData.price}</span>
-        </div>
-        <p className="text-sm text-slate-500 mt-1">Com {bookingData.barber?.name} às {bookingData.time}</p>
-      </div>
-    )}
-
+    {/* Botão Final */}
     <Button 
-  className="mt-6 w-full py-4 text-lg" 
-  onClick={handleFinish} // <--- Certifique-se que o nome é handleFinish
-  disabled={!bookingData.time || !bookingData.date}
->
-  Confirmar Agendamento
-</Button>
+      className="mt-6 w-full py-4 text-lg shadow-xl shadow-green-100" 
+      // OBS: Verifique se o nome da sua função final é handleFinish ou handleBooking
+      onClick={handleFinish} 
+      disabled={!bookingData.time || !bookingData.date}
+    >
+      Confirmar Agendamento
+    </Button>
   </>
 )}
           </div>
