@@ -160,26 +160,44 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         return a.distance - b.distance;
     });
 
-  const handleFinish = () => {
-  // Verificação de segurança
-  if (!bookingData.date || !bookingData.time) {
-    alert("Por favor, selecione o dia e o horário.");
-    return;
-  }
+ const handleFinish = () => {
+    // 1. Verificação de segurança
+    if (!bookingData.date || !bookingData.time || !bookingData.barber) {
+      alert("Por favor, selecione o dia e o horário.");
+      return;
+    }
 
-  // Montamos o objeto final para o banco
-  const payload = {
-    ...bookingData,
-    client: user.name, // Nome do cliente logado
-    phone: user.phone  // O telefone que você salvou no Supabase em 'profiles'
+    // 2. Montamos o objeto final para o banco
+    const payload = {
+      ...bookingData,
+      client: user.name,
+      phone: user.phone 
+    };
+
+    // 3. Chama a função do componente pai (INSERT no Supabase)
+    onBookingSubmit(payload); 
+
+    // 4. Montagem da Mensagem para WhatsApp (Cuidado com 'const' aqui!)
+    const dataFormatada = bookingData.date.split('-').reverse().join('/');
+    
+    const message = `Olá ${bookingData.barber.name}! 👋%0A` +
+      `Novo agendamento pelo app:%0A%0A` +
+      `📌 *Serviço:* ${bookingData.service?.name}%0A` +
+      `📅 *Data:* ${dataFormatada}%0A` +
+      `⏰ *Horário:* ${bookingData.time}%0A` +
+      `👤 *Cliente:* ${user.name}%0A%0A` +
+      `Pode confirmar para mim?`;
+
+    // 5. Pegar o telefone do barbeiro (limpando caracteres)
+    const barberPhone = bookingData.barber.phone?.replace(/\D/g, '');
+
+    if (barberPhone) {
+      window.open(`https://wa.me/55${barberPhone}?text=${message}`, '_blank');
+    }
+
+    // 6. Muda para a tela de sucesso
+    setView('success');
   };
-
-  // Chama a função do componente pai que faz o INSERT no Supabase
-  onBookingSubmit(payload); 
-  
-  // Muda para a tela de sucesso
-  setView('success');
-};
 
   if (view === 'success') return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-white">
