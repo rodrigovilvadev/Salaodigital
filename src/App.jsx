@@ -364,7 +364,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                   <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
                 </>
             )}
-
 {/* PASSO 3: DATA E HORA (CORRIGIDO PARA DIAS DA SEMANA) */}
 {step === 3 && (
   <>
