@@ -720,42 +720,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
           </div>
         )}
 
-        {activeTab === 'services' && (
-          <div className="space-y-3">
-            {MASTER_SERVICES.map(service => {
-              const userServiceData = user.my_services?.find(s => s.id === service.id);
-              const isActive = !!userServiceData;
-              return (
-                <div key={service.id} className={`p-4 rounded-2xl border-2 transition-all ${isActive ? 'border-slate-900 bg-white' : 'border-slate-100 bg-slate-50'}`}>
-                  <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleService(service.id, service.defaultPrice)}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-400'}`}>{service.icon}</div>
-                      <div>
-                        <p className={`text-sm font-bold ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>{service.name}</p>
-                        <p className="text-[10px] text-slate-400">{service.duration}</p>
-                      </div>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 ${isActive ? 'bg-green-500 border-green-500' : 'border-slate-300'}`} />
-                  </div>
-                  {isActive && (
-                    <div className="mt-3 pt-3 border-t flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-400">PREÇO (R$)</span>
-                      <input 
-                        type="number" 
-                        value={userServiceData.price || ''} 
-                        onChange={(e) => updateServicePrice(service.id, e.target.value)} 
-                        className="w-20 text-right font-bold outline-none bg-transparent border-b border-transparent focus:border-slate-200"
-                        placeholder="0.00"
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-      {activeTab === 'config' && (
+       {activeTab === 'config' && (
           <div className="space-y-6">
             
             {/* VISIBILIDADE DA LOJA */}
@@ -886,6 +851,8 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     </div>
   );
 };
+
+/// --- 6. ORQUESTRADOR PRINCIPAL ---
 export default function App() {
   const [currentMode, setCurrentMode] = useState(null); 
   const [user, setUser] = useState(null);
