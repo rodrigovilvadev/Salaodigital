@@ -91,6 +91,7 @@ const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
 
   const handleSubmit = async () => {
     setError('');
@@ -753,7 +754,7 @@ useEffect(() => {
           </div>
         )}
 
-        {activeTab === 'services' && (
+       {activeTab === 'services' && (
           <div className="space-y-3">
             {MASTER_SERVICES.map(service => {
               const userServiceData = user.my_services?.find(s => s.id === service.id);
@@ -778,7 +779,6 @@ useEffect(() => {
                         value={userServiceData.price || ''} 
                         onChange={(e) => updateServicePrice(service.id, e.target.value)} 
                         className="w-20 text-right font-bold outline-none bg-transparent border-b border-transparent focus:border-slate-200"
-                        placeholder="0.00"
                       />
                     </div>
                   )}
@@ -788,95 +788,71 @@ useEffect(() => {
           </div>
         )}
 
-       {activeTab === 'config' && (
+        {activeTab === 'config' && (
           <div className="space-y-6">
-            
-            {/* NOVO: SEÇÃO DE PERFIL (FOTO E ENDEREÇO) */}
+            {/* NOVO: PERFIL COM FOTO E ENDEREÇO */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-               <div className="flex items-center gap-4">
-                  <div className="relative w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-50 overflow-hidden">
-                    {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : <Camera className="text-slate-300" size={24} />}
-                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleUploadPhoto} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">Foto de Perfil</h3>
-                    <p className="text-[10px] text-slate-500">Toque no ícone para alterar</p>
-                  </div>
-               </div>
-
-               <div className="pt-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Endereço de Atendimento</label>
-                 <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <MapPin size={16} className="text-blue-600" />
-                    <input 
-                      type="text" 
-                      value={user.address || ''} 
-                      onChange={(e) => updateAddress(e.target.value)}
-                      placeholder="Ex: Rua das Flores, 123" 
-                      className="bg-transparent text-sm font-medium outline-none w-full text-slate-700"
-                    />
-                 </div>
-               </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative w-16 h-16 rounded-full bg-slate-100 border-2 border-slate-50 overflow-hidden flex items-center justify-center">
+                   {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover"/> : <Camera className="text-slate-300" size={24}/>}
+                   <input type="file" onChange={handleUploadPhoto} className="absolute inset-0 opacity-0 cursor-pointer" />
+                </div>
                 <div>
-                  <h3 className="font-bold text-slate-900">Visibilidade da Loja</h3>
-                  <p className="text-xs text-slate-500 mt-1">Aparecer para clientes na lista.</p>
+                  <h3 className="font-bold text-slate-900 text-sm">{user.name}</h3>
+                  <p className="text-[10px] text-slate-500">Toque na foto para alterar</p>
                 </div>
-                <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}>
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.is_visible ? 'translate-x-6' : 'translate-x-0'}`}/>
-                </div>
+              </div>
+              <div className="relative">
+                <MapPin size={14} className="absolute left-3 top-3 text-blue-600" />
+                <input 
+                  type="text"
+                  placeholder="Seu endereço de atendimento"
+                  value={user.address || ''}
+                  onChange={(e) => onUpdateProfile({...user, address: e.target.value})}
+                  className="w-full pl-9 p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-200"
+                />
               </div>
             </div>
 
-            {/* SEÇÃO DE CALENDÁRIO RETRÁTIL (LÓGICA REAL) */}
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
-              <button 
-                onClick={() => setShowCalendar(!showCalendar)}
-                className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
-              >
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-slate-900">Visibilidade</h3>
+                <p className="text-[10px] text-slate-500">Aparecer para clientes agora</p>
+              </div>
+              <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}>
+                <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.is_visible ? 'translate-x-6' : 'translate-x-0'}`}/>
+              </div>
+            </div>
+
+            {/* CALENDÁRIO DINÂMICO REAL */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <button onClick={() => setShowCalendar(!showCalendar)} className="w-full p-5 flex items-center justify-between hover:bg-slate-50">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                    <CalendarDays size={20} />
-                  </div>
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><CalendarDays size={20} /></div>
                   <div className="text-left">
-                    <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
-                    <p className="text-[10px] text-slate-500">Selecione um dia para editar</p>
+                    <h3 className="font-bold text-slate-900 text-sm">Agenda de Fevereiro</h3>
+                    <p className="text-[10px] text-slate-500">Toque em um dia para abrir horários</p>
                   </div>
                 </div>
-                <ChevronRight 
-                  size={18} 
-                  className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
-                />
+                <ChevronRight size={18} className={`text-slate-400 transition-transform ${showCalendar ? 'rotate-90' : ''}`} />
               </button>
 
               {showCalendar && (
-                <div className="p-5 pt-0 border-t border-slate-50 animate-in slide-in-from-top-2 duration-300">
-                  <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase tracking-wider">
+                <div className="p-5 pt-0 border-t border-slate-50">
+                  <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase">
                     {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
                   </div>
-
                   <div className="grid grid-cols-7 gap-2">
-                    {getDaysInMonth().map((date, i) => {
-                      const fullDate = format(date, 'yyyy-MM-dd');
-                      const isSelected = format(selectedDate, 'yyyy-MM-dd') === fullDate;
-                      const hasAvailability = user.availability?.[fullDate]?.length > 0;
+                    {Array.from({ length: 28 }, (_, i) => {
+                      const date = new Date(2026, 1, i + 1);
+                      const dKey = formatDateManual(date);
+                      const isSelected = formatDateManual(selectedDate) === dKey;
+                      const hasSlots = user.booking_data?.[dKey]?.length > 0;
 
                       return (
-                        <button
-                          key={i}
-                          onClick={() => setSelectedDate(date)}
-                          className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] font-bold border transition-all relative
-                            ${isSelected 
-                              ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
-                              : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'}`}
-                        >
-                          {date.getDate()}
-                          {hasAvailability && !isSelected && (
-                            <div className="w-1 h-1 bg-blue-500 rounded-full absolute bottom-1" />
-                          )}
+                        <button key={i} onClick={() => setSelectedDate(date)} className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] font-bold border transition-all relative ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
+                          {i + 1}
+                          {hasSlots && !isSelected && <div className="w-1 h-1 bg-blue-500 rounded-full absolute bottom-1"/>}
                         </button>
                       );
                     })}
@@ -885,38 +861,26 @@ useEffect(() => {
               )}
             </div>
 
-            {/* SEÇÃO DE HORÁRIOS (DINÂMICA POR DIA SELECIONADO) */}
+            {/* HORÁRIOS DO DIA SELECIONADO */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
-                <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
-                   <Clock size={18} className="text-blue-600" /> 
-                   Horários para {format(selectedDate, "dd/MM", { locale: ptBR })}
-                </h3>
-                <div className="grid grid-cols-4 gap-2">
-                {GLOBAL_TIME_SLOTS.map(slot => {
-                    const dateKey = format(selectedDate, 'yyyy-MM-dd');
-                    const isSlotActive = user.availability?.[dateKey]?.includes(slot);
-
+               <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
+                 <Clock size={18} className="text-blue-600" />
+                 Horários: {selectedDate.getDate()}/{selectedDate.getMonth()+1}
+               </h3>
+               <div className="grid grid-cols-4 gap-2">
+                 {GLOBAL_TIME_SLOTS.map(slot => {
+                    const daySlots = user.booking_data?.[formatDateManual(selectedDate)] || [];
+                    const isActive = daySlots.includes(slot);
                     return (
-                      <button 
-                        key={slot} 
-                        onClick={() => toggleSlot(dateKey, slot)} 
-                        className={`py-2 text-[10px] font-bold rounded-lg border transition-all 
-                          ${isSlotActive 
-                            ? 'bg-slate-900 text-white border-slate-900' 
-                            : 'bg-white text-slate-400 border-slate-100'}`}
-                      >
-                          {slot}
+                      <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border transition-all ${isActive ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-400 border-slate-100'}`}>
+                        {slot}
                       </button>
                     );
-                })}
-                </div>
-                <p className="text-[9px] text-slate-400 mt-4 text-center">
-                  Os horários selecionados acima valem apenas para o dia <b>{format(selectedDate, 'dd/MM')}</b>.
-                </p>
+                 })}
+               </div>
             </div>
           </div>
         )}
-        
       </main>
     </div>
   );
