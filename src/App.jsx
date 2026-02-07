@@ -788,6 +788,35 @@ useEffect(() => {
 
        {activeTab === 'config' && (
           <div className="space-y-6">
+            
+            {/* NOVO: SEÇÃO DE PERFIL (FOTO E ENDEREÇO) */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+               <div className="flex items-center gap-4">
+                  <div className="relative w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center border-2 border-slate-50 overflow-hidden">
+                    {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : <Camera className="text-slate-300" size={24} />}
+                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleUploadPhoto} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Foto de Perfil</h3>
+                    <p className="text-[10px] text-slate-500">Toque no ícone para alterar</p>
+                  </div>
+               </div>
+
+               <div className="pt-2">
+                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Endereço de Atendimento</label>
+                 <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <MapPin size={16} className="text-blue-600" />
+                    <input 
+                      type="text" 
+                      value={user.address || ''} 
+                      onChange={(e) => updateAddress(e.target.value)}
+                      placeholder="Ex: Rua das Flores, 123" 
+                      className="bg-transparent text-sm font-medium outline-none w-full text-slate-700"
+                    />
+                 </div>
+               </div>
+            </div>
+
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -800,83 +829,94 @@ useEffect(() => {
               </div>
             </div>
 
-          {/* --- SEÇÃO DE CALENDÁRIO RETRÁTIL --- */}
-<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
-  {/* Cabeçalho Clicável */}
-  <button 
-    onClick={() => setShowCalendar(!showCalendar)}
-    className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
-  >
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-        <CalendarDays size={20} />
-      </div>
-      <div className="text-left">
-        <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
-        <p className="text-[10px] text-slate-500">Selecione os dias disponíveis</p>
-      </div>
-    </div>
-    <ChevronRight 
-      size={18} 
-      className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
-    />
-  </button>
+            {/* SEÇÃO DE CALENDÁRIO RETRÁTIL (LÓGICA REAL) */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
+              <button 
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                    <CalendarDays size={20} />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
+                    <p className="text-[10px] text-slate-500">Selecione um dia para editar</p>
+                  </div>
+                </div>
+                <ChevronRight 
+                  size={18} 
+                  className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
+                />
+              </button>
 
-  {/* Conteúdo do Calendário (Só aparece se showCalendar for true) */}
-  {showCalendar && (
-    <div className="p-5 pt-0 border-t border-slate-50 animate-in slide-in-from-top-2 duration-300">
-      <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase tracking-wider">
-        {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
-      </div>
+              {showCalendar && (
+                <div className="p-5 pt-0 border-t border-slate-50 animate-in slide-in-from-top-2 duration-300">
+                  <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase tracking-wider">
+                    {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
+                  </div>
 
-      <div className="grid grid-cols-7 gap-2">
-        {Array.from({ length: 28 }, (_, i) => {
-          const day = (i + 1).toString().padStart(2, '0');
-          const fullDate = `2026-02-${day}`; 
-          const isSelected = user.available_dates?.includes(fullDate);
+                  <div className="grid grid-cols-7 gap-2">
+                    {getDaysInMonth().map((date, i) => {
+                      const fullDate = format(date, 'yyyy-MM-dd');
+                      const isSelected = format(selectedDate, 'yyyy-MM-dd') === fullDate;
+                      const hasAvailability = user.availability?.[fullDate]?.length > 0;
 
-          return (
-            <button
-              key={i}
-              onClick={() => toggleDate(fullDate)}
-              className={`aspect-square flex items-center justify-center rounded-xl text-[11px] font-bold border transition-all
-                ${isSelected 
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
-                  : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}
-            >
-              {i + 1}
-            </button>
-          );
-        })}
-      </div>
-      
-      <div className="mt-4 p-3 bg-blue-50 rounded-xl">
-        <p className="text-[9px] text-blue-700 font-medium text-center">
-          Os dias marcados em <b>preto</b> estarão visíveis para seus clientes agendarem.
-        </p>
-      </div>
-    </div>
-  )}
-</div>
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedDate(date)}
+                          className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] font-bold border transition-all relative
+                            ${isSelected 
+                              ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
+                              : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'}`}
+                        >
+                          {date.getDate()}
+                          {hasAvailability && !isSelected && (
+                            <div className="w-1 h-1 bg-blue-500 rounded-full absolute bottom-1" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
 
+            {/* SEÇÃO DE HORÁRIOS (DINÂMICA POR DIA SELECIONADO) */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
                 <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
-                   <Clock size={18} className="text-blue-600" /> Seus Horários
+                   <Clock size={18} className="text-blue-600" /> 
+                   Horários para {format(selectedDate, "dd/MM", { locale: ptBR })}
                 </h3>
                 <div className="grid grid-cols-4 gap-2">
-                {GLOBAL_TIME_SLOTS.map(slot => (
-                    <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border ${user.available_slots?.includes(slot) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
-                        {slot}
-                    </button>
-                ))}
+                {GLOBAL_TIME_SLOTS.map(slot => {
+                    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+                    const isSlotActive = user.availability?.[dateKey]?.includes(slot);
+
+                    return (
+                      <button 
+                        key={slot} 
+                        onClick={() => toggleSlot(dateKey, slot)} 
+                        className={`py-2 text-[10px] font-bold rounded-lg border transition-all 
+                          ${isSlotActive 
+                            ? 'bg-slate-900 text-white border-slate-900' 
+                            : 'bg-white text-slate-400 border-slate-100'}`}
+                      >
+                          {slot}
+                      </button>
+                    );
+                })}
                 </div>
+                <p className="text-[9px] text-slate-400 mt-4 text-center">
+                  Os horários selecionados acima valem apenas para o dia <b>{format(selectedDate, 'dd/MM')}</b>.
+                </p>
             </div>
           </div>
         )}
         
       </main>
     </div>
-    
   );
 };
 /// --- 6. ORQUESTRADOR PRINCIPAL ---
