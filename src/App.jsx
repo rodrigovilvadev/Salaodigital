@@ -1130,9 +1130,33 @@ const handleBookingSubmit = async (data) => {
   };
 
   const handleUpdateProfile = async (updatedUser) => {
-    const { error } = await supabase.from('profiles').update(updatedUser).eq('id', updatedUser.id);
-    if (!error) setUser(updatedUser);
-  };
+  try {
+    // Filtramos apenas o que o seu banco REALMENTE tem (visto nos prints)
+    const dataToSave = {
+      address: updatedUser.address,
+      avatar_url: updatedUser.avatar_url,
+      is_visible: updatedUser.is_visible,
+      plano_ativo: updatedUser.plano_ativo,
+      my_services: updatedUser.my_services, // Coluna jsonb no print
+      available_slots: updatedUser.available_slots, // No print sua coluna é esta!
+      available_dates: updatedUser.available_dates  // Coluna text[] no print
+    };
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(dataToSave)
+      .eq('id', updatedUser.id);
+
+    if (error) throw error;
+    
+    // Atualiza o estado local para o app não travar
+    onUpdateProfile(updatedUser); 
+    alert("Perfil atualizado com sucesso!");
+  } catch (error) {
+    console.error("Erro completo:", error);
+    alert("Erro ao salvar no Supabase: " + error.message);
+  }
+};
 
   // --- RENDERIZAÇÃO ---
   if (!currentMode) return <WelcomeScreen onSelectMode={setCurrentMode} />;
