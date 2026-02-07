@@ -448,14 +448,6 @@ useEffect(() => {
       })}
     </div>
     
-  Para que o seu código funcione perfeitamente com a estrutura de dados que vimos nas fotos do seu banco de dados, você precisa fazer uma pequena alteração na lógica de verificação dos horários.
-
-Nas imagens enviadas, os horários estão na coluna available_slots, mas o seu código atual está tentando buscar dentro de um objeto chamado schedule. Como esse objeto schedule não existe no seu banco de dados, os horários nunca aparecerão como disponíveis.
-
-O Código Corrigido
-Substitua o bloco que você enviou por este aqui:
-
-JavaScript
 {/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
 {bookingData.date ? (
   <>
