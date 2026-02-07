@@ -479,78 +479,106 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     </div>
   );
 };
-// --- 5. BARBER DASHBOARD (Atualizado com Calendário) ---
-const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile }) => {
+
+const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile, supabase }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [isPaying, setIsPaying] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [configDate, setConfigDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showCalendar, setShowCalendar] = useState(true); // Calendário começa aberto para facilitar
+  // Data selecionada para edição de horário (Padrão: Hoje)
+  const [selectedDateConfig, setSelectedDateConfig] = useState(new Date().toISOString().split('T')[0]);
 
   const myAppointments = appointments.filter(a => a.barberId === user.id && a.status !== 'rejected');
   const pending = myAppointments.filter(a => a.status === 'pending');
+  // Ordenar pendentes por data/hora
+  pending.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+  
   const confirmed = myAppointments.filter(a => a.status === 'confirmed');
   const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
 
-  // --- NOVA FUNÇÃO: TOGGLE DATA (Para o Calendário) ---
-  const toggleDate = (date) => {
-    const currentDates = user.available_dates || [];
-    const newDates = currentDates.includes(date) 
-      ? currentDates.filter(d => d !== date) 
-      : [...currentDates, date].sort();
-    
-    // Utiliza sua função onUpdateProfile original
-    onUpdateProfile({ ...user, available_dates: newDates });
-  };
-useEffect(() => {
-  const interval = setInterval(() => {
-    // Chame aqui as funções que buscam dados do banco
-    fetchBarbers(); 
-    fetchAppointments();
-    console.log("Dados atualizados silenciosamente!");
-  }, 30000); // 30 segu
+  // --- LÓGICA DE INTERVALO E INIT ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // fetchAppointments(); // Descomente se tiver a função disponível no escopo pai ou passe via props
+      console.log("Sincronizando dados...");
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Limpa o intervalo se o componente for desmontado para evitar vazamento de memória
-  return () => clearInterval(interval);
-}, []);
-  
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
     const status = queryParams.get('status');
-    const paymentId = queryParams.get('payment_id');
-
     if (status === 'approved' && !user.plano_ativo) {
         alert('Pagamento confirmado! Bem-vindo ao plano Profissional.');
         onUpdateProfile({ ...user, plano_ativo: true, is_visible: true });
         window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, []);
+  }, [user.plano_ativo, onUpdateProfile, user]);
 
+  // --- LÓGICA DE CALENDÁRIO & HORÁRIOS ESPECÍFICOS ---
+  
+  // 1. Alternar se o dia está "Aberto" ou "Fechado" na agenda geral
+  const toggleDateAvailability = (date) => {
+    const currentDates = user.available_dates || [];
+    let newDates;
+    
+    if (currentDates.includes(date)) {
+        newDates = currentDates.filter(d => d !== date); // Remove data
+    } else {
+        newDates = [...currentDates, date].sort(); // Adiciona data
+    }
+    
+    // Se ativou o dia e ele não tem horários definidos, inicializa com todos ou vazio
+    const currentSchedule = user.schedule || {};
+    if (!currentSchedule[date] && newDates.includes(date)) {
+        // Opcional: Pré-preencher com alguns horários padrão se quiser
+        // currentSchedule[date] = ['09:00', '10:00', ...];
+    }
+
+    onUpdateProfile({ ...user, available_dates: newDates, schedule: currentSchedule });
+    setSelectedDateConfig(date); // Seleciona o dia clicado para editar logo em seguida
+  };
+
+  // 2. Alternar horários DENTRO de uma data específica
+  const toggleSlotForDate = (date, slot) => {
+    // Garante que existe o objeto schedule
+    const schedule = user.schedule || {};
+    const slotsForDay = schedule[date] || [];
+
+    const newSlotsForDay = slotsForDay.includes(slot)
+      ? slotsForDay.filter(s => s !== slot)
+      : [...slotsForDay, slot].sort();
+
+    const newSchedule = { ...schedule, [date]: newSlotsForDay };
+    
+    // Garante que a data está marcada como disponível se adicionarmos um horário
+    const currentDates = user.available_dates || [];
+    let newDates = currentDates;
+    if (newSlotsForDay.length > 0 && !currentDates.includes(date)) {
+        newDates = [...currentDates, date].sort();
+    }
+
+    onUpdateProfile({ ...user, schedule: newSchedule, available_dates: newDates });
+  };
+
+  // --- OUTRAS FUNÇÕES ---
   const handlePayment = async () => {
     setIsPaying(true);
     try {
+      // Simulação da lógica de pagamento
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'salaodigital.onrender.com';
       const response = await fetch(`${API_BASE_URL}/criar-pagamento`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          barberId: user.id,
-          price: 29.90,
-          title: "Plano Profissional Salao Digital"
-        })
+        body: JSON.stringify({ barberId: user.id, price: 29.90, title: "Plano Profissional" })
       });
-
-      if (!response.ok) throw new Error("Erro ao gerar link de pagamento.");
-
+      if (!response.ok) throw new Error("Erro API");
       const data = await response.json();
-      if (data.init_point) {
-        window.location.href = data.init_point;
-      } else {
-         alert("Erro: Link de pagamento não retornado.");
-      }
+      if (data.init_point) window.location.href = data.init_point;
+      else alert("Erro ao gerar link.");
     } catch (error) {
-      console.error("Erro de pagamento:", error);
-      alert("Não foi possível conectar ao servidor de pagamento.");
+      console.error(error);
+      alert("Erro ao conectar ao pagamento.");
     } finally {
       setIsPaying(false);
     }
@@ -575,54 +603,47 @@ useEffect(() => {
     onUpdateProfile({ ...user, my_services: newServices });
   };
 
-  const toggleSlot = (slot) => {
-    const currentSlots = user.available_slots || [];
-    const newSlots = currentSlots.includes(slot) 
-      ? currentSlots.filter(s => s !== slot) 
-      : [...currentSlots, slot].sort();
-    onUpdateProfile({ ...user, available_slots: newSlots });
-  };
-
   const updateServicePrice = (serviceId, newPrice) => {
     const newServices = (user.my_services || []).map(s => 
       s.id === serviceId ? { ...s, price: Number(newPrice) } : s
     );
     onUpdateProfile({ ...user, my_services: newServices });
   };
+
+  // --- UPLOAD DE FOTO (AVATAR) ---
   const handleUploadPhoto = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
 
-  try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `avatar-${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
 
-    // 1. Envia para o Storage
-    const { error: uploadError } = await supabase.storage
-      .from('barber-photos')
-      .upload(filePath, file);
+      // Upload Supabase (assumindo que 'barber-photos' é público)
+      const { error: uploadError } = await supabase.storage
+        .from('barber-photos')
+        .upload(filePath, file);
 
-    if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError;
 
-    // 2. Pega a URL pública
-    const { data: { publicUrl } } = supabase.storage
-      .from('barber-photos')
-      .getPublicUrl(filePath);
+      const { data: { publicUrl } } = supabase.storage
+        .from('barber-photos')
+        .getPublicUrl(filePath);
 
-    // 3. Atualiza o perfil do barbeiro com a nova foto
-    const currentPhotos = user.photos || [];
-    onUpdateProfile({ ...user, photos: [...currentPhotos, publicUrl] });
-    
-    alert('Foto carregada com sucesso!');
-  } catch (error) {
-    alert('Erro ao carregar foto: ' + error.message);
-  }
-};
-
+      // Atualiza avatar_url no perfil
+      onUpdateProfile({ ...user, avatar_url: publicUrl });
+      alert('Foto de perfil atualizada!');
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao carregar foto. Verifique conexão.');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
+    <div className="min-h-screen bg-slate-50 pb-24 font-sans">
+      
+      {/* --- MODAL PAGAMENTO --- */}
       {showPayModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -630,14 +651,14 @@ useEffect(() => {
               <Lock size={32} />
             </div>
             <h2 className="text-xl font-black text-slate-900 mb-2">Ative seu Perfil</h2>
-            <p className="text-slate-500 text-sm mb-6">Para ficar <b>Online</b> e receber agendamentos, é necessário assinar o plano profissional.</p>
+            <p className="text-slate-500 text-sm mb-6">Para ficar <b>Online</b>, assine o plano profissional.</p>
             <div className="space-y-3">
               <button 
                 className="w-full py-4 bg-green-500 text-white rounded-xl font-bold disabled:opacity-50" 
                 onClick={handlePayment} 
                 disabled={isPaying}
               >
-                {isPaying ? "Carregando..." : "Pagar Mensalidade (R$ 29,90)"}
+                {isPaying ? "Processando..." : "Assinar (R$ 29,90/mês)"}
               </button>
               <button onClick={() => setShowPayModal(false)} className="text-slate-400 text-sm font-bold block w-full">Agora não</button>
             </div>
@@ -645,137 +666,159 @@ useEffect(() => {
         </div>
       )}
 
+      {/* --- HEADER --- */}
       <header className="bg-white p-6 border-b border-slate-100 sticky top-0 z-20">
         <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">Painel Profissional</h2>
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}></span>
-              <p className="text-xs text-slate-500 font-bold uppercase">{user.is_visible ? 'Online' : 'Offline'}</p>
+          <div className="flex items-center gap-3">
+             {/* Avatar Pequeno no Header */}
+            <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border border-slate-100">
+                {user.avatar_url ? (
+                    <img src={user.avatar_url} alt="Perfil" className="w-full h-full object-cover" />
+                ) : (
+                    <User className="w-full h-full p-2 text-slate-400" />
+                )}
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-slate-900 leading-tight">Painel Pro</h2>
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}></span>
+                <p className="text-[10px] text-slate-500 font-bold uppercase">{user.is_visible ? 'Online' : 'Offline'}</p>
+              </div>
             </div>
           </div>
-          <button onClick={onLogout} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-red-500"><LogOut size={18}/></button>
+          <button onClick={onLogout} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-red-500 transition-colors">
+            <LogOut size={18}/>
+          </button>
         </div>
       </header>
 
-      <div className="px-6 py-4 flex gap-2 overflow-x-auto bg-white border-b border-slate-100">
-        <button onClick={() => setActiveTab('home')} className={`flex-1 py-2 px-4 rounded-full text-sm font-bold transition-all ${activeTab === 'home' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Início</button>
-        <button onClick={() => setActiveTab('services')} className={`flex-1 py-2 px-4 rounded-full text-sm font-bold transition-all ${activeTab === 'services' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Serviços</button>
-        <button onClick={() => setActiveTab('config')} className={`flex-1 py-2 px-4 rounded-full text-sm font-bold transition-all ${activeTab === 'config' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Ajustes</button>
+      {/* --- MENU TABS --- */}
+      <div className="px-6 py-4 flex gap-2 overflow-x-auto bg-white border-b border-slate-100 sticky top-[80px] z-10">
+        <button onClick={() => setActiveTab('home')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'home' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Início</button>
+        <button onClick={() => setActiveTab('services')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'services' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Serviços</button>
+        <button onClick={() => setActiveTab('config')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'config' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Perfil & Agenda</button>
       </div>
 
-      <main className="p-6">
+      <main className="p-6 max-w-md mx-auto">
+        
+        {/* === ABA HOME === */}
         {activeTab === 'home' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-900 text-white p-5 rounded-2xl">
-                <p className="text-slate-400 text-[10px] font-bold uppercase">Ganhos</p>
-                <p className="text-xl font-bold">R$ {revenue}</p>
+              <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg shadow-slate-200">
+                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Faturamento (Confirmado)</p>
+                <p className="text-2xl font-black tracking-tight">R$ {revenue}</p>
               </div>
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl">
-                <p className="text-slate-400 text-[10px] font-bold uppercase">Pendentes</p>
-                <p className="text-xl font-bold text-slate-900">{pending.length}</p>
+              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Agendamentos</p>
+                <div className="flex gap-2 items-baseline">
+                    <p className="text-2xl font-black text-slate-900">{confirmed.length}</p>
+                    <span className="text-xs text-orange-500 font-bold">({pending.length} pendentes)</span>
+                </div>
               </div>
             </div>
 
-          {/* Seção de Novas Solicitações */}
-<section>
-  <h3 className="font-bold text-slate-900 mb-4">Novas Solicitações</h3>
-  {pending.length === 0 ? (
-    <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
-      Nenhum pedido pendente.
-    </div>
-  ) : (
-    pending.map(app => (
-      <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 mb-3 shadow-sm">
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <p className="font-bold text-slate-900">{app.client}</p>
-            {/* Exibe Serviço, Horário e Data no Card */}
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
-              {app.service?.name || 'Serviço'}
-            </p>
-            <p className="text-xs text-blue-600 font-bold">
-              {app.time} - {app.date ? app.date.split('-').reverse().join('/') : 'Data não informada'}
-            </p>
-          </div>
-          <p className="font-bold text-slate-900">R$ {app.price}</p>
-        </div>
+            <section>
+              <h3 className="font-bold text-slate-900 mb-4 flex items-center justify-between">
+                Solicitações Pendentes
+                {pending.length > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{pending.length}</span>}
+              </h3>
+              
+              {pending.length === 0 ? (
+                <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+                  <p className="text-slate-400 text-sm font-medium">Nenhum pedido pendente por enquanto.</p>
+                </div>
+              ) : (
+                pending.map(app => (
+                  <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 mb-3 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-bold text-slate-900 text-lg">{app.client}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mb-1">
+                          {app.service?.name || 'Serviço'}
+                        </p>
+                        <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
+                            <Clock size={12} />
+                            <p className="text-xs font-bold">
+                            {app.time} - {app.date ? app.date.split('-').reverse().join('/') : '?'}
+                            </p>
+                        </div>
+                      </div>
+                      <p className="font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-lg">R$ {app.price}</p>
+                    </div>
 
-        <div className="flex gap-2">
-          {/* Botão Aceitar com disparador de WhatsApp */}
-          <button 
-            onClick={() => {
-              // 1. Atualiza o status no banco
-              onUpdateStatus(app.id, 'confirmed');
-              
-              // 2. Formata a data e o horário para a mensagem
-              const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'a combinar';
-              const horaFmt = app.time || 'horário não definido';
-              const servicoFmt = app.service?.name || 'serviço agendado';
-              
-              // 3. Monta a mensagem (sem o erro 'onst')
-              const mensagem = `Olá ${app.client}! 👋%0A%0A` +
-                               `Aqui é da barbearia. Seu agendamento foi *CONFIRMADO*!%0A%0A` +
-                               `📌 *Serviço:* ${servicoFmt}%0A` +
-                               `📅 *Data:* ${dataFmt}%0A` +
-                               `⏰ *Horário:*${booking.data.price}%0A%0A` +
-                               `Te esperamos lá!`;
-              
-              // 4. Limpa o telefone do cliente
-              const fone = app.phone?.toString().replace(/\D/g, '');
-              
-              if (fone) {
-                const url = `https://api.whatsapp.com/send?phone=55${fone}&text=${mensagem}`;
-                window.open(url, '_blank');
-              } else {
-                alert("O cliente não tem telefone cadastrado.");
-              }
-            }} 
-            className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2"
-          >
-            <MessageCircle size={14} /> Aceitar e Avisar
-          </button>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => {
+                          onUpdateStatus(app.id, 'confirmed');
+                          
+                          // Lógica WhatsApp Corrigida
+                          const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'data a confirmar';
+                          const horaFmt = app.time || 'horário a confirmar';
+                          const servicoFmt = app.service?.name || 'serviço';
+                          
+                          const mensagem = `Olá ${app.client}! 👋%0A%0A` +
+                                           `Seu agendamento foi *CONFIRMADO*! ✅%0A%0A` +
+                                           `📌 *${servicoFmt}*%0A` +
+                                           `📅 ${dataFmt} às ${horaFmt}%0A` +
+                                           `💰 R$ ${app.price}%0A%0A` +
+                                           `Te esperamos lá! 💈`;
+                          
+                          const fone = app.phone?.toString().replace(/\D/g, '');
+                          if (fone) {
+                            window.open(`https://api.whatsapp.com/send?phone=55${fone}&text=${mensagem}`, '_blank');
+                          }
+                        }} 
+                        className="flex-1 bg-green-600 text-white py-3 rounded-xl text-xs font-bold hover:bg-green-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-green-200 shadow-lg"
+                      >
+                        <CheckCircle size={16} /> Aceitar
+                      </button>
 
-          <button 
-            onClick={() => onUpdateStatus(app.id, 'rejected')} 
-            className="flex-1 bg-slate-100 text-slate-500 py-2 rounded-lg text-xs font-bold hover:bg-slate-200"
-          >
-            Recusar
-          </button>
-        </div>
-      </div>
-    ))
-  )}
-</section>
+                      <button 
+                        onClick={() => onUpdateStatus(app.id, 'rejected')} 
+                        className="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-100 transition-colors"
+                      >
+                        <XCircle size={20} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </section>
           </div>
         )}
 
+        {/* === ABA SERVIÇOS === */}
         {activeTab === 'services' && (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 rounded-2xl mb-4">
+                <p className="text-xs text-blue-700 font-medium">Selecione os serviços que você oferece e defina seu preço.</p>
+            </div>
             {MASTER_SERVICES.map(service => {
               const userServiceData = user.my_services?.find(s => s.id === service.id);
               const isActive = !!userServiceData;
               return (
-                <div key={service.id} className={`p-4 rounded-2xl border-2 transition-all ${isActive ? 'border-slate-900 bg-white' : 'border-slate-100 bg-slate-50'}`}>
+                <div key={service.id} className={`p-4 rounded-2xl border-2 transition-all ${isActive ? 'border-slate-900 bg-white shadow-md' : 'border-slate-100 bg-slate-50 opacity-70'}`}>
                   <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleService(service.id, service.defaultPrice)}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-400'}`}>{service.icon}</div>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-400'}`}>{service.icon}</div>
                       <div>
-                        <p className={`text-sm font-bold ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>{service.name}</p>
+                        <p className={`text-sm font-bold ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>{service.name}</p>
                         <p className="text-[10px] text-slate-400">{service.duration}</p>
                       </div>
                     </div>
-                    <div className={`w-5 h-5 rounded-full border-2 ${isActive ? 'bg-green-500 border-green-500' : 'border-slate-300'}`} />
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isActive ? 'bg-green-500 border-green-500' : 'border-slate-300'}`}>
+                        {isActive && <div className="w-2 h-2 bg-white rounded-full" />}
+                    </div>
                   </div>
                   {isActive && (
-                    <div className="mt-3 pt-3 border-t flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-400">PREÇO (R$)</span>
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between animate-in slide-in-from-top-2">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Preço (R$)</span>
                       <input 
                         type="number" 
                         value={userServiceData.price || ''} 
                         onChange={(e) => updateServicePrice(service.id, e.target.value)} 
-                        className="w-20 text-right font-bold outline-none bg-transparent border-b border-transparent focus:border-slate-200"
+                        className="w-24 text-right font-black text-lg outline-none bg-slate-50 rounded-md px-2 py-1 focus:ring-2 ring-slate-200"
                         placeholder="0.00"
                       />
                     </div>
@@ -786,97 +829,186 @@ useEffect(() => {
           </div>
         )}
 
-       {activeTab === 'config' && (
-          <div className="space-y-6">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-900">Visibilidade da Loja</h3>
-                  <p className="text-xs text-slate-500 mt-1">Aparecer para clientes na lista.</p>
-                </div>
-                <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}>
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.is_visible ? 'translate-x-6' : 'translate-x-0'}`}/>
-                </div>
-              </div>
-            </div>
-
-          {/* --- SEÇÃO DE CALENDÁRIO RETRÁTIL --- */}
-<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
-  {/* Cabeçalho Clicável */}
-  <button 
-    onClick={() => setShowCalendar(!showCalendar)}
-    className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
-  >
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-        <CalendarDays size={20} />
-      </div>
-      <div className="text-left">
-        <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
-        <p className="text-[10px] text-slate-500">Selecione os dias disponíveis</p>
-      </div>
-    </div>
-    <ChevronRight 
-      size={18} 
-      className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
-    />
-  </button>
-
-  {/* Conteúdo do Calendário (Só aparece se showCalendar for true) */}
-  {showCalendar && (
-    <div className="p-5 pt-0 border-t border-slate-50 animate-in slide-in-from-top-2 duration-300">
-      <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase tracking-wider">
-        {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
-      </div>
-
-      <div className="grid grid-cols-7 gap-2">
-        {Array.from({ length: 28 }, (_, i) => {
-          const day = (i + 1).toString().padStart(2, '0');
-          const fullDate = `2026-02-${day}`; 
-          const isSelected = user.available_dates?.includes(fullDate);
-
-          return (
-            <button
-              key={i}
-              onClick={() => toggleDate(fullDate)}
-              className={`aspect-square flex items-center justify-center rounded-xl text-[11px] font-bold border transition-all
-                ${isSelected 
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
-                  : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}
-            >
-              {i + 1}
-            </button>
-          );
-        })}
-      </div>
-      
-      <div className="mt-4 p-3 bg-blue-50 rounded-xl">
-        <p className="text-[9px] text-blue-700 font-medium text-center">
-          Os dias marcados em <b>preto</b> estarão visíveis para seus clientes agendarem.
-        </p>
-      </div>
-    </div>
-  )}
-</div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200">
-                <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
-                   <Clock size={18} className="text-blue-600" /> Seus Horários
+        {/* === ABA CONFIGURAÇÕES (Perfil & Agenda) === */}
+        {activeTab === 'config' && (
+          <div className="space-y-8 animate-in fade-in">
+            
+            {/* Seção 1: Dados do Perfil */}
+            <section className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-slate-900"></div>
+                
+                <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <User size={18} className="text-slate-400"/> Dados da Barbearia
                 </h3>
-                <div className="grid grid-cols-4 gap-2">
-                {GLOBAL_TIME_SLOTS.map(slot => (
-                    <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border ${user.available_slots?.includes(slot) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
-                        {slot}
-                    </button>
-                ))}
+
+                {/* Avatar Uploader */}
+                <div className="flex flex-col items-center mb-6">
+                    <div className="relative group cursor-pointer">
+                        <div className="w-24 h-24 rounded-full bg-slate-100 overflow-hidden border-4 border-white shadow-lg">
+                            {user.avatar_url ? (
+                                <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                    <User size={40} />
+                                </div>
+                            )}
+                        </div>
+                        <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors shadow-md">
+                            <Camera size={16} />
+                        </label>
+                        <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleUploadPhoto} />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2">Toque na câmera para alterar</p>
                 </div>
-            </div>
+
+                {/* Campos de Texto */}
+                <div className="space-y-4">
+                     {/* Endereço */}
+                    <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Endereço Completo</label>
+                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-3 rounded-xl border border-slate-200 focus-within:border-slate-900 transition-colors">
+                            <MapPin size={16} className="text-slate-400" />
+                            <input 
+                                type="text" 
+                                value={user.address || ''} 
+                                onChange={(e) => onUpdateProfile({ ...user, address: e.target.value })}
+                                placeholder="Ex: Rua das Flores, 123" 
+                                className="bg-transparent outline-none w-full text-sm font-medium text-slate-900"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Visibilidade Switch */}
+                <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Loja Visível</h3>
+                    <p className="text-[10px] text-slate-500">Aparecer na lista de busca</p>
+                  </div>
+                  <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}>
+                    <div className={`w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${user.is_visible ? 'translate-x-6' : 'translate-x-0'}`}/>
+                  </div>
+                </div>
+            </section>
+
+            {/* Seção 2: Agenda Avançada */}
+            <section className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                {/* Header Calendário */}
+                <div 
+                    onClick={() => setShowCalendar(!showCalendar)}
+                    className="p-5 flex items-center justify-between bg-slate-50 cursor-pointer border-b border-slate-100"
+                >
+                    <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-900 text-white rounded-lg">
+                        <CalendarDays size={20} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-slate-900 text-sm">Gerenciar Agenda</h3>
+                        <p className="text-[10px] text-slate-500">Toque no dia para definir horários</p>
+                    </div>
+                    </div>
+                    <ChevronRight size={18} className={`text-slate-400 transition-transform ${showCalendar ? 'rotate-90' : ''}`} />
+                </div>
+
+                {showCalendar && (
+                    <div className="p-5">
+                    {/* Grid do Calendário */}
+                    <div className="grid grid-cols-7 gap-1 mb-2 text-center text-[10px] font-black text-slate-300 uppercase">
+                        {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-1">{d}</div>)}
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-2 mb-6">
+                        {Array.from({ length: 30 }, (_, i) => {
+                            // Simulação simples de dias do mês atual (Melhorar com date-fns se possível)
+                            const now = new Date();
+                            const year = now.getFullYear();
+                            const month = String(now.getMonth() + 1).padStart(2, '0');
+                            const day = String(i + 1).padStart(2, '0');
+                            const fullDate = `${year}-${month}-${day}`;
+                            
+                            const isAvailable = user.available_dates?.includes(fullDate);
+                            const isSelected = selectedDateConfig === fullDate;
+
+                            // Verifica se tem horários configurados nesse dia
+                            const hasSlots = user.schedule && user.schedule[fullDate] && user.schedule[fullDate].length > 0;
+
+                            return (
+                                <button
+                                key={i}
+                                onClick={() => toggleDateAvailability(fullDate)}
+                                className={`
+                                    relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs font-bold border transition-all
+                                    ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 z-10' : ''}
+                                    ${isAvailable 
+                                        ? 'bg-slate-900 text-white border-slate-900 shadow-md' 
+                                        : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}
+                                `}
+                                >
+                                {i + 1}
+                                {/* Indicador se tem horário definido */}
+                                {isAvailable && (
+                                    <span className={`absolute bottom-1 w-1 h-1 rounded-full ${hasSlots ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                                )}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Área de Configuração do Dia Selecionado */}
+                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 animate-in slide-in-from-bottom-2">
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="font-bold text-slate-900 text-sm">
+                                Horários para <span className="text-blue-600">{selectedDateConfig.split('-').reverse().join('/')}</span>
+                            </h4>
+                            <span className="text-[10px] uppercase font-bold text-slate-400">
+                                {user.available_dates?.includes(selectedDateConfig) ? 'Dia Aberto' : 'Dia Fechado'}
+                            </span>
+                        </div>
+
+                        {!user.available_dates?.includes(selectedDateConfig) ? (
+                            <div className="text-center py-6">
+                                <p className="text-xs text-slate-400 mb-2">Este dia está fechado.</p>
+                                <button 
+                                    onClick={() => toggleDateAvailability(selectedDateConfig)}
+                                    className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg"
+                                >
+                                    Abrir Agenda do Dia
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-4 gap-2">
+                                {GLOBAL_TIME_SLOTS.map(slot => {
+                                    // Verifica no objeto schedule ESPECÍFICO DESTA DATA
+                                    const isSlotActive = user.schedule?.[selectedDateConfig]?.includes(slot);
+                                    
+                                    return (
+                                        <button 
+                                            key={slot} 
+                                            onClick={() => toggleSlotForDate(selectedDateConfig, slot)} 
+                                            className={`
+                                                py-2 text-[10px] font-bold rounded-lg border transition-all
+                                                ${isSlotActive 
+                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                                                    : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300'}
+                                            `}
+                                        >
+                                            {slot}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        <p className="text-[10px] text-slate-400 mt-4 text-center">
+                            Toque nos horários para adicionar ou remover.
+                        </p>
+                    </div>
+                    </div>
+                )}
+            </section>
           </div>
         )}
-        
       </main>
     </div>
-    
   );
 };
 /// --- 6. ORQUESTRADOR PRINCIPAL ---
