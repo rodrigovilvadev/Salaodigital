@@ -5,15 +5,11 @@ import imgMp from './img/mp.jpg';
 import imgTes from './img/tes.jpg';
 import { 
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, LogOut, Bell, DollarSign, 
-
   ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
-
   CreditCard, Lock, Clock, CalendarDays, Sparkles, Palette, Briefcase, Edit3, 
-
   MessageCircle, Phone, XCircle, History, Loader2,
-
-  Home, Plus, Camera // <--- ADICIONADOS AQUI
-
+  Home, Plus, Camera,
+  CheckCircle // <--- ADICIONE ESTE AQUI PARA O BOTÃO ACEITAR
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO SUPABASE ---
