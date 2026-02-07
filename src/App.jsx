@@ -736,7 +736,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                         <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
                             <Clock size={12} />
                             <p className="text-xs font-bold">
-                           {app.date} às {app.time}
+                          {bookingData.barber?.name} às {bookingData.time}
                             </p>
                         </div>
                       </div>
