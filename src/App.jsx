@@ -168,24 +168,32 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         return a.distance - b.distance;
     });
 
-  const handleFinish = () => {
-  // Verificação de segurança
-  if (!bookingData.date || !bookingData.time) {
-    alert("Por favor, selecione o dia e o horário.");
+ const handleFinish = () => {
+  // 1. Verificação de segurança
+  if (!bookingData.date || !bookingData.time || !bookingData.service || !bookingData.barber) {
+    alert("Por favor, selecione todos os campos (Serviço, Profissional, Data e Hora).");
     return;
   }
 
-  // Montamos o objeto final para o banco
+  // 2. Montamos o objeto EXATAMENTE como o banco de dados e o barbeiro esperam
   const payload = {
-    ...bookingData,
-    client: user.name, // Nome do cliente logado
-    phone: user.phone  // O telefone que você salvou no Supabase em 'profiles'
+    barberId: bookingData.barber.id,        // ID do barbeiro
+    client_id: user.id,                    // ID do cliente
+    client: user.name,                     // Nome do cliente (String)
+    phone: user.phone,                     // Telefone (String/Number)
+    service_name: bookingData.service.name, // Nome do serviço (String)
+    price: bookingData.price,              // Preço (Number)
+    date: bookingData.date,                // Data (String: "2026-02-xx")
+    time: bookingData.time,                // HORÁRIO (String: "09:00") <--- ISSO VAI RESOLVER
+    status: 'pending'                      // Status inicial
   };
 
-  // Chama a função do componente pai que faz o INSERT no Supabase
+  console.log("Enviando para o banco:", payload); // Para você conferir no console
+
+  // 3. Envia para a função pai que faz o insert no Supabase
   onBookingSubmit(payload); 
   
-  // Muda para a tela de sucesso
+  // 4. Sucesso
   setView('success');
 };
 
@@ -736,7 +744,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                         <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
                             <Clock size={12} />
                             <p className="text-xs font-bold">
-                          {bookingData.barber?.name} às {bookingData.time}
+                            {app.time} - {app.date ? app.date.split('-').reverse().join('/') : '?'}
                             </p>
                         </div>
                       </div>
