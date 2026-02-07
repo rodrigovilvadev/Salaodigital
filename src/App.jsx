@@ -131,92 +131,114 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
   const [view, setView] = useState('home');
   const [step, setStep] = useState(1);
   const [userCoords, setUserCoords] = useState(null);
-  const [localBarbers, setLocalBarbers] = useState(barbers); // Estado local para os barbeiros
 
-  // 1. ESTADO PERSISTENTE (Corrigido para não dar conflito)
+  // --- COLE O ESTADO PERSISTENTE AQUI ---
+  // 1. Iniciar o estado tentando ler do localStorage
   const [bookingData, setBookingData] = useState(() => {
     const saved = localStorage.getItem('SD_booking_session');
+    // Se existir algo salvo, ele carrega. Se não, inicia zerado.
     return saved ? JSON.parse(saved) : { service: null, barber: null, price: null, date: null, time: null };
   });
 
-  // 2. SALVAR NO NAVEGADOR (Auto-save)
+  // 2. Salvar no navegador sempre que o usuário escolher algo
   useEffect(() => {
     localStorage.setItem('SD_booking_session', JSON.stringify(bookingData));
   }, [bookingData]);
+const fetchBarbers = async () => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('role', 'barber'); // Filtra apenas quem é barbeiro
 
-  // 3. BUSCAR DADOS DO BANCO (Substituindo a fetchBarbers que estava quebrada)
-  const fetchBarbers = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'barber');
+  if (error) {
+    console.error("Erro ao buscar:", error);
+  } else {
+    setBarbers(data);
+  }
+};
 
-    if (!error && data) {
-      setLocalBarbers(data);
-    }
-  };
+useEffect(() => {
+  fetchBarbers();
+}, []);
 
-  // 4. ATUALIZAÇÃO AUTOMÁTICA (Polling)
-  useEffect(() => {
-    fetchBarbers(); // Busca inicial
-    const interval = setInterval(() => {
-      fetchBarbers();
-      console.log("Dados sincronizados!");
-    }, 30000); 
-    return () => clearInterval(interval);
-  }, []);
+ useEffect(() => {
+  const interval = setInterval(() => {
+    // Chame aqui as funções que buscam dados do banco
+    fetchBarbers(); 
+    fetchAppointments();
+    console.log("Dados atualizados silenciosamente!");
+  }, 30000); // 30 segu
 
-  // GPS
+  // Limpa o intervalo se o componente for desmontado para evitar vazamento de memória
+  return () => clearInterval(interval);
+}, []);
+
+  // Captura localização ao entrar no fluxo de agendamento
   useEffect(() => {
     if (view === 'booking' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => console.log("GPS desativado")
+        (err) => console.log("Sem GPS")
       );
     }
   }, [view]);
 
-  // Ordenação por distância
-  const processedBarbers = (localBarbers || [])
+  // Filtra e ordena barbeiros por distância
+  const processedBarbers = barbers
     .filter(b => b.is_visible)
     .map(b => ({
       ...b,
       distance: calculateDistance(userCoords?.lat, userCoords?.lng, b.latitude, b.longitude)
     }))
-    .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    .sort((a, b) => {
+        if (a.distance === null) return 1;
+        if (b.distance === null) return -1;
+        return a.distance - b.distance;
+    });
 
-  // 5. FINALIZAR AGENDAMENTO (Corrigido e Seguro)
-  const handleFinish = async () => {
-    if (!bookingData.barber || !bookingData.service || !bookingData.date || !bookingData.time) {
-      alert("Por favor, preencha todos os campos do agendamento.");
-      return;
-    }
+  const handleFinish = () => {
+  // 1. Verificação de segurança (O "Pulo do Gato")
+  if (!bookingData.barber || !bookingData.barber.id) {
+    alert("Erro: Profissional não selecionado. Por favor, volte e escolha um barbeiro.");
+    return;
+  }
+  
+  if (!bookingData.service || !bookingData.service.name) {
+    alert("Erro: Serviço não selecionado.");
+    return;
+  }
 
-    const payload = {
-      barber_id: bookingData.barber.id,
-      client_id: user.id,
-      client_phone: user.phone || 'Não informado',
-      client_name: user.name,
-      service_name: bookingData.service.name,
-      booking_date: bookingData.date,
-      booking_time: bookingData.time,
-      status: 'pending'
-    };
+  if (!bookingData.date || !bookingData.time) {
+    alert("Por favor, selecione o dia e o horário.");
+    return;
+  }
 
-    try {
-      await onBookingSubmit(payload);
-      localStorage.removeItem('SD_booking_session'); // Limpa após o sucesso
-      setView('success');
-    } catch (error) {
-      alert("Erro ao salvar agendamento.");
-    }
-  };
+  // 2. Montagem segura do Payload
+ const payload = {
+  barber_id: bookingData.barber.id, // Verifique se na tabela é barber_id ou barberId
+  client_id: user.id,
+ client_phone: user.phone || 'Não informado', 
+  client_name: user.name,          // Na sua imagem a coluna é client_name
+  service_name: bookingData.service.name,
+  booking_date: bookingData.date,  // Nome correto da coluna na imagem
+  booking_time: bookingData.time,  // Nome correto da coluna na imagem
+  status: 'pending'
+};
+
+  try {
+    onBookingSubmit(payload); 
+    setView('success');
+  } catch (error) {
+    console.error("Erro ao agendar:", error);
+    alert("Ocorreu um erro ao salvar seu agendamento.");
+  }
+};
 
   if (view === 'success') return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-white">
       <Check size={60} className="text-green-500 mb-4" />
       <h2 className="text-2xl font-bold mb-8">Agendamento Realizado!</h2>
-      <Button onClick={() => { setBookingData({ service: null, barber: null, price: null, date: null, time: null }); setView('home'); setStep(1); }}>Voltar ao Início</Button>
+      <Button onClick={() => {setView('home'); setStep(1);}}>Voltar ao Início</Button>
     </div>
   );
 
@@ -280,7 +302,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
             .map(app => (
               <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                 <p className="font-bold text-sm">{app.service_name}</p>
-                <p className="text-xs text-slate-500">{app.date} às {app.time}</p>
+                <p className="text-xs text-slate-500">{app.date} às {bookingData.time}</p>
               </div>
             ))}
         </div>
@@ -763,7 +785,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                         <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
                             <Clock size={12} />
                             <p className="text-xs font-bold">
-                            {app.time} - {app.date ? app.date.split('-').reverse().join('/') : '?'}
+                           {bookingData.time} - {app.date ? app.date.split('-').reverse().join('/') : '?'}
                             </p>
                         </div>
                       </div>
@@ -1125,7 +1147,7 @@ const handleBookingSubmit = async (data) => {
     // CORREÇÃO: Use os nomes EXATOS das colunas que aparecem na sua foto
     date: data.date,    // Antes era booking_date (por isso dava NULL)
     phone: data.phone,  // Adicionado para salvar o telefone no banco
-    time: data.time     // Certifique-se que a coluna 'time' também existe
+   time: bookingData.time
   };
 
   const { data: saved, error } = await supabase
