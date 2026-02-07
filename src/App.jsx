@@ -130,20 +130,9 @@ const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
 const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) => {
   const [view, setView] = useState('home');
   const [step, setStep] = useState(1);
+  const [bookingData, setBookingData] = useState({ service: null, barber: null, price: null, date: null, time: null });
   const [userCoords, setUserCoords] = useState(null);
 
-  // --- COLE O ESTADO PERSISTENTE AQUI ---
-  // 1. Iniciar o estado tentando ler do localStorage
-  const [bookingData, setBookingData] = useState(() => {
-    const saved = localStorage.getItem('SD_booking_session');
-    // Se existir algo salvo, ele carrega. Se não, inicia zerado.
-    return saved ? JSON.parse(saved) : { service: null, barber: null, price: null, date: null, time: null };
-  });
-
-  // 2. Salvar no navegador sempre que o usuário escolher algo
-  useEffect(() => {
-    localStorage.setItem('SD_booking_session', JSON.stringify(bookingData));
-  }, [bookingData]);
 const fetchBarbers = async () => {
   const { data, error } = await supabase
     .from('profiles')
@@ -302,7 +291,7 @@ useEffect(() => {
             .map(app => (
               <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                 <p className="font-bold text-sm">{app.service_name}</p>
-                <p className="text-xs text-slate-500">{app.date} às {bookingData.time}</p>
+                <p className="text-xs text-slate-500">{app.date} às {app.time}</p>
               </div>
             ))}
         </div>
@@ -785,7 +774,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                         <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
                             <Clock size={12} />
                             <p className="text-xs font-bold">
-                           {bookingData.time} - {app.date ? app.date.split('-').reverse().join('/') : '?'}
+                            {app.time} - {app.date ? app.date.split('-').reverse().join('/') : '?'}
                             </p>
                         </div>
                       </div>
@@ -1147,7 +1136,7 @@ const handleBookingSubmit = async (data) => {
     // CORREÇÃO: Use os nomes EXATOS das colunas que aparecem na sua foto
     date: data.date,    // Antes era booking_date (por isso dava NULL)
     phone: data.phone,  // Adicionado para salvar o telefone no banco
-   time: bookingData.time
+    time: data.time     // Certifique-se que a coluna 'time' também existe
   };
 
   const { data: saved, error } = await supabase
