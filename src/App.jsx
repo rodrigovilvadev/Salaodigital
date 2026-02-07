@@ -169,29 +169,23 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     });
 
   const handleFinish = () => {
-  // 1. Verificação de segurança robusta
-  if (!bookingData.date || !bookingData.time || !bookingData.service || !bookingData.barber) {
-    alert("Por favor, selecione o serviço, o profissional, o dia e o horário.");
+  // Verificação de segurança
+  if (!bookingData.date || !bookingData.time) {
+    alert("Por favor, selecione o dia e o horário.");
     return;
   }
 
-  // 2. Criamos um objeto "limpo" apenas com strings e números
+  // Montamos o objeto final para o banco
   const payload = {
-    barberId: bookingData.barber.id,        // Apenas o ID
-    client_id: user.id,                    // ID do cliente
-    client: user.name,                     // Nome (String)
-    phone: user.phone,                     // Telefone (String)
-    service_name: bookingData.service.name, // Nome do serviço (String)
-    price: bookingData.price,              // Preço (Number)
-    date: bookingData.date,                // Data (Ex: 2026-02-07)
-    time: bookingData.time,                // O HORÁRIO (Ex: 09:00) <--- ESSENCIAL
-    status: 'pending'
+    ...bookingData,
+    client: user.name, // Nome do cliente logado
+    phone: user.phone  // O telefone que você salvou no Supabase em 'profiles'
   };
 
-  // 3. Envia para o Supabase
+  // Chama a função do componente pai que faz o INSERT no Supabase
   onBookingSubmit(payload); 
   
-  // 4. Muda para sucesso
+  // Muda para a tela de sucesso
   setView('success');
 };
 
@@ -420,44 +414,39 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       })}
     </div>
     
-   {/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
-{bookingData.date ? (
-  <>
-    <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
-      Horários para {bookingData.date.split('-').reverse().join('/')}
-    </label>
-    <div className="grid grid-cols-4 gap-2">
-      {GLOBAL_TIME_SLOTS.map(t => {
-        // --- AQUI ESTÁ A CORREÇÃO ---
-        // Em vez de olhar available_slots, olhamos o schedule da data selecionada
-        const slotsDoDia = bookingData.barber?.schedule?.[bookingData.date] || [];
-        const isSlotAvailable = slotsDoDia.includes(t);
-        
-        return (
-          <button 
-            key={t} 
-            disabled={!isSlotAvailable}
-            onClick={() => setBookingData({...bookingData, time: t})} 
-            className={`py-2 rounded-lg font-bold text-xs transition-all ${
-              bookingData.time === t 
-                ? 'bg-slate-900 text-white shadow-lg scale-105' 
-                : isSlotAvailable 
-                  ? 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400' 
-                  : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-30'
-            }`}
-          >
-            {t}
-          </button>
-        );
-      })}
-    </div>
-  </>
-) : (
-  <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
-    <Calendar size={24} className="mx-auto text-slate-300 mb-2" />
-    <p className="text-xs text-slate-400 font-bold">Selecione um dia acima primeiro</p>
-  </div>
-)}
+    {/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
+    {bookingData.date ? (
+      <>
+        <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
+          Horários para {bookingData.date.split('-').reverse().join('/')}
+        </label>
+        <div className="grid grid-cols-4 gap-2">
+          {GLOBAL_TIME_SLOTS.map(t => {
+            const isSlotAvailable = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
+            
+            return (
+              <button 
+                key={t} 
+                disabled={!isSlotAvailable}
+                onClick={() => setBookingData({...bookingData, time: t})} 
+                className={`py-2 rounded-lg font-bold text-xs transition-all ${
+                  bookingData.time === t ? 'bg-slate-900 text-white shadow-lg scale-105' : 
+                  isSlotAvailable ? 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400' : 
+                  'bg-slate-100 text-slate-300 cursor-not-allowed'
+                }`}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
+      </>
+    ) : (
+      <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+        <Calendar size={24} className="mx-auto text-slate-300 mb-2" />
+        <p className="text-xs text-slate-400 font-bold">Selecione um dia acima primeiro</p>
+      </div>
+    )}
 
     {/* Resumo antes de confirmar */}
     {bookingData.time && bookingData.date && (
