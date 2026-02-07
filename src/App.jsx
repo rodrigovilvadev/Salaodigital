@@ -169,30 +169,42 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     });
 
   const handleFinish = () => {
-  // 1. Verificação de segurança robusta
-  if (!bookingData.date || !bookingData.time || !bookingData.service || !bookingData.barber) {
-    alert("Por favor, selecione o serviço, o profissional, o dia e o horário.");
+  // 1. Verificação de segurança (O "Pulo do Gato")
+  if (!bookingData.barber || !bookingData.barber.id) {
+    alert("Erro: Profissional não selecionado. Por favor, volte e escolha um barbeiro.");
+    return;
+  }
+  
+  if (!bookingData.service || !bookingData.service.name) {
+    alert("Erro: Serviço não selecionado.");
     return;
   }
 
-  // 2. Criamos um objeto "limpo" apenas com strings e números
+  if (!bookingData.date || !bookingData.time) {
+    alert("Por favor, selecione o dia e o horário.");
+    return;
+  }
+
+  // 2. Montagem segura do Payload
   const payload = {
-    barberId: bookingData.barber.id,        // Apenas o ID
-    client_id: user.id,                    // ID do cliente
-    client: user.name,                     // Nome (String)
-    phone: user.phone,                     // Telefone (String)
-    service_name: bookingData.service.name, // Nome do serviço (String)
-    price: bookingData.price,              // Preço (Number)
-    date: bookingData.date,                // Data (Ex: 2026-02-07)
-    time: bookingData.time,                // O HORÁRIO (Ex: 09:00) <--- ESSENCIAL
+    barberId: bookingData.barber.id, 
+    client_id: user.id,
+    client: user.name,
+    phone: user.phone || 'Sem telefone', 
+    service_name: bookingData.service.name,
+    price: bookingData.price,
+    date: bookingData.date, 
+    time: bookingData.time,
     status: 'pending'
   };
 
-  // 3. Envia para o Supabase
-  onBookingSubmit(payload); 
-  
-  // 4. Muda para sucesso
-  setView('success');
+  try {
+    onBookingSubmit(payload); 
+    setView('success');
+  } catch (error) {
+    console.error("Erro ao agendar:", error);
+    alert("Ocorreu um erro ao salvar seu agendamento.");
+  }
 };
 
   if (view === 'success') return (
