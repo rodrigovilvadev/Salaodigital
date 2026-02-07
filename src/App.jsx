@@ -1129,32 +1129,36 @@ const handleBookingSubmit = async (data) => {
     if (!error) setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
   };
 
-  const handleUpdateProfile = async (updatedUser) => {
+ const handleUpdateProfile = async (updatedUser) => {
   try {
-    // Filtramos apenas o que o seu banco REALMENTE tem (visto nos prints)
+    // 1. Filtramos apenas as colunas que existem no seu banco (conforme seus prints)
+    // Removemos o 'id' do corpo do objeto, pois ele vai apenas no .eq()
     const dataToSave = {
       address: updatedUser.address,
       avatar_url: updatedUser.avatar_url,
       is_visible: updatedUser.is_visible,
       plano_ativo: updatedUser.plano_ativo,
-      my_services: updatedUser.my_services, // Coluna jsonb no print
-      available_slots: updatedUser.available_slots, // No print sua coluna é esta!
-      available_dates: updatedUser.available_dates  // Coluna text[] no print
+      my_services: updatedUser.my_services,
+      available_dates: updatedUser.available_dates,
+      available_slots: updatedUser.available_slots 
     };
 
+    // 2. Enviamos para o Supabase
     const { error } = await supabase
       .from('profiles')
       .update(dataToSave)
       .eq('id', updatedUser.id);
 
     if (error) throw error;
+
+    // 3. ATENÇÃO AQUI: Usamos setUser para atualizar o estado local do barbeiro
+    // Não usamos onUpdateProfile aqui porque estamos dentro do componente que define o estado.
+    setUser(updatedUser);
     
-    // Atualiza o estado local para o app não travar
-    onUpdateProfile(updatedUser); 
-    alert("Perfil atualizado com sucesso!");
+    console.log("Perfil atualizado com sucesso!");
   } catch (error) {
     console.error("Erro completo:", error);
-    alert("Erro ao salvar no Supabase: " + error.message);
+    alert("Erro ao salvar no banco: " + error.message);
   }
 };
 
