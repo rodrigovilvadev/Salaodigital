@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import imgMao from './img/mao.jpg';
 import imgMp from './img/mp.jpg';
 import imgTes from './img/tes.jpg';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { 
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, LogOut, Bell, DollarSign, 
 
