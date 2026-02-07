@@ -133,23 +133,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
   const [bookingData, setBookingData] = useState({ service: null, barber: null, price: null, date: null, time: null });
   const [userCoords, setUserCoords] = useState(null);
 
-const fetchBarbers = async () => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('role', 'barber'); // Filtra apenas quem é barbeiro
-
-  if (error) {
-    console.error("Erro ao buscar:", error);
-  } else {
-    setBarbers(data);
-  }
-};
-
-useEffect(() => {
-  fetchBarbers();
-}, []);
-
  useEffect(() => {
   const interval = setInterval(() => {
     // Chame aqui as funções que buscam dados do banco
@@ -186,41 +169,30 @@ useEffect(() => {
     });
 
   const handleFinish = () => {
-  // 1. Verificação de segurança (O "Pulo do Gato")
-  if (!bookingData.barber || !bookingData.barber.id) {
-    alert("Erro: Profissional não selecionado. Por favor, volte e escolha um barbeiro.");
+  // 1. Verificação de segurança robusta
+  if (!bookingData.date || !bookingData.time || !bookingData.service || !bookingData.barber) {
+    alert("Por favor, selecione o serviço, o profissional, o dia e o horário.");
     return;
   }
+
+  // 2. Criamos um objeto "limpo" apenas com strings e números
+  const payload = {
+    barberId: bookingData.barber.id,        // Apenas o ID
+    client_id: user.id,                    // ID do cliente
+    client: user.name,                     // Nome (String)
+    phone: user.phone,                     // Telefone (String)
+    service_name: bookingData.service.name, // Nome do serviço (String)
+    price: bookingData.price,              // Preço (Number)
+    date: bookingData.date,                // Data (Ex: 2026-02-07)
+    time: bookingData.time,                // O HORÁRIO (Ex: 09:00) <--- ESSENCIAL
+    status: 'pending'
+  };
+
+  // 3. Envia para o Supabase
+  onBookingSubmit(payload); 
   
-  if (!bookingData.service || !bookingData.service.name) {
-    alert("Erro: Serviço não selecionado.");
-    return;
-  }
-
-  if (!bookingData.date || !bookingData.time) {
-    alert("Por favor, selecione o dia e o horário.");
-    return;
-  }
-
-  // 2. Montagem segura do Payload
- const payload = {
-  barber_id: bookingData.barber.id, // Verifique se na tabela é barber_id ou barberId
-  client_id: user.id,
- client_phone: user.phone || 'Não informado', 
-  client_name: user.name,          // Na sua imagem a coluna é client_name
-  service_name: bookingData.service.name,
-  booking_date: bookingData.date,  // Nome correto da coluna na imagem
-  booking_time: bookingData.time,  // Nome correto da coluna na imagem
-  status: 'pending'
-};
-
-  try {
-    onBookingSubmit(payload); 
-    setView('success');
-  } catch (error) {
-    console.error("Erro ao agendar:", error);
-    alert("Ocorreu um erro ao salvar seu agendamento.");
-  }
+  // 4. Muda para sucesso
+  setView('success');
 };
 
   if (view === 'success') return (
@@ -448,7 +420,7 @@ useEffect(() => {
       })}
     </div>
     
-{/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
+   {/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
 {bookingData.date ? (
   <>
     <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
@@ -456,9 +428,10 @@ useEffect(() => {
     </label>
     <div className="grid grid-cols-4 gap-2">
       {GLOBAL_TIME_SLOTS.map(t => {
-        // --- CORREÇÃO APLICADA AQUI ---
-        // Verificamos diretamente na coluna 'available_slots' que vimos nas fotos
-        const isSlotAvailable = bookingData.barber?.available_slots?.includes(t);
+        // --- AQUI ESTÁ A CORREÇÃO ---
+        // Em vez de olhar available_slots, olhamos o schedule da data selecionada
+        const slotsDoDia = bookingData.barber?.schedule?.[bookingData.date] || [];
+        const isSlotAvailable = slotsDoDia.includes(t);
         
         return (
           <button 
