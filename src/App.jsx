@@ -133,6 +133,23 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
   const [bookingData, setBookingData] = useState({ service: null, barber: null, price: null, date: null, time: null });
   const [userCoords, setUserCoords] = useState(null);
 
+const fetchBarbers = async () => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('role', 'barber'); // Filtra apenas quem é barbeiro
+
+  if (error) {
+    console.error("Erro ao buscar:", error);
+  } else {
+    setBarbers(data);
+  }
+};
+
+useEffect(() => {
+  fetchBarbers();
+}, []);
+
  useEffect(() => {
   const interval = setInterval(() => {
     // Chame aqui as funções que buscam dados do banco
@@ -186,17 +203,16 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
   }
 
   // 2. Montagem segura do Payload
-  const payload = {
-    barberId: bookingData.barber.id, 
-    client_id: user.id,
-    client: user.name,
-    phone: user.phone || 'Sem telefone', 
-    service_name: bookingData.service.name,
-    price: bookingData.price,
-    date: bookingData.date, 
-    time: bookingData.time,
-    status: 'pending'
-  };
+ const payload = {
+  barber_id: bookingData.barber.id, // Verifique se na tabela é barber_id ou barberId
+  client_id: user.id,
+ client_phone: user.phone || 'Não informado', 
+  client_name: user.name,          // Na sua imagem a coluna é client_name
+  service_name: bookingData.service.name,
+  booking_date: bookingData.date,  // Nome correto da coluna na imagem
+  booking_time: bookingData.time,  // Nome correto da coluna na imagem
+  status: 'pending'
+};
 
   try {
     onBookingSubmit(payload); 
@@ -432,7 +448,15 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       })}
     </div>
     
-   {/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
+  Para que o seu código funcione perfeitamente com a estrutura de dados que vimos nas fotos do seu banco de dados, você precisa fazer uma pequena alteração na lógica de verificação dos horários.
+
+Nas imagens enviadas, os horários estão na coluna available_slots, mas o seu código atual está tentando buscar dentro de um objeto chamado schedule. Como esse objeto schedule não existe no seu banco de dados, os horários nunca aparecerão como disponíveis.
+
+O Código Corrigido
+Substitua o bloco que você enviou por este aqui:
+
+JavaScript
+{/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
 {bookingData.date ? (
   <>
     <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
@@ -440,10 +464,9 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     </label>
     <div className="grid grid-cols-4 gap-2">
       {GLOBAL_TIME_SLOTS.map(t => {
-        // --- AQUI ESTÁ A CORREÇÃO ---
-        // Em vez de olhar available_slots, olhamos o schedule da data selecionada
-        const slotsDoDia = bookingData.barber?.schedule?.[bookingData.date] || [];
-        const isSlotAvailable = slotsDoDia.includes(t);
+        // --- CORREÇÃO APLICADA AQUI ---
+        // Verificamos diretamente na coluna 'available_slots' que vimos nas fotos
+        const isSlotAvailable = bookingData.barber?.available_slots?.includes(t);
         
         return (
           <button 
