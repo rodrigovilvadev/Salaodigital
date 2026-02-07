@@ -3,8 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import imgMao from './img/mao.jpg';
 import imgMp from './img/mp.jpg';
 import imgTes from './img/tes.jpg';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { 
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, LogOut, Bell, DollarSign, 
 
@@ -91,7 +89,6 @@ const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
 
   const handleSubmit = async () => {
     setError('');
@@ -218,7 +215,7 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
         <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendament</Button>
+          <Button variant="secondary" onClick={() => setView('booking')}>Novo Agendamento</Button>
           <Button variant="outline" className="text-white border-white/20" onClick={() => setView('history')}>Histórico</Button>
         </div>
       </div>
@@ -714,7 +711,7 @@ useEffect(() => {
               
               // 2. Formata a data e o horário para a mensagem
               const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'a combinar';
-              const horaFmt = booking.data.price || 'horário não definido';
+              const horaFmt = app.time || 'horário não definido';
               const servicoFmt = app.service?.name || 'serviço agendado';
               
               // 3. Monta a mensagem (sem o erro 'onst')
@@ -754,7 +751,7 @@ useEffect(() => {
           </div>
         )}
 
-       {activeTab === 'services' && (
+        {activeTab === 'services' && (
           <div className="space-y-3">
             {MASTER_SERVICES.map(service => {
               const userServiceData = user.my_services?.find(s => s.id === service.id);
@@ -779,6 +776,7 @@ useEffect(() => {
                         value={userServiceData.price || ''} 
                         onChange={(e) => updateServicePrice(service.id, e.target.value)} 
                         className="w-20 text-right font-bold outline-none bg-transparent border-b border-transparent focus:border-slate-200"
+                        placeholder="0.00"
                       />
                     </div>
                   )}
@@ -788,101 +786,97 @@ useEffect(() => {
           </div>
         )}
 
-        {activeTab === 'config' && (
+       {activeTab === 'config' && (
           <div className="space-y-6">
-            {/* NOVO: PERFIL COM FOTO E ENDEREÇO */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-full bg-slate-100 border-2 border-slate-50 overflow-hidden flex items-center justify-center">
-                   {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover"/> : <Camera className="text-slate-300" size={24}/>}
-                   <input type="file" onChange={handleUploadPhoto} className="absolute inset-0 opacity-0 cursor-pointer" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">{user.name}</h3>
-                  <p className="text-[10px] text-slate-500">Toque na foto para alterar</p>
-                </div>
-              </div>
-              <div className="relative">
-                <MapPin size={14} className="absolute left-3 top-3 text-blue-600" />
-                <input 
-                  type="text"
-                  placeholder="Seu endereço de atendimento"
-                  value={user.address || ''}
-                  onChange={(e) => onUpdateProfile({...user, address: e.target.value})}
-                  className="w-full pl-9 p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-200"
-                />
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 flex justify-between items-center">
-              <div>
-                <h3 className="font-bold text-slate-900">Visibilidade</h3>
-                <p className="text-[10px] text-slate-500">Aparecer para clientes agora</p>
-              </div>
-              <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}>
-                <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.is_visible ? 'translate-x-6' : 'translate-x-0'}`}/>
-              </div>
-            </div>
-
-            {/* CALENDÁRIO DINÂMICO REAL */}
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <button onClick={() => setShowCalendar(!showCalendar)} className="w-full p-5 flex items-center justify-between hover:bg-slate-50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><CalendarDays size={20} /></div>
-                  <div className="text-left">
-                    <h3 className="font-bold text-slate-900 text-sm">Agenda de Fevereiro</h3>
-                    <p className="text-[10px] text-slate-500">Toque em um dia para abrir horários</p>
-                  </div>
-                </div>
-                <ChevronRight size={18} className={`text-slate-400 transition-transform ${showCalendar ? 'rotate-90' : ''}`} />
-              </button>
-
-              {showCalendar && (
-                <div className="p-5 pt-0 border-t border-slate-50">
-                  <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase">
-                    {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
-                  </div>
-                  <div className="grid grid-cols-7 gap-2">
-                    {Array.from({ length: 28 }, (_, i) => {
-                      const date = new Date(2026, 1, i + 1);
-                      const dKey = formatDateManual(date);
-                      const isSelected = formatDateManual(selectedDate) === dKey;
-                      const hasSlots = user.booking_data?.[dKey]?.length > 0;
-
-                      return (
-                        <button key={i} onClick={() => setSelectedDate(date)} className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] font-bold border transition-all relative ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
-                          {i + 1}
-                          {hasSlots && !isSelected && <div className="w-1 h-1 bg-blue-500 rounded-full absolute bottom-1"/>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* HORÁRIOS DO DIA SELECIONADO */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200">
-               <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
-                 <Clock size={18} className="text-blue-600" />
-                 Horários: {selectedDate.getDate()}/{selectedDate.getMonth()+1}
-               </h3>
-               <div className="grid grid-cols-4 gap-2">
-                 {GLOBAL_TIME_SLOTS.map(slot => {
-                    const daySlots = user.booking_data?.[formatDateManual(selectedDate)] || [];
-                    const isActive = daySlots.includes(slot);
-                    return (
-                      <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border transition-all ${isActive ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-400 border-slate-100'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-900">Visibilidade da Loja</h3>
+                  <p className="text-xs text-slate-500 mt-1">Aparecer para clientes na lista.</p>
+                </div>
+                <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}>
+                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.is_visible ? 'translate-x-6' : 'translate-x-0'}`}/>
+                </div>
+              </div>
+            </div>
+
+          {/* --- SEÇÃO DE CALENDÁRIO RETRÁTIL --- */}
+<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
+  {/* Cabeçalho Clicável */}
+  <button 
+    onClick={() => setShowCalendar(!showCalendar)}
+    className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+  >
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+        <CalendarDays size={20} />
+      </div>
+      <div className="text-left">
+        <h3 className="font-bold text-slate-900 text-sm">Dias de Atendimento</h3>
+        <p className="text-[10px] text-slate-500">Selecione os dias disponíveis</p>
+      </div>
+    </div>
+    <ChevronRight 
+      size={18} 
+      className={`text-slate-400 transition-transform duration-300 ${showCalendar ? 'rotate-90' : ''}`} 
+    />
+  </button>
+
+  {/* Conteúdo do Calendário (Só aparece se showCalendar for true) */}
+  {showCalendar && (
+    <div className="p-5 pt-0 border-t border-slate-50 animate-in slide-in-from-top-2 duration-300">
+      <div className="grid grid-cols-7 gap-1 mb-3 text-center text-[10px] font-black text-slate-300 uppercase tracking-wider">
+        {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-2">{d}</div>)}
+      </div>
+
+      <div className="grid grid-cols-7 gap-2">
+        {Array.from({ length: 28 }, (_, i) => {
+          const day = (i + 1).toString().padStart(2, '0');
+          const fullDate = `2026-02-${day}`; 
+          const isSelected = user.available_dates?.includes(fullDate);
+
+          return (
+            <button
+              key={i}
+              onClick={() => toggleDate(fullDate)}
+              className={`aspect-square flex items-center justify-center rounded-xl text-[11px] font-bold border transition-all
+                ${isSelected 
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-105' 
+                  : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+      
+      <div className="mt-4 p-3 bg-blue-50 rounded-xl">
+        <p className="text-[9px] text-blue-700 font-medium text-center">
+          Os dias marcados em <b>preto</b> estarão visíveis para seus clientes agendarem.
+        </p>
+      </div>
+    </div>
+  )}
+</div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200">
+                <h3 className="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
+                   <Clock size={18} className="text-blue-600" /> Seus Horários
+                </h3>
+                <div className="grid grid-cols-4 gap-2">
+                {GLOBAL_TIME_SLOTS.map(slot => (
+                    <button key={slot} onClick={() => toggleSlot(slot)} className={`py-2 text-[10px] font-bold rounded-lg border ${user.available_slots?.includes(slot) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}>
                         {slot}
-                      </button>
-                    );
-                 })}
-               </div>
+                    </button>
+                ))}
+                </div>
             </div>
           </div>
         )}
+        
       </main>
     </div>
+    
   );
 };
 /// --- 6. ORQUESTRADOR PRINCIPAL ---
