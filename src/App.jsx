@@ -484,6 +484,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   const [showCalendar, setShowCalendar] = useState(true); // Calendário começa aberto para facilitar
   // Data selecionada para edição de horário (Padrão: Hoje)
   const [selectedDateConfig, setSelectedDateConfig] = useState(new Date().toISOString().split('T')[0]);
+  
 
  // Filtra agendamentos garantindo que os nomes das colunas batam com o Supabase
 const myAppointments = appointments.filter(a => 
@@ -1199,14 +1200,15 @@ const handleBookingSubmit = async (data) => {
   );
 
   return currentMode === 'barber' ? (
-  <BarberDashboard 
+ <BarberDashboard 
     user={user} 
     appointments={appointments} 
     onLogout={() => { setUser(null); setCurrentMode(null); }} 
-    onUpdateStatus={handleUpdateStatus} // Aqui você vai adicionar a lógica de WhatsApp no Dashboard
+    onUpdateStatus={handleUpdateStatus} 
     onUpdateProfile={handleUpdateProfile}
-    MASTER_SERVICES={MASTER_SERVICES} // Passa os serviços globais para ele escolher
-    GLOBAL_TIME_SLOTS={GLOBAL_TIME_SLOTS} // Passa os horários globais para ele escolher
+    MASTER_SERVICES={MASTER_SERVICES} 
+    GLOBAL_TIME_SLOTS={GLOBAL_TIME_SLOTS} 
+    supabase={supabase} // <--- ADICIONE ESTA LINHA AQUI
   />
   ) : (
     <ClientApp 
