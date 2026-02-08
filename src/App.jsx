@@ -171,47 +171,48 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
 
 const handleFinish = async () => {
   try {
-    // 1. Verificações de segurança para evitar o erro de "undefined"
-    if (!user || !user.id) {
-      alert("Erro: Usuário não identificado. Tente fazer login novamente.");
-      return;
-    }
-
-    if (!bookingData.barber || !bookingData.barber.id) {
-      alert("Erro: Selecione um profissional primeiro.");
-      return;
-    }
-
+    // 1. Verificações preventivas com alertas claros
     if (!bookingData.date || !bookingData.time) {
-      alert("Por favor, selecione o dia e o horário.");
+      alert("Por favor, selecione o dia e o horário antes de confirmar.");
       return;
     }
 
-    // 2. Montamos o payload apenas com dados simples (Strings e Números)
+    // 2. Criamos o payload com segurança (usando ?. e ||)
+    // Se o user.id não existir, ele não vai travar o código, vai apenas avisar
     const payload = {
-      date: bookingData.date,           // Ex: "2026-02-09"
-      time: bookingData.time,           // O HORÁRIO ESCOLHIDO (Ex: "10:00")
-      barber_id: bookingData.barber.id, // ID do Barbeiro
-      client_id: user.id,               // Seu ID de cliente
-      client_name: user.name || "Cliente",
-      phone: user.phone || "Sem telefone",
+      date: bookingData.date,
+      time: bookingData.time,
+      // Aqui usamos ?. para evitar o erro de "undefined"
+      barber_id: bookingData.barber?.id, 
+      client_id: user?.id || null, 
+      client_name: user?.name || "Cliente",
+      phone: user?.phone || "Sem telefone",
       service_name: bookingData.service?.name || "Serviço",
-      price: bookingData.price || 0,
-      status: 'pending'                 // Status para o barbeiro aceitar
+      price: Number(bookingData.price) || 0,
+      status: 'pending'
     };
 
-    console.log("Tentando salvar agendamento:", payload);
+    // 3. Verificação final do ID do barbeiro (essencial para chegar nele)
+    if (!payload.barber_id) {
+      alert("Erro: O profissional selecionado não foi encontrado. Tente selecioná-lo novamente.");
+      return;
+    }
 
-    // 3. Enviamos para o banco (através da sua função onBookingSubmit)
-    await onBookingSubmit(payload); 
-    
-    // 4. Sucesso!
+    console.log("Enviando horário para o banco...", payload);
+
+    // 4. Chamada para o banco
+    const { error } = await supabase
+      .from('appointments')
+      .insert([payload]);
+
+    if (error) throw error;
+
+    // 5. Se deu tudo certo
     setView('success');
 
   } catch (error) {
-    // O erro que você postou será capturado aqui e mostrado no console detalhadamente
-    console.error("Erro detalhado ao salvar:", error);
-    alert("Não foi possível salvar o agendamento.");
+    console.error("Erro real ao salvar no banco:", error);
+    alert("Falha ao agendar: " + error.message);
   }
 };
   if (view === 'success') return (
