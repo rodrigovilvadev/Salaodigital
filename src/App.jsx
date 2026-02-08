@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 import { createClient } from '@supabase/supabase-js';
 import imgMao from './img/mao.jpg';
 import imgMp from './img/mp.jpg';
@@ -548,35 +549,35 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
 
   // 2. Alternar horários DENTRO de uma data específica
  const toggleSlotForDate = async (date, slot) => {
-  // 1. Pega a estrutura atual ou cria um objeto vazio se for a primeira vez
-  const currentAllSlots = user.available_slots || {}; 
-  const slotsForDay = currentAllSlots[date] || [];
+  // 1. Obtém o estado atual ou um objeto vazio
+  const currentSlots = user.available_slots || {};
+  const slotsForDay = currentSlots[date] || [];
 
-  let newSlotsForDay;
+  let newSlots;
 
-  // 2. Lógica: Se já tem o horário, remove. Se não tem, adiciona.
+  // 2. Lógica de Adicionar/Remover
   if (slotsForDay.includes(slot)) {
-    newSlotsForDay = slotsForDay.filter(s => s !== slot); // Remove
+    // Se o horário já existe, remove (filtra)
+    newSlots = slotsForDay.filter(s => s !== slot);
   } else {
-    newSlotsForDay = [...slotsForDay, slot].sort(); // Adiciona e ordena
+    // Se não existe, adiciona e ordena
+    newSlots = [...slotsForDay, slot].sort();
   }
 
-  // 3. Monta o objeto final atualizado
+  // 3. Monta o objeto final
+  // Se o dia ficar vazio (newSlots.length === 0), opcionalmente você pode deletar a chave do dia
   const updatedAvailableSlots = {
-    ...currentAllSlots,
-    [date]: newSlotsForDay
+    ...currentSlots,
+    [date]: newSlots
   };
 
-  // 4. Atualiza a Tela Imediatamente (Visual)
-  // Nota: Estou assumindo que 'schedule' e 'available_slots' são a mesma coisa na sua lógica visual, 
-  // então atualizo os dois para garantir.
+  // 4. Atualização Visual Imediata (State local)
   onUpdateProfile({ 
     ...user, 
-    available_slots: updatedAvailableSlots,
-    schedule: updatedAvailableSlots 
+    available_slots: updatedAvailableSlots 
   });
 
-  // 5. Salva no Supabase (Banco de Dados)
+  // 5. Persistência no Banco de Dados
   try {
     const { error } = await supabase
       .from('profiles')
@@ -584,10 +585,9 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
       .eq('id', user.id);
 
     if (error) throw error;
-    // Sucesso silencioso (não precisa de alert toda hora)
   } catch (err) {
-    console.error("Erro ao salvar horário:", err);
-    alert("Erro ao sincronizar horário. Verifique sua conexão.");
+    console.error("Erro ao salvar no Supabase:", err.message);
+    // Caso falhe, você pode recarregar os dados ou avisar o usuário
   }
 };
 
