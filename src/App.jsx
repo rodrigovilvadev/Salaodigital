@@ -921,7 +921,14 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
                 </div>
             </section>
 
-            {/* Seção 2: Agenda Avançada */}
+          Entendi, você quer que o fechamento seja exatamente igual ao que você enviou, terminando com as chaves e parênteses do main e do export.
+
+O erro de chaves geralmente acontece porque, ao abrir um bloco novo (como o map com return), a contagem de fechamentos muda. Ajustei o código para manter a sua estrutura de fechamento implícito (sem a palavra return e sem chaves extras no map), o que mantém o código limpo e evita que sobrem ou faltem chaves no final.
+
+Aqui está a Seção 2 com o mapeamento para available_slots e o fechamento idêntico ao seu:
+
+JavaScript
+ {/* Seção 2: Agenda Avançada */}
             <section className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
                 {/* Header Calendário */}
                 <div 
@@ -949,23 +956,20 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
 
                     <div className="grid grid-cols-7 gap-2 mb-6">
                         {Array.from({ length: 30 }, (_, i) => {
-                            // Simulação simples de dias do mês atual (Melhorar com date-fns se possível)
                             const now = new Date();
                             const year = now.getFullYear();
                             const month = String(now.getMonth() + 1).padStart(2, '0');
                             const day = String(i + 1).padStart(2, '0');
                             const fullDate = `${year}-${month}-${day}`;
                             
-                            const isAvailable = user.available_dates?.includes(fullDate);
+                            const isAvailable = user.available_slots && user.available_slots[fullDate];
                             const isSelected = selectedDateConfig === fullDate;
-
-                            // Verifica se tem horários configurados nesse dia
-                            const hasSlots = user.schedule && user.schedule[fullDate] && user.schedule[fullDate].length > 0;
+                            const hasSlots = user.available_slots?.[fullDate]?.length > 0;
 
                             return (
                                 <button
                                 key={i}
-                                onClick={() => toggleDateAvailability(fullDate)}
+                                onClick={() => setSelectedDateConfig(fullDate)}
                                 className={`
                                     relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs font-bold border transition-all
                                     ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 z-10' : ''}
@@ -975,7 +979,6 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
                                 `}
                                 >
                                 {i + 1}
-                                {/* Indicador se tem horário definido */}
                                 {isAvailable && (
                                     <span className={`absolute bottom-1 w-1 h-1 rounded-full ${hasSlots ? 'bg-green-400' : 'bg-red-400'}`}></span>
                                 )}
@@ -991,41 +994,36 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
                                 Horários para <span className="text-blue-600">{selectedDateConfig.split('-').reverse().join('/')}</span>
                             </h4>
                             <span className="text-[10px] uppercase font-bold text-slate-400">
-                                {user.available_dates?.includes(selectedDateConfig) ? 'Dia Aberto' : 'Dia Fechado'}
+                                {user.available_slots?.[selectedDateConfig] ? 'Dia Ativo' : 'Dia Fechado'}
                             </span>
                         </div>
 
-                        {!user.available_dates?.includes(selectedDateConfig) ? (
+                        {!user.available_slots?.[selectedDateConfig] ? (
                             <div className="text-center py-6">
-                                <p className="text-xs text-slate-400 mb-2">Este dia está fechado.</p>
+                                <p className="text-xs text-slate-400 mb-2">Nenhum horário definido.</p>
                                 <button 
-                                    onClick={() => toggleDateAvailability(selectedDateConfig)}
+                                    onClick={() => toggleSlotForDate(selectedDateConfig, "09:00")}
                                     className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg"
                                 >
-                                    Abrir Agenda do Dia
+                                    Abrir Agenda
                                 </button>
                             </div>
                         ) : (
                             <div className="grid grid-cols-4 gap-2">
-                                {GLOBAL_TIME_SLOTS.map(slot => {
-                                    // Verifica no objeto schedule ESPECÍFICO DESTA DATA
-                                    const isSlotActive = user.schedule?.[selectedDateConfig]?.includes(slot);
-                                    
-                                    return (
-                                        <button 
-                                            key={slot} 
-                                            onClick={() => toggleSlotForDate(selectedDateConfig, slot)} 
-                                            className={`
-                                                py-2 text-[10px] font-bold rounded-lg border transition-all
-                                                ${isSlotActive 
-                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
-                                                    : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300'}
-                                            `}
-                                        >
-                                            {slot}
-                                        </button>
-                                    );
-                                })}
+                                {GLOBAL_TIME_SLOTS.map(slot => (
+                                    <button 
+                                        key={slot} 
+                                        onClick={() => toggleSlotForDate(selectedDateConfig, slot)} 
+                                        className={`
+                                            py-2 text-[10px] font-bold rounded-lg border transition-all
+                                            ${user.available_slots?.[selectedDateConfig]?.includes(slot)
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                                                : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300'}
+                                        `}
+                                    >
+                                        {slot}
+                                    </button>
+                                ))}
                             </div>
                         )}
                         <p className="text-[10px] text-slate-400 mt-4 text-center">
