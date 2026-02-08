@@ -169,27 +169,37 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         return a.distance - b.distance;
     });
 
-  const handleFinish = () => {
-  // Verificação de segurança
+const handleFinish = async () => {
+  // 1. Verificação de segurança
   if (!bookingData.date || !bookingData.time) {
     alert("Por favor, selecione o dia e o horário.");
     return;
   }
 
-  // Montamos o objeto final para o banco
+  // 2. Criamos o objeto EXATAMENTE como as colunas do seu banco
   const payload = {
-    ...bookingData,
-    client: user.name, // Nome do cliente logado
-    phone: user.phone  // O telefone que você salvou no Supabase em 'profiles'
+    date: bookingData.date,           // Salva a data (Ex: 2026-02-09)
+    time: bookingData.time,           // AQUI SALVA O HORÁRIO (Ex: 10:00)
+    barber_id: bookingData.barber?.id, // ID do barbeiro para aparecer no painel dele
+    client_id: user.id,                // ID do cliente
+    client_name: user.name,            // Nome do cliente
+    phone: user.phone,                 // Telefone do cliente
+    service_name: bookingData.service?.name, 
+    price: bookingData.price,
+    status: 'pending'                  // Para o barbeiro receber como "Pendente"
   };
 
-  // Chama a função do componente pai que faz o INSERT no Supabase
-  onBookingSubmit(payload); 
-  
-  // Muda para a tela de sucesso
-  setView('success');
+  try {
+    // 3. Chama a função que faz o insert no Supabase
+    await onBookingSubmit(payload); 
+    
+    // 4. Muda para a tela de sucesso
+    setView('success');
+  } catch (error) {
+    console.error("Erro ao salvar:", error);
+    alert("Erro ao enviar o horário para o barbeiro.");
+  }
 };
-
   if (view === 'success') return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-white">
       <Check size={60} className="text-green-500 mb-4" />
