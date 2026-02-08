@@ -374,107 +374,107 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
                 </>
             )}
 {/* PASSO 3: DATA E HORA */}
-{step === 3 && (
-  <>
-    <h3 className="font-bold text-lg mb-4">Data e Hora</h3>
-    
-    <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Selecione um dia disponível</label>
-    
-    {/* Grade de Dias dinâmica */}
-    <div className="grid grid-cols-7 gap-2 mb-6">
-      {['D','S','T','Q','Q','S','S'].map(d => (
-        <div key={d} className="text-[10px] font-black text-slate-300 text-center py-1">{d}</div>
-      ))}
-
-      {Array.from({ length: 28 }, (_, i) => {
-        const dia = (i + 1).toString().padStart(2, '0');
-        const dataFormatada = `2026-02-${dia}`;
-        
-        // Verifica se o dia existe no novo objeto available_slots
-        const daySlots = bookingData.barber?.available_slots?.[dataFormatada] || [];
-        const isAvailable = daySlots.length > 0;
-        const isSelected = bookingData.date === dataFormatada;
-
-        return (
-          <button
-            key={i}
-            disabled={!isAvailable}
-            onClick={() => setBookingData({...bookingData, date: dataFormatada, time: null})}
-            className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] font-bold border transition-all
-              ${isSelected 
-                ? 'bg-slate-900 text-white border-slate-900 shadow-lg scale-105' 
-                : isAvailable 
-                  ? 'bg-white text-slate-600 border-slate-200 hover:border-slate-400' 
-                  : 'bg-slate-50 text-slate-200 border-transparent opacity-50 cursor-not-allowed'}`}
-          >
-            {i + 1}
-            {isAvailable && !isSelected && <div className="w-1 h-1 bg-blue-500 rounded-full mt-0.5"></div>}
-          </button>
-        );
-      })}
-    </div>
-    
-    {bookingData.date ? (
-      <>
-        <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
-          Horários para {bookingData.date.split('-').reverse().join('/')}
-        </label>
-        <div className="grid grid-cols-4 gap-2">
-          {GLOBAL_TIME_SLOTS.map(t => {
-            // Verifica se o horário específico está dentro do array daquela data
-            const isSlotAvailable = bookingData.barber?.available_slots?.[bookingData.date]?.includes(t);
+        {step === 3 && (
+          <>
+            <h3 className="font-bold text-lg mb-4">Data e Hora</h3>
             
-            return (
-              <button 
-                key={t} 
-                disabled={!isSlotAvailable}
-                onClick={() => setBookingData({...bookingData, time: t})} 
-                className={`py-2 rounded-lg font-bold text-xs transition-all ${
-                  bookingData.time === t ? 'bg-slate-900 text-white shadow-lg scale-105' : 
-                  isSlotAvailable ? 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400' : 
-                  'bg-slate-100 text-slate-300 cursor-not-allowed'
-                }`}
-              >
-                {t}
-              </button>
-            );
-          })}
-        </div>
-      </>
-    ) : (
-      <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
-        <Calendar size={24} className="mx-auto text-slate-300 mb-2" />
-        <p className="text-xs text-slate-400 font-bold">Selecione um dia acima primeiro</p>
-      </div>
-    )}
+            <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Selecione um dia disponível</label>
+            
+            {/* Grade de Dias dinâmica */}
+            <div className="grid grid-cols-7 gap-2 mb-6">
+              {['D','S','T','Q','Q','S','S'].map(d => (
+                <div key={d} className="text-[10px] font-black text-slate-300 text-center py-1">{d}</div>
+              ))}
 
-    {bookingData.time && bookingData.date && (
-      <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-100 animate-in fade-in zoom-in duration-300">
-        <p className="text-xs text-amber-600 font-bold uppercase mb-1">Resumo</p>
-        <div className="flex justify-between items-center">
-          <span className="font-bold text-slate-900">{bookingData.service?.name}</span>
-          <span className="font-bold text-slate-900">R$ {bookingData.price}</span>
-        </div>
-        <p className="text-sm text-slate-500 mt-1">Com {bookingData.barber?.name} às {bookingData.time}</p>
-      </div>
-    )}
+              {Array.from({ length: 28 }, (_, i) => {
+                const dia = (i + 1).toString().padStart(2, '0');
+                const dataFormatada = `2026-02-${dia}`;
+                
+                // Verifica se o dia existe no novo objeto available_slots
+                const daySlots = bookingData.barber?.available_slots?.[dataFormatada] || [];
+                const isAvailable = daySlots.length > 0;
+                const isSelected = bookingData.date === dataFormatada;
 
-    <Button 
-      className="mt-6 w-full py-4 text-lg" 
-      onClick={handleFinish} 
-      disabled={!bookingData.time || !bookingData.date}
-    >
-      Confirmar Agendamento
-    </Button>
-  </>
-)}
+                return (
+                  <button
+                    key={i}
+                    disabled={!isAvailable}
+                    // Reseta o time para null ao trocar de data para evitar conflitos
+                    onClick={() => setBookingData({...bookingData, date: dataFormatada, time: null})}
+                    className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] font-bold border transition-all
+                      ${isSelected 
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-lg scale-105' 
+                        : isAvailable 
+                          ? 'bg-white text-slate-600 border-slate-200 hover:border-slate-400' 
+                          : 'bg-slate-50 text-slate-200 border-transparent opacity-50 cursor-not-allowed'}`}
+                  >
+                    {i + 1}
+                    {isAvailable && !isSelected && <div className="w-1 h-1 bg-blue-500 rounded-full mt-0.5"></div>}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {bookingData.date ? (
+              <>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
+                  Horários para {bookingData.date.split('-').reverse().join('/')}
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {GLOBAL_TIME_SLOTS.map(t => {
+                    // Verifica se o horário específico está dentro do array daquela data
+                    const isSlotAvailable = bookingData.barber?.available_slots?.[bookingData.date]?.includes(t);
+                    
+                    return (
+                      <button 
+                        key={t} 
+                        disabled={!isSlotAvailable}
+                        onClick={() => setBookingData({...bookingData, time: t})} 
+                        className={`py-2 rounded-lg font-bold text-xs transition-all ${
+                          bookingData.time === t ? 'bg-slate-900 text-white shadow-lg scale-105' : 
+                          isSlotAvailable ? 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400' : 
+                          'bg-slate-100 text-slate-300 cursor-not-allowed'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+                <Calendar size={24} className="mx-auto text-slate-300 mb-2" />
+                <p className="text-xs text-slate-400 font-bold">Selecione um dia acima primeiro</p>
+              </div>
+            )}
+
+            {bookingData.time && bookingData.date && (
+              <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-100 animate-in fade-in zoom-in duration-300">
+                <p className="text-xs text-amber-600 font-bold uppercase mb-1">Resumo</p>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-900">{bookingData.service?.name}</span>
+                  <span className="font-bold text-slate-900">R$ {bookingData.price}</span>
+                </div>
+                <p className="text-sm text-slate-500 mt-1">Com {bookingData.barber?.name} às {bookingData.time}</p>
+              </div>
+            )}
+
+            <Button 
+              className="mt-6 w-full py-4 text-lg" 
+              onClick={handleFinish} 
+              disabled={!bookingData.time || !bookingData.date}
+            >
+              Confirmar Agendamento
+            </Button>
+          </>
+        )}
           </div>
         )}
       </main>
     </div>
   );
 };
-
 const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile, supabase }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [isPaying, setIsPaying] = useState(false);
