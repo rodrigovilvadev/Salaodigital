@@ -380,20 +380,19 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     
     <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Selecione um dia disponível</label>
     
-    {/* Grade de Dias dinâmica baseada no que o barbeiro marcou */}
+    {/* Grade de Dias dinâmica */}
     <div className="grid grid-cols-7 gap-2 mb-6">
-      {/* Dias da Semana (Cabeçalho) */}
       {['D','S','T','Q','Q','S','S'].map(d => (
         <div key={d} className="text-[10px] font-black text-slate-300 text-center py-1">{d}</div>
       ))}
 
-      {/* Gerador de dias para Fevereiro/2026 */}
       {Array.from({ length: 28 }, (_, i) => {
         const dia = (i + 1).toString().padStart(2, '0');
         const dataFormatada = `2026-02-${dia}`;
         
-        // SÓ PERMITE SE A DATA ESTIVER NO ARRAY available_dates DO BARBEIRO
-        const isAvailable = bookingData.barber?.available_dates?.includes(dataFormatada);
+        // Verifica se o dia existe no novo objeto available_slots
+        const daySlots = bookingData.barber?.available_slots?.[dataFormatada] || [];
+        const isAvailable = daySlots.length > 0;
         const isSelected = bookingData.date === dataFormatada;
 
         return (
@@ -415,7 +414,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       })}
     </div>
     
-    {/* SÓ MOSTRA OS HORÁRIOS SE O DIA ESTIVER SELECIONADO */}
     {bookingData.date ? (
       <>
         <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">
@@ -423,7 +421,8 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         </label>
         <div className="grid grid-cols-4 gap-2">
           {GLOBAL_TIME_SLOTS.map(t => {
-            const isSlotAvailable = bookingData.barber?.available_slots?.includes(t) || !bookingData.barber?.available_slots?.length;
+            // Verifica se o horário específico está dentro do array daquela data
+            const isSlotAvailable = bookingData.barber?.available_slots?.[bookingData.date]?.includes(t);
             
             return (
               <button 
@@ -449,7 +448,6 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
       </div>
     )}
 
-    {/* Resumo antes de confirmar */}
     {bookingData.time && bookingData.date && (
       <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-100 animate-in fade-in zoom-in duration-300">
         <p className="text-xs text-amber-600 font-bold uppercase mb-1">Resumo</p>
@@ -462,12 +460,12 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     )}
 
     <Button 
-  className="mt-6 w-full py-4 text-lg" 
-  onClick={handleFinish} // <--- Certifique-se que o nome é handleFinish
-  disabled={!bookingData.time || !bookingData.date}
->
-  Confirmar Agendamento
-</Button>
+      className="mt-6 w-full py-4 text-lg" 
+      onClick={handleFinish} 
+      disabled={!bookingData.time || !bookingData.date}
+    >
+      Confirmar Agendamento
+    </Button>
   </>
 )}
           </div>
