@@ -730,7 +730,7 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
 
       <main className="p-6 max-w-md mx-auto">
         
-        {/* === ABA HOME === */}
+       {/* === ABA HOME === */}
         {activeTab === 'home' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -769,7 +769,8 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
                         <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
                             <Clock size={12} />
                             <p className="text-xs font-bold">
-                            {app.time} - {app.date ? app.date.split('-').reverse().join('/') : '?'}
+                            {/* CORREÇÃO: Exibição segura da data e hora */}
+                            {app.time || '00:00'} - {app.date ? app.date.split('-').reverse().join('/') : 'Data n/a'}
                             </p>
                         </div>
                       </div>
@@ -781,7 +782,6 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
                         onClick={() => {
                           onUpdateStatus(app.id, 'confirmed');
                           
-                          // Lógica WhatsApp Corrigida
                           const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'data a confirmar';
                           const horaFmt = app.time || 'horário a confirmar';
                           const servicoFmt = app.service?.name || 'serviço';
