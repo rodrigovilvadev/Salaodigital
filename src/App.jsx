@@ -170,34 +170,48 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
     });
 
 const handleFinish = async () => {
-  // 1. Verificação de segurança
-  if (!bookingData.date || !bookingData.time) {
-    alert("Por favor, selecione o dia e o horário.");
-    return;
-  }
-
-  // 2. Criamos o objeto EXATAMENTE como as colunas do seu banco
-  const payload = {
-    date: bookingData.date,           // Salva a data (Ex: 2026-02-09)
-    time: bookingData.time,           // AQUI SALVA O HORÁRIO (Ex: 10:00)
-    barber_id: bookingData.barber?.id, // ID do barbeiro para aparecer no painel dele
-    client_id: user.id,                // ID do cliente
-    client_name: user.name,            // Nome do cliente
-    phone: user.phone,                 // Telefone do cliente
-    service_name: bookingData.service?.name, 
-    price: bookingData.price,
-    status: 'pending'                  // Para o barbeiro receber como "Pendente"
-  };
-
   try {
-    // 3. Chama a função que faz o insert no Supabase
+    // 1. Verificações de segurança para evitar o erro de "undefined"
+    if (!user || !user.id) {
+      alert("Erro: Usuário não identificado. Tente fazer login novamente.");
+      return;
+    }
+
+    if (!bookingData.barber || !bookingData.barber.id) {
+      alert("Erro: Selecione um profissional primeiro.");
+      return;
+    }
+
+    if (!bookingData.date || !bookingData.time) {
+      alert("Por favor, selecione o dia e o horário.");
+      return;
+    }
+
+    // 2. Montamos o payload apenas com dados simples (Strings e Números)
+    const payload = {
+      date: bookingData.date,           // Ex: "2026-02-09"
+      time: bookingData.time,           // O HORÁRIO ESCOLHIDO (Ex: "10:00")
+      barber_id: bookingData.barber.id, // ID do Barbeiro
+      client_id: user.id,               // Seu ID de cliente
+      client_name: user.name || "Cliente",
+      phone: user.phone || "Sem telefone",
+      service_name: bookingData.service?.name || "Serviço",
+      price: bookingData.price || 0,
+      status: 'pending'                 // Status para o barbeiro aceitar
+    };
+
+    console.log("Tentando salvar agendamento:", payload);
+
+    // 3. Enviamos para o banco (através da sua função onBookingSubmit)
     await onBookingSubmit(payload); 
     
-    // 4. Muda para a tela de sucesso
+    // 4. Sucesso!
     setView('success');
+
   } catch (error) {
-    console.error("Erro ao salvar:", error);
-    alert("Erro ao enviar o horário para o barbeiro.");
+    // O erro que você postou será capturado aqui e mostrado no console detalhadamente
+    console.error("Erro detalhado ao salvar:", error);
+    alert("Não foi possível salvar o agendamento.");
   }
 };
   if (view === 'success') return (
