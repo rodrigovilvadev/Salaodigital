@@ -547,26 +547,49 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
   };
 
   // 2. Alternar horários DENTRO de uma data específica
-  const toggleSlotForDate = (date, slot) => {
-    // Garante que existe o objeto schedule
-    const schedule = user.schedule || {};
-    const slotsForDay = schedule[date] || [];
+ const toggleSlotForDate = async (date, slot) => {
+  // 1. Pega a estrutura atual ou cria um objeto vazio se for a primeira vez
+  const currentAllSlots = user.available_slots || {}; 
+  const slotsForDay = currentAllSlots[date] || [];
 
-    const newSlotsForDay = slotsForDay.includes(slot)
-      ? slotsForDay.filter(s => s !== slot)
-      : [...slotsForDay, slot].sort();
+  let newSlotsForDay;
 
-    const newSchedule = { ...schedule, [date]: newSlotsForDay };
-    
-    // Garante que a data está marcada como disponível se adicionarmos um horário
-    const currentDates = user.available_dates || [];
-    let newDates = currentDates;
-    if (newSlotsForDay.length > 0 && !currentDates.includes(date)) {
-        newDates = [...currentDates, date].sort();
-    }
+  // 2. Lógica: Se já tem o horário, remove. Se não tem, adiciona.
+  if (slotsForDay.includes(slot)) {
+    newSlotsForDay = slotsForDay.filter(s => s !== slot); // Remove
+  } else {
+    newSlotsForDay = [...slotsForDay, slot].sort(); // Adiciona e ordena
+  }
 
-    onUpdateProfile({ ...user, schedule: newSchedule, available_dates: newDates });
+  // 3. Monta o objeto final atualizado
+  const updatedAvailableSlots = {
+    ...currentAllSlots,
+    [date]: newSlotsForDay
   };
+
+  // 4. Atualiza a Tela Imediatamente (Visual)
+  // Nota: Estou assumindo que 'schedule' e 'available_slots' são a mesma coisa na sua lógica visual, 
+  // então atualizo os dois para garantir.
+  onUpdateProfile({ 
+    ...user, 
+    available_slots: updatedAvailableSlots,
+    schedule: updatedAvailableSlots 
+  });
+
+  // 5. Salva no Supabase (Banco de Dados)
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ available_slots: updatedAvailableSlots })
+      .eq('id', user.id);
+
+    if (error) throw error;
+    // Sucesso silencioso (não precisa de alert toda hora)
+  } catch (err) {
+    console.error("Erro ao salvar horário:", err);
+    alert("Erro ao sincronizar horário. Verifique sua conexão.");
+  }
+};
 
   // --- OUTRAS FUNÇÕES ---
   const handlePayment = async () => {
@@ -708,104 +731,92 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
 
       <main className="p-6 max-w-md mx-auto">
         
-      {activeTab === 'home' && (
-  <div className="space-y-6">
-    {/* Cards de Resumo */}
-    <div className="grid grid-cols-2 gap-4">
-      <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg shadow-slate-200">
-        <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Faturamento (Confirmado)</p>
-        <p className="text-2xl font-black tracking-tight">R$ {revenue}</p>
-      </div>
-      <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
-        <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Agendamentos</p>
-        <div className="flex gap-2 items-baseline">
-          <p className="text-2xl font-black text-slate-900">{confirmed.length}</p>
-          <span className="text-xs text-orange-500 font-bold">({pending.length} pendentes)</span>
-        </div>
-      </div>
-    </div>
-
-    <section>
-      <h3 className="font-bold text-slate-900 mb-4 flex items-center justify-between">
-        Solicitações Pendentes
-        {pending.length > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{pending.length}</span>}
-      </h3>
-      
-      {pending.length === 0 ? (
-        <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl">
-          <p className="text-slate-400 text-sm font-medium">Nenhum pedido pendente por enquanto.</p>
-        </div>
-      ) : (
-        pending.map(app => {
-          // --- ÁREA DE CORREÇÃO ---
-          // Aqui mapeamos os dados para garantir que funcionem com o Supabase
-          const rawDate = app.booking_date || app.date;
-          const rawTime = app.booking_time || app.time;
-          const clientName = app.client_name || app.client || 'Cliente';
-          const serviceName = app.service_name || app.service?.name || 'Serviço';
-          const clientPhone = app.client_phone || app.phone;
-          
-          // Formata a data visualmente
-          const displayDate = rawDate ? rawDate.split('-').reverse().join('/') : 'Data a confirmar';
-          
-          return (
-            <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 mb-3 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <p className="font-bold text-slate-900 text-lg">{clientName}</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mb-1">
-                    {serviceName}
-                  </p>
-                  <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
-                    <Clock size={12} />
-                    <p className="text-xs font-bold">
-                      {rawTime} - {displayDate}
-                    </p>
-                  </div>
-                </div>
-                <p className="font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-lg">R$ {app.price}</p>
+        {/* === ABA HOME === */}
+        {activeTab === 'home' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg shadow-slate-200">
+                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Faturamento (Confirmado)</p>
+                <p className="text-2xl font-black tracking-tight">R$ {revenue}</p>
               </div>
-
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => {
-                    onUpdateStatus(app.id, 'confirmed');
-                    
-                    // Lógica do WhatsApp Atualizada
-                    const msgData = rawDate ? rawDate.split('-').reverse().join('/') : 'data a confirmar';
-                    const msgHora = rawTime || 'horário a confirmar';
-                    
-                    const mensagem = `Olá ${clientName}! 👋%0A%0A` +
-                                     `Seu agendamento foi *CONFIRMADO*! ✅%0A%0A` +
-                                     `📌 *${serviceName}*%0A` +
-                                     `📅 ${msgData} às ${msgHora}%0A` +
-                                     `💰 R$ ${app.price}%0A%0A` +
-                                     `Te esperamos lá! 💈`;
-                    
-                    const fone = clientPhone?.toString().replace(/\D/g, '');
-                    if (fone) {
-                      window.open(`https://api.whatsapp.com/send?phone=55${fone}&text=${mensagem}`, '_blank');
-                    }
-                  }} 
-                  className="flex-1 bg-green-600 text-white py-3 rounded-xl text-xs font-bold hover:bg-green-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-green-200 shadow-lg"
-                >
-                  <CheckCircle size={16} /> Aceitar
-                </button>
-
-                <button 
-                  onClick={() => onUpdateStatus(app.id, 'rejected')} 
-                  className="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-100 transition-colors"
-                >
-                  <XCircle size={20} />
-                </button>
+              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Agendamentos</p>
+                <div className="flex gap-2 items-baseline">
+                    <p className="text-2xl font-black text-slate-900">{confirmed.length}</p>
+                    <span className="text-xs text-orange-500 font-bold">({pending.length} pendentes)</span>
+                </div>
               </div>
             </div>
-          );
-        })
-      )}
-    </section>
-  </div>
-)}
+
+            <section>
+              <h3 className="font-bold text-slate-900 mb-4 flex items-center justify-between">
+                Solicitações Pendentes
+                {pending.length > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{pending.length}</span>}
+              </h3>
+              
+              {pending.length === 0 ? (
+                <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+                  <p className="text-slate-400 text-sm font-medium">Nenhum pedido pendente por enquanto.</p>
+                </div>
+              ) : (
+                pending.map(app => (
+                  <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 mb-3 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-bold text-slate-900 text-lg">{app.client}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mb-1">
+                          {app.service?.name || 'Serviço'}
+                        </p>
+                        <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
+                            <Clock size={12} />
+                            <p className="text-xs font-bold">
+                            {app.time} - {app.date ? app.date.split('-').reverse().join('/') : '?'}
+                            </p>
+                        </div>
+                      </div>
+                      <p className="font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-lg">R$ {app.price}</p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => {
+                          onUpdateStatus(app.id, 'confirmed');
+                          
+                          // Lógica WhatsApp Corrigida
+                          const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'data a confirmar';
+                          const horaFmt = app.time || 'horário a confirmar';
+                          const servicoFmt = app.service?.name || 'serviço';
+                          
+                          const mensagem = `Olá ${app.client}! 👋%0A%0A` +
+                                           `Seu agendamento foi *CONFIRMADO*! ✅%0A%0A` +
+                                           `📌 *${servicoFmt}*%0A` +
+                                           `📅 ${dataFmt} às ${horaFmt}%0A` +
+                                           `💰 R$ ${app.price}%0A%0A` +
+                                           `Te esperamos lá! 💈`;
+                          
+                          const fone = app.phone?.toString().replace(/\D/g, '');
+                          if (fone) {
+                            window.open(`https://api.whatsapp.com/send?phone=55${fone}&text=${mensagem}`, '_blank');
+                          }
+                        }} 
+                        className="flex-1 bg-green-600 text-white py-3 rounded-xl text-xs font-bold hover:bg-green-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-green-200 shadow-lg"
+                      >
+                        <CheckCircle size={16} /> Aceitar
+                      </button>
+
+                      <button 
+                        onClick={() => onUpdateStatus(app.id, 'rejected')} 
+                        className="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-100 transition-colors"
+                      >
+                        <XCircle size={20} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </section>
+          </div>
+        )}
 
         {/* === ABA SERVIÇOS === */}
         {activeTab === 'services' && (
