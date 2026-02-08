@@ -484,13 +484,24 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   // Data selecionada para edição de horário (Padrão: Hoje)
   const [selectedDateConfig, setSelectedDateConfig] = useState(new Date().toISOString().split('T')[0]);
 
-  const myAppointments = appointments.filter(a => a.barberId === user.id && a.status !== 'rejected');
-  const pending = myAppointments.filter(a => a.status === 'pending');
-  // Ordenar pendentes por data/hora
-  pending.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
-  
-  const confirmed = myAppointments.filter(a => a.status === 'confirmed');
-  const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+ // Filtra agendamentos garantindo que os nomes das colunas batam com o Supabase
+const myAppointments = appointments.filter(a => 
+  String(a.barber_id) === String(user.id) && a.status !== 'rejected'
+);
+
+// Filtra os pendentes
+const pending = myAppointments.filter(a => a.status === 'pending');
+
+// Ordenar pendentes por data e hora (usando os nomes reais das colunas: booking_date e booking_time)
+pending.sort((a, b) => {
+  const dataA = new Date(`${a.booking_date}T${a.booking_time}`);
+  const dataB = new Date(`${b.booking_date}T${b.booking_time}`);
+  return dataA - dataB;
+});
+
+// Filtra os confirmados e calcula o faturamento
+const confirmed = myAppointments.filter(a => a.status === 'confirmed');
+const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
 
   // --- LÓGICA DE INTERVALO E INIT ---
   useEffect(() => {
