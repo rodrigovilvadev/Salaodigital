@@ -920,14 +920,6 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
                   </div>
                 </div>
             </section>
-
-          Entendi, você quer que o fechamento seja exatamente igual ao que você enviou, terminando com as chaves e parênteses do main e do export.
-
-O erro de chaves geralmente acontece porque, ao abrir um bloco novo (como o map com return), a contagem de fechamentos muda. Ajustei o código para manter a sua estrutura de fechamento implícito (sem a palavra return e sem chaves extras no map), o que mantém o código limpo e evita que sobrem ou faltem chaves no final.
-
-Aqui está a Seção 2 com o mapeamento para available_slots e o fechamento idêntico ao seu:
-
-JavaScript
  {/* Seção 2: Agenda Avançada */}
             <section className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
                 {/* Header Calendário */}
