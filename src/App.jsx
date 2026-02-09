@@ -301,18 +301,17 @@ const handleFinish = async () => {
     </div>
   )}
 
-  {/* --- TELA DE HISTÓRICO (FORA DA HOME) --- */}
- {view === 'history' && (
-    <div className="space-y-4 animate-in slide-in-from-right">
-      <button 
-        onClick={() => setView('home')} 
-        className="text-slate-400 font-bold text-sm mb-4 flex items-center gap-1 hover:text-slate-600 transition-colors"
-      >
-        <ArrowLeft size={16} /> Voltar
-      </button>
-      <h3 className="font-bold text-lg text-slate-900 mb-4">Meus Agendamentos</h3>
-      
-     {/* Lista de agendamentos filtrada e segura contra erros */}
+ {/* --- TELA DE HISTÓRICO (FORA DA HOME) --- */}
+{view === 'history' && (
+  <div className="space-y-4 animate-in slide-in-from-right">
+    <button 
+      onClick={() => setView('home')} 
+      className="text-slate-400 font-bold text-sm mb-4 flex items-center gap-1 hover:text-slate-600 transition-colors"
+    >
+      <ArrowLeft size={16} /> Voltar
+    </button>
+    <h3 className="font-bold text-lg text-slate-900 mb-4">Meus Agendamentos</h3>
+    
     {(appointments || []).filter(a => String(a.client_id) === String(user.id)).length === 0 ? (
       <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
         Ainda não tem agendamentos.
@@ -323,7 +322,6 @@ const handleFinish = async () => {
           .filter(a => String(a.client_id) === String(user.id))
           .sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))
           .map(app => {
-            // BUSCA CRUZADA: Encontra o barbeiro na lista 'barbers' pelo ID
             const professional = (barbers || []).find(b => String(b.id) === String(app.barber_id));
             
             return (
@@ -335,12 +333,10 @@ const handleFinish = async () => {
                   <div>
                     <p className="font-bold text-slate-900 text-sm">{app.service_name}</p>
                     
-                    {/* Nome do Profissional Corrigido */}
                     <p className="text-[10px] text-blue-600 font-bold uppercase">
                       Profissional: {professional?.name || app.barber_name || "Profissional"}
                     </p>
 
-                    {/* Data e Hora protegidos contra erro de split */}
                     <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                       <Clock size={10} />
                       {app.date ? app.date.split('-').reverse().join('/') : '--/--/--'} às {app.time || '--:--'}
@@ -348,16 +344,30 @@ const handleFinish = async () => {
                   </div>
                 </div>
 
-                {/* Botão de Cancelar */}
+                {/* Botão de Reagendar corrigido */}
                 <button 
                   onClick={() => {
-                    if(window.confirm("Deseja cancelar este agendamento?")) {
-                      onUpdateStatus(app.id, 'rejected');
+                    if(window.confirm("Deseja reagendar este serviço? O horário atual será cancelado.")) {
+                      // 1. Preenche os dados do agendamento atual para o novo fluxo
+                      const serviceObj = MASTER_SERVICES.find(s => s.name === app.service_name);
+                      setBookingData({
+                        service: serviceObj,
+                        barber: professional,
+                        price: app.price
+                      });
+                      
+                      // 2. Remove o agendamento antigo
+                      onUpdateStatus(app.id, 'rejected'); 
+                      
+                      // 3. Leva o usuário direto para a escolha de nova data (Step 3)
+                      setView('booking');
+                      setStep(3);
                     }
                   }}
-                  className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                  className="flex flex-col items-center gap-1 p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                 >
-                  <Trash2 size={18} />
+                  <CalendarDays size={20} />
+                  <span className="text-[9px] font-bold uppercase">Reagendar</span>
                 </button>
               </div>
             );
