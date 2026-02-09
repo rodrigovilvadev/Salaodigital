@@ -409,7 +409,7 @@ const handleFinish = async () => {
                   </p>
                 ) : (
                   <p className="text-[11px] text-blue-600 font-bold">
-  {b.distanceLabel ? b.distanceLabel : "Distância indisponível"}
+  {b.distanceLabel ? b.distanceLabel : "Distância indisponivel"}
 </p>
                 )}
               </div>
