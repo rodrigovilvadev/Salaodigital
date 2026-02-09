@@ -959,22 +959,56 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                 </div>
 
                 {/* Campos de Texto */}
-                <div className="space-y-4">
-                     {/* Endereço */}
-                    <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Endereço Completo</label>
-                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-3 rounded-xl border border-slate-200 focus-within:border-slate-900 transition-colors">
-                            <MapPin size={16} className="text-slate-400" />
-                            <input 
-                                type="text" 
-                                value={user.address || ''} 
-                                onChange={(e) => onUpdateProfile({ ...user, address: e.target.value })}
-                                placeholder="Ex: Rua das Flores, 123" 
-                                className="bg-transparent outline-none w-full text-sm font-medium text-slate-900"
-                            />
-                        </div>
-                    </div>
+               <div className="space-y-4">
+    {/* Endereço */}
+    <div>
+        <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Endereço Completo</label>
+        <div className="flex items-center gap-2 bg-slate-50 px-3 py-3 rounded-xl border border-slate-200 focus-within:border-slate-900 transition-colors">
+            <MapPin size={16} className="text-slate-400" />
+            <input 
+                type="text" 
+                value={user.address || ''} 
+                onChange={(e) => onUpdateProfile({ ...user, address: e.target.value })}
+                placeholder="Ex: Rua das Flores, 123" 
+                className="bg-transparent outline-none w-full text-sm font-medium text-slate-900"
+            />
+        </div>
+    </div>
+
+    {/* Botão de Coordenadas GPS */}
+    <div className="grid grid-cols-1 gap-2">
+        <button 
+            type="button"
+            onClick={() => {
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        onUpdateProfile({ 
+                            ...user, 
+                            latitude: pos.coords.latitude, 
+                            longitude: pos.coords.longitude 
+                        });
+                        alert("Localização capturada!");
+                    });
+                }
+            }}
+            className="flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase border border-blue-100 hover:bg-blue-100 transition-all"
+        >
+            <MapPin size={14} /> Marcar minha localização atual
+        </button>
+        
+        {/* Mostra as coordenadas se existirem */}
+        {user.latitude && (
+            <div className="flex gap-2">
+                <div className="flex-1 bg-slate-50 p-2 rounded-lg border border-slate-100 text-[9px] text-slate-400 text-center">
+                    LAT: {user.latitude.toFixed(5)}
                 </div>
+                <div className="flex-1 bg-slate-50 p-2 rounded-lg border border-slate-100 text-[9px] text-slate-400 text-center">
+                    LONG: {user.longitude.toFixed(5)}
+                </div>
+            </div>
+        )}
+    </div>
+</div>
 
                 {/* Visibilidade Switch */}
                 <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-between">
