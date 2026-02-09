@@ -408,7 +408,9 @@ const handleFinish = async () => {
                     <MapPin size={10}/> {distanceInMeters}m
                   </p>
                 ) : (
-                  <p className="text-[9px] text-slate-300 italic">Distância indisponível</p>
+                  <p className="text-[11px] text-blue-600 font-bold">
+  {b.distanceLabel ? b.distanceLabel : "Distância indisponível"}
+</p>
                 )}
               </div>
 
