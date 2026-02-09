@@ -35,6 +35,7 @@ const MASTER_SERVICES = [
   { id: 12, name: 'Lash design', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'lash' },
   { id: 13, name: 'Micro Pig Sobrancelha', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'face' },
   { id: 14, name: 'Designer com Henna', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'face' },
+  { id: 15, name: 'Curso Designer sobrancelha', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'face' },
 
 ];
 
