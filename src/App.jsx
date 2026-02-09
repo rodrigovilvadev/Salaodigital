@@ -140,7 +140,28 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
   const [view, setView] = useState('home');
   const [step, setStep] = useState(1);
   const [bookingData, setBookingData] = useState({ service: null, barber: null, price: null, date: null, time: null });
+
   const [userCoords, setUserCoords] = useState(null);
+
+useEffect(() => {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        });
+        console.log("📍 Localização do cliente capturada com sucesso!");
+      },
+      (err) => {
+        console.error("❌ Erro ao obter localização:", err.message);
+      },
+      { enableHighAccuracy: true }
+    );
+  }
+}, []);
+
+  
 
  useEffect(() => {
   const interval = setInterval(() => {
@@ -1160,9 +1181,7 @@ export default function App() {
           ...a,
           client: a.client_name,
           service: a.service_name,
-          // Mudamos de a.booking_time para a.time para bater com o banco
           time: a.time, 
-          // Mudamos de a.booking_date para a.date para bater com o banco
           date: a.date, 
           barberId: a.barber_id
         }));
