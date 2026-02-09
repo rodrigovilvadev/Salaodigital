@@ -363,75 +363,50 @@ const handleFinish = async () => {
     <h3 className="font-bold text-lg mb-2">Escolha o Profissional</h3>
     <p className="text-xs text-slate-400 mb-4">Mostrando preço para: <b>{bookingData.service?.name}</b></p>
     
-    {processedBarbers.length > 0 ? (
-      <div className="grid grid-cols-2 gap-3">
-        {processedBarbers
-          .filter(b => b.my_services?.some(s => s.id === bookingData.service?.id))
-          .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
-          .map((b, index) => {
-            const specificService = b.my_services?.find(s => s.id === bookingData.service?.id);
-            const displayPrice = specificService ? specificService.price : bookingData.service?.defaultPrice;
-            const isSelected = bookingData.barber?.id === b.id;
+    <div className="grid grid-cols-2 gap-3">
+      {processedBarbers
+        .filter(b => b.my_services?.some(s => s.id === bookingData.service?.id))
+        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+        .map((b, index) => {
+          const displayPrice = b.my_services?.find(s => s.id === bookingData.service?.id)?.price || 0;
+          const isSelected = bookingData.barber?.id === b.id;
+          
+          // Cálculo em metros (1000m = 1km)
+          const distanceInMeters = b.distance ? Math.floor(b.distance * 1000) : null;
 
-            // Converte KM para Metros
-            const distanceInMeters = b.distance !== null ? Math.floor(b.distance * 1000) : null;
-
-            return (
-              <div 
-                key={b.id} 
-                onClick={() => setBookingData({...bookingData, barber: b, price: displayPrice})}
-                className={`relative flex flex-col items-center text-center p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${
-                  isSelected ? 'border-slate-900 bg-slate-50' : 'border-white bg-white hover:border-slate-200'
-                }`}
-              >
-                {/* Só aparece se o cálculo de distância funcionar */}
-                {index === 0 && distanceInMeters !== null && (
-                  <div className="absolute -top-2 bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase">
-                    Mais Próximo
-                  </div>
-                )}
-
-                {/* Avatar */}
-                <div className="w-16 h-16 rounded-full bg-slate-200 mb-3 overflow-hidden border border-slate-100 shadow-inner">
-                  {b.avatar_url ? (
-                    <img src={b.avatar_url} alt={b.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400">
-                      <User size={24}/>
-                    </div>
-                  )}
-                </div>
-
-                <p className="font-bold text-slate-900 text-sm leading-tight mb-1 truncate w-full">{b.name}</p>
-
-                {/* Bloco de Localização */}
-                <div className="flex flex-col items-center gap-0.5 mb-2 w-full">
-                  {b.address && (
-                    <p className="text-[9px] text-slate-500 leading-tight line-clamp-1">{b.address}</p>
-                  )}
-                  
-                  {/* VERIFICAÇÃO IMPORTANTE: Se o banco estiver NULL, isso aqui não aparece */}
-                  {distanceInMeters !== null ? (
-                    <p className="text-[10px] text-blue-600 font-bold flex items-center gap-1">
-                      <MapPin size={10}/> {distanceInMeters} m
-                    </p>
-                  ) : (
-                    <p className="text-[9px] text-red-400 italic">Sem GPS no perfil</p>
-                  )}
-                </div>
-
-                <div className="mt-auto pt-2 border-t border-slate-100 w-full">
-                  <p className="text-green-600 font-black text-sm">R$ {displayPrice}</p>
-                </div>
+          return (
+            <div 
+              key={b.id} 
+              onClick={() => setBookingData({...bookingData, barber: b, price: displayPrice})}
+              className={`relative flex flex-col items-center p-4 rounded-2xl border-2 transition-all ${
+                isSelected ? 'border-slate-900 bg-slate-50' : 'border-white bg-white shadow-sm'
+              }`}
+            >
+              <div className="w-16 h-16 rounded-full bg-slate-200 mb-2 overflow-hidden">
+                {b.avatar_url && <img src={b.avatar_url} className="w-full h-full object-cover" />}
               </div>
-            );
-          })}
-      </div>
-    ) : (
-      <div className="text-center p-8 bg-white rounded-2xl">
-         <p className="text-slate-400">Nenhum profissional disponível.</p>
-      </div>
-    )}
+              
+              <p className="font-bold text-sm truncate w-full text-center">{b.name}</p>
+              
+              {/* ENDEREÇO E DISTÂNCIA */}
+              <div className="flex flex-col items-center mt-1">
+                {b.address && <p className="text-[9px] text-slate-400 line-clamp-1">{b.address}</p>}
+                
+                {/* Mostra a distância apenas se latitude/longitude existirem no banco */}
+                {distanceInMeters !== null ? (
+                  <p className="text-[10px] text-blue-600 font-black flex items-center gap-1">
+                    <MapPin size={10}/> {distanceInMeters}m
+                  </p>
+                ) : (
+                  <p className="text-[9px] text-slate-300 italic">Distância indisponível</p>
+                )}
+              </div>
+
+              <p className="mt-3 text-green-600 font-black text-sm">R$ {displayPrice}</p>
+            </div>
+          );
+        })}
+    </div>
     <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
   </>
 )}
