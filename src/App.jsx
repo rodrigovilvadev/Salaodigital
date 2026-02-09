@@ -368,12 +368,6 @@ const handleFinish = async () => {
 
            
           {/* PASSO 2: ESCOLHA DO PROFISSIONAL (QUADRADINHOS) */}
-Achei o erro! O problema é que o seu código está tentando calcular distanceInMeters usando b.distance, mas no seu print do Supabase as colunas estão vazias para o profissional 1111. Além disso, existe uma pequena confusão entre as variáveis distanceInMeters e distanceLabel.
-
-Aqui está o seu código ajustado para usar a variável distanceLabel (que criamos no useMemo) como prioridade, pois ela já vem formatada certinho com "m" ou "km".
-
-Substitua todo o seu bloco pelo código abaixo:
-JavaScript
 {step === 2 && (
   <>
     <h3 className="font-bold text-lg mb-2 text-slate-900">Escolha o Profissional</h3>
