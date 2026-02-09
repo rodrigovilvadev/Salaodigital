@@ -510,24 +510,19 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   
 
  // Filtra agendamentos garantindo que os nomes das colunas batam com o Supabase
-const myAppointments = appointments.filter(a => 
-  String(a.barber_id) === String(user.id) && a.status !== 'rejected'
-);
-
-// Filtra os pendentes
 const pending = myAppointments.filter(a => a.status === 'pending');
 
-// Ordenar pendentes por data e hora (usando os nomes reais das colunas: booking_date e booking_time)
+// 3. Ordenar pendentes por data e hora (USANDO OS NOMES CORRETOS: date e time)
 pending.sort((a, b) => {
-  const dataA = new Date(`${a.booking_date}T${a.booking_time}`);
-  const dataB = new Date(`${b.booking_date}T${b.booking_time}`);
+  // Criamos uma data comparável. Se a.date for "2026-02-08" e a.time for "14:00"
+  const dataA = new Date(`${a.date}T${a.time}`);
+  const dataB = new Date(`${b.date}T${b.time}`);
   return dataA - dataB;
 });
 
-// Filtra os confirmados e calcula o faturamento
+// 4. Filtra os confirmados e calcula o faturamento
 const confirmed = myAppointments.filter(a => a.status === 'confirmed');
 const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
-
   // --- LÓGICA DE INTERVALO E INIT ---
   useEffect(() => {
     const interval = setInterval(() => {
@@ -804,29 +799,30 @@ const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0),
 
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => {
-                          onUpdateStatus(app.id, 'confirmed');
-                          
-                          const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'data a confirmar';
-                          const horaFmt = app.time || 'horário a confirmar';
-                          const servicoFmt = app.service?.name || 'serviço';
-                          
-                          const mensagem = `Olá ${app.client}! 👋%0A%0A` +
-                                           `Seu agendamento foi *CONFIRMADO*! ✅%0A%0A` +
-                                           `📌 *${servicoFmt}*%0A` +
-                                           `📅 ${dataFmt} às ${horaFmt}%0A` +
-                                           `💰 R$ ${app.price}%0A%0A` +
-                                           `Te esperamos lá! 💈`;
-                          
-                          const fone = app.phone?.toString().replace(/\D/g, '');
-                          if (fone) {
-                            window.open(`https://api.whatsapp.com/send?phone=55${fone}&text=${mensagem}`, '_blank');
-                          }
-                        }} 
-                        className="flex-1 bg-green-600 text-white py-3 rounded-xl text-xs font-bold hover:bg-green-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-green-200 shadow-lg"
-                      >
-                        <CheckCircle size={16} /> Aceitar
-                      </button>
+  onClick={() => {
+    onUpdateStatus(app.id, 'confirmed');
+    
+    // Use os nomes que o objeto já possui (date e time)
+    const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'data';
+    const horaFmt = app.time || 'horário';
+    const servicoFmt = app.service_name || 'serviço';
+    
+    const mensagem = `Olá ${app.client}! 👋%0A%0A` +
+                     `Seu agendamento foi *CONFIRMADO*! ✅%0A%0A` +
+                     `📌 *${servicoFmt}*%0A` +
+                     `📅 ${dataFmt} às ${horaFmt}%0A` +
+                     `💰 R$ ${app.price}%0A%0A` +
+                     `Te esperamos lá! 💈`;
+    
+    const fone = app.phone?.toString().replace(/\D/g, '');
+    if (fone) {
+      window.open(`https://api.whatsapp.com/send?phone=55${fone}&text=${mensagem}`, '_blank');
+    }
+  }} 
+  className="..."
+>
+  <CheckCircle size={16} /> Aceitar
+</button>
 
                       <button 
                         onClick={() => onUpdateStatus(app.id, 'rejected')} 
@@ -1063,26 +1059,35 @@ export default function App() {
   const [appointments, setAppointments] = useState([]);
 
   // --- BUSCA DADOS DO BANCO ---
-  useEffect(() => {
+ useEffect(() => {
     const fetchData = async () => {
-      // 1. Sempre busca barbeiros visíveis para a lista
-      const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber').eq('is_visible', true);
+      // 1. Busca barbeiros visíveis
+      const { data: bData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'barber')
+        .eq('is_visible', true);
+        
       if (bData) setBarbers(bData);
 
       if (!user) return;
 
-      // 2. Busca Agendamentos vinculados ao usuário logado
+      // 2. Busca Agendamentos (onde o usuário é o cliente OU o barbeiro)
       const { data: aData } = await supabase
         .from('appointments')
         .select('*')
         .or(`client_id.eq.${user.id},barber_id.eq.${user.id}`);
       
       if (aData) {
+        // CORREÇÃO DOS CAMPOS AQUI:
         const formatted = aData.map(a => ({
           ...a,
           client: a.client_name,
           service: a.service_name,
-          time: a.booking_time,
+          // Mudamos de a.booking_time para a.time para bater com o banco
+          time: a.time, 
+          // Mudamos de a.booking_date para a.date para bater com o banco
+          date: a.date, 
           barberId: a.barber_id
         }));
         setAppointments(formatted);
