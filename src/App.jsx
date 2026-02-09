@@ -504,25 +504,29 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   const [activeTab, setActiveTab] = useState('home');
   const [isPaying, setIsPaying] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(true); // Calendário começa aberto para facilitar
-  // Data selecionada para edição de horário (Padrão: Hoje)
+  const [showCalendar, setShowCalendar] = useState(true);
   const [selectedDateConfig, setSelectedDateConfig] = useState(new Date().toISOString().split('T')[0]);
+
+  // --- LÓGICA DE FILTRAGEM (O CORAÇÃO DO DASHBOARD) ---
   
+  // 1. Criamos a variável myAppointments (que estava faltando no seu erro)
+  const myAppointments = (appointments || []).filter(a => 
+    String(a.barber_id || a.barberId) === String(user.id) && a.status !== 'rejected'
+  );
 
- // Filtra agendamentos garantindo que os nomes das colunas batam com o Supabase
-const pending = myAppointments.filter(a => a.status === 'pending');
+  // 2. Filtra os que acabaram de chegar
+  const pending = myAppointments.filter(a => a.status === 'pending');
 
-// 3. Ordenar pendentes por data e hora (USANDO OS NOMES CORRETOS: date e time)
-pending.sort((a, b) => {
-  // Criamos uma data comparável. Se a.date for "2026-02-08" e a.time for "14:00"
-  const dataA = new Date(`${a.date}T${a.time}`);
-  const dataB = new Date(`${b.date}T${b.time}`);
-  return dataA - dataB;
-});
+  // 3. Ordena os pendentes por data e hora corretamente
+  pending.sort((a, b) => {
+    const dataA = new Date(`${a.date}T${a.time}`);
+    const dataB = new Date(`${b.date}T${b.time}`);
+    return dataA - dataB;
+  });
 
-// 4. Filtra os confirmados e calcula o faturamento
-const confirmed = myAppointments.filter(a => a.status === 'confirmed');
-const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+  // 4. Filtra os confirmados e calcula o faturamento total
+  const confirmed = myAppointments.filter(a => a.status === 'confirmed');
+  const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
   // --- LÓGICA DE INTERVALO E INIT ---
   useEffect(() => {
     const interval = setInterval(() => {
