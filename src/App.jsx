@@ -26,6 +26,12 @@ const MASTER_SERVICES = [
   { id: 3, name: 'Combo Completo', defaultPrice: 80, duration: '1h 15min', icon: <Star size={20}/>, category: 'combo' },
   { id: 4, name: 'Luzes / Platinado', defaultPrice: 120, duration: '2h', icon: <Sparkles size={20}/>, category: 'chemical' },
   { id: 6, name: 'Design Sobrancelhas', defaultPrice: 35, duration: '30min', icon: <Eye size={20}/>, category: 'eyebrow' },
+ { id: 7, name: 'Nail design', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'nail' },
+  { id: 8, name: 'Manicure/Pedicure', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'foot' },
+  { id: 9, name: 'Limpeza facial', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'face' },
+  { id: 10, name: 'Massagem e drenagem', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'dren' },
+  { id: 11, name: 'Designer sobrancelha', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'desig' },
+  { id: 12, name: 'Lash design', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'lash' },
 ];
 
 const GLOBAL_TIME_SLOTS = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
