@@ -1178,14 +1178,13 @@ const handleBookingSubmit = async (data) => {
     client_id: user.id,
     client_name: user.name,
     barber_id: data.barber.id,
+    barber_name: data.barber.name, // <-- ADICIONE ISSO para o cliente saber com quem marcou
     service_name: data.service.name,
     price: data.price,
     status: 'pending',
-    
-    // CORREÇÃO: Use os nomes EXATOS das colunas que aparecem na sua foto
-    date: data.date,    // Antes era booking_date (por isso dava NULL)
-    phone: data.phone,  // Adicionado para salvar o telefone no banco
-    time: data.time     // Certifique-se que a coluna 'time' também existe
+    date: data.date,
+    phone: data.phone,
+    time: data.time
   };
 
   const { data: saved, error } = await supabase
@@ -1200,11 +1199,12 @@ const handleBookingSubmit = async (data) => {
       client: saved.client_name,
       service: saved.service_name,
       barberId: saved.barber_id,
-      // Mapeia para o estado local para o barbeiro ver na hora
+      barber_name: saved.barber_name, // Mantém o nome no estado local
       time: saved.time,
       date: saved.date,
       phone: saved.phone
     }]);
+    alert("Agendamento realizado!"); // Feedback para o cliente
   } else {
     console.error("Erro detalhado:", error);
     alert("Erro ao agendar: " + (error?.message || "Erro de conexão"));
@@ -1272,13 +1272,14 @@ const handleBookingSubmit = async (data) => {
     GLOBAL_TIME_SLOTS={GLOBAL_TIME_SLOTS} 
     supabase={supabase} // <--- ADICIONE ESTA LINHA AQUI
   />
-  ) : (
+) : (
     <ClientApp 
       user={user} 
       barbers={barbers} 
       appointments={appointments} 
       onLogout={() => { setUser(null); setCurrentMode(null); }}
       onBookingSubmit={handleBookingSubmit}
+      onUpdateStatus={handleUpdateStatus} // <--- ADICIONE ESTA LINHA AQUI
     />
   );
 }
