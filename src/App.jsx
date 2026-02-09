@@ -10,7 +10,7 @@ import {
   CreditCard, Lock, Clock, CalendarDays, Sparkles, Palette, Briefcase, Edit3, 
   MessageCircle, Phone, XCircle, History, Loader2,
   Home, Plus, Camera,
-  CheckCircle, ArrowLeft
+  CheckCircle, ArrowLeft, useMemo
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO SUPABASE ---
@@ -36,15 +36,15 @@ const MASTER_SERVICES = [
 
 const GLOBAL_TIME_SLOTS = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
 
-// Função para calcular distância (Haversine)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  
   const R = 6371; // Raio da Terra em km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return parseFloat((R * c).toFixed(1)); 
 };
@@ -153,27 +153,29 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
 }, []);
 
   // Captura localização ao entrar no fluxo de agendamento
-  useEffect(() => {
-    if (view === 'booking' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => console.log("Sem GPS")
-      );
-    }
-  }, [view]);
-
-  // Filtra e ordena barbeiros por distância
-  const processedBarbers = barbers
+ const processedBarbers = useMemo(() => {
+  return (barbers || [])
     .filter(b => b.is_visible)
-    .map(b => ({
-      ...b,
-      distance: calculateDistance(userCoords?.lat, userCoords?.lng, b.latitude, b.longitude)
-    }))
+    .map(b => {
+      // Chamada da função de cálculo que está no topo do App.js
+      const dist = calculateDistance(
+        userCoords?.lat, 
+        userCoords?.lng, 
+        b.latitude, 
+        b.longitude
+      );
+      
+      return {
+        ...b,
+        distance: dist
+      };
+    })
     .sort((a, b) => {
-        if (a.distance === null) return 1;
-        if (b.distance === null) return -1;
-        return a.distance - b.distance;
+      if (a.distance === null) return 1;
+      if (b.distance === null) return -1;
+      return a.distance - b.distance;
     });
+}, [barbers, userCoords]);
 
 const handleFinish = async () => {
   try {
