@@ -136,11 +136,10 @@ const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
 };
 
 // --- 4. CLIENT APP (Com Geolocalização) ---
-const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) => {
+const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onUpdateStatus, MASTER_SERVICES }) => {
   const [view, setView] = useState('home');
   const [step, setStep] = useState(1);
   const [bookingData, setBookingData] = useState({ service: null, barber: null, price: null, date: null, time: null });
-
   const [userCoords, setUserCoords] = useState(null);
 
 useEffect(() => {
@@ -356,8 +355,10 @@ const handleFinish = async () => {
                         price: app.price
                       });
                       
-                      // 2. Remove o agendamento antigo
-                      onUpdateStatus(app.id, 'rejected'); 
+                      // 2. Remove o agendamento antigo (Chamada protegida)
+                      if (typeof onUpdateStatus === 'function') {
+                        onUpdateStatus(app.id, 'rejected');
+                      }
                       
                       // 3. Leva o usuário direto para a escolha de nova data (Step 3)
                       setView('booking');
