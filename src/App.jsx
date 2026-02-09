@@ -1162,7 +1162,7 @@ export default function App() {
   const [appointments, setAppointments] = useState([]);
 
   // --- BUSCA DADOS DO BANCO ---
- useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       // 1. Busca barbeiros visíveis
       const { data: bData } = await supabase
@@ -1197,7 +1197,7 @@ export default function App() {
     fetchData();
   }, [user]);
 
-  // --- FUNÇÃO DE LOGIN (CORRIGIDO) ---
+  // --- FUNÇÃO DE LOGIN ---
   const handleLogin = async (phone, password) => {
     const { data, error } = await supabase
       .from('profiles')
@@ -1211,7 +1211,7 @@ export default function App() {
     setUser(data);
   };
 
-// --- FUNÇÃO DE CADASTRO (CORRIGIDO E COMPLETO) ---
+  // --- FUNÇÃO DE CADASTRO ---
   const handleRegister = async (name, phone, password) => {
     const { data, error } = await supabase
       .from('profiles')
@@ -1224,7 +1224,6 @@ export default function App() {
         has_access: false,
         my_services: [],
         available_slots: GLOBAL_TIME_SLOTS,
-        // ADICIONADO: Inicia o array de datas vazio para o calendário funcionar
         available_dates: [], 
         avatar_url: '',
       }])
@@ -1232,91 +1231,97 @@ export default function App() {
       .single();
 
     if (error) {
-      // Erro 23505 é o código do Postgres para "Unique Violation" (duplicidade)
       if (error.code === '23505') throw new Error('Este WhatsApp já está cadastrado!');
       throw new Error(error.message);
     }
 
     setUser(data);
   };
-  // --- AGENDAMENTO NO BANCO (VERSÃO SINCRONIZADA COM A TABELA) ---
-const handleBookingSubmit = async (data) => {
-  const newBooking = {
-    client_id: user.id,
-    client_name: user.name,
-    barber_id: data.barber.id,
-    barber_name: data.barber.name, // <-- ADICIONE ISSO para o cliente saber com quem marcou
-    service_name: data.service.name,
-    price: data.price,
-    status: 'pending',
-    date: data.date,
-    phone: data.phone,
-    time: data.time
-  };
 
-  const { data: saved, error } = await supabase
-    .from('appointments')
-    .insert([newBooking])
-    .select()
-    .single();
-
-  if (!error && saved) {
-    setAppointments(prev => [...prev, {
-      ...saved,
-      client: saved.client_name,
-      service: saved.service_name,
-      barberId: saved.barber_id,
-      barber_name: saved.barber_name, // Mantém o nome no estado local
-      time: saved.time,
-      date: saved.date,
-      phone: saved.phone
-    }]);
-    alert("Agendamento realizado!"); // Feedback para o cliente
-  } else {
-    console.error("Erro detalhado:", error);
-    alert("Erro ao agendar: " + (error?.message || "Erro de conexão"));
-  }
-};
-
-  const handleUpdateStatus = async (id, status) => {
-    const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
-    if (!error) setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
-  };
-
- const handleUpdateProfile = async (updatedUser) => {
-  try {
-    // 1. Filtramos apenas as colunas que existem no seu banco (conforme seus prints)
-    // Removemos o 'id' do corpo do objeto, pois ele vai apenas no .eq()
-   const dataToSave = {
-      address: updatedUser.address,
-      latitude: updatedUser.latitude,   
-      longitude: updatedUser.longitude, 
-      avatar_url: updatedUser.avatar_url,
-      is_visible: updatedUser.is_visible,
-      plano_ativo: updatedUser.plano_ativo,
-      my_services: updatedUser.my_services,
-      available_dates: updatedUser.available_dates,
-      available_slots: updatedUser.available_slots 
+  // --- AGENDAMENTO NO BANCO ---
+  const handleBookingSubmit = async (data) => {
+    const newBooking = {
+      client_id: user.id,
+      client_name: user.name,
+      barber_id: data.barber.id,
+      barber_name: data.barber.name,
+      service_name: data.service.name,
+      price: data.price,
+      status: 'pending',
+      date: data.date,
+      phone: data.phone,
+      time: data.time
     };
 
-    // 2. Enviamos para o Supabase
+    const { data: saved, error } = await supabase
+      .from('appointments')
+      .insert([newBooking])
+      .select()
+      .single();
+
+    if (!error && saved) {
+      setAppointments(prev => [...prev, {
+        ...saved,
+        client: saved.client_name,
+        service: saved.service_name,
+        barberId: saved.barber_id,
+        barber_name: saved.barber_name,
+        time: saved.time,
+        date: saved.date,
+        phone: saved.phone
+      }]);
+      alert("Agendamento realizado!");
+    } else {
+      console.error("Erro detalhado:", error);
+      alert("Erro ao agendar: " + (error?.message || "Erro de conexão"));
+    }
+  };
+
+  // --- ATUALIZAÇÃO DE STATUS (CANCELAR/REAGENDAR) ---
+  const handleUpdateStatus = async (id, status) => {
     const { error } = await supabase
-      .from('profiles')
-      .update(dataToSave)
-      .eq('id', updatedUser.id);
+      .from('appointments')
+      .update({ status })
+      .eq('id', id);
 
-    if (error) throw error;
+    if (!error) {
+      // Se for 'rejected' (reagendamento), removemos da lista local para limpar o histórico
+      if (status === 'rejected') {
+        setAppointments(prev => prev.filter(a => a.id !== id));
+      } else {
+        setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+      }
+    }
+  };
 
-    // 3. ATENÇÃO AQUI: Usamos setUser para atualizar o estado local do barbeiro
-    // Não usamos onUpdateProfile aqui porque estamos dentro do componente que define o estado.
-    setUser(updatedUser);
-    
-    console.log("Perfil atualizado com sucesso!");
-  } catch (error) {
-    console.error("Erro completo:", error);
-    alert("Erro ao salvar no banco: " + error.message);
-  }
-};
+  // --- ATUALIZAÇÃO DE PERFIL ---
+  const handleUpdateProfile = async (updatedUser) => {
+    try {
+      const dataToSave = {
+        address: updatedUser.address,
+        latitude: updatedUser.latitude,   
+        longitude: updatedUser.longitude, 
+        avatar_url: updatedUser.avatar_url,
+        is_visible: updatedUser.is_visible,
+        plano_ativo: updatedUser.plano_ativo,
+        my_services: updatedUser.my_services,
+        available_dates: updatedUser.available_dates,
+        available_slots: updatedUser.available_slots 
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(dataToSave)
+        .eq('id', updatedUser.id);
+
+      if (error) throw error;
+      setUser(updatedUser);
+      console.log("Perfil atualizado!");
+    } catch (error) {
+      console.error("Erro completo:", error);
+      alert("Erro ao salvar: " + error.message);
+    }
+  };
 
   // --- RENDERIZAÇÃO ---
   if (!currentMode) return <WelcomeScreen onSelectMode={setCurrentMode} />;
@@ -1331,24 +1336,24 @@ const handleBookingSubmit = async (data) => {
   );
 
   return currentMode === 'barber' ? (
- <BarberDashboard 
-    user={user} 
-    appointments={appointments} 
-    onLogout={() => { setUser(null); setCurrentMode(null); }} 
-    onUpdateStatus={handleUpdateStatus} 
-    onUpdateProfile={handleUpdateProfile}
-    MASTER_SERVICES={MASTER_SERVICES} 
-    GLOBAL_TIME_SLOTS={GLOBAL_TIME_SLOTS} 
-    supabase={supabase} // <--- ADICIONE ESTA LINHA AQUI
-  />
-) : (
+    <BarberDashboard 
+      user={user} 
+      appointments={appointments} 
+      onLogout={() => { setUser(null); setCurrentMode(null); }} 
+      onUpdateStatus={handleUpdateStatus} 
+      onUpdateProfile={handleUpdateProfile}
+      MASTER_SERVICES={MASTER_SERVICES} 
+      GLOBAL_TIME_SLOTS={GLOBAL_TIME_SLOTS} 
+      supabase={supabase} 
+    />
+  ) : (
     <ClientApp 
       user={user} 
       barbers={barbers} 
       appointments={appointments} 
       onLogout={() => { setUser(null); setCurrentMode(null); }}
       onBookingSubmit={handleBookingSubmit}
-      onUpdateStatus={handleUpdateStatus} // <--- ADICIONE ESTA LINHA AQUI
+      onUpdateStatus={handleUpdateStatus} // <--- Função passada corretamente aqui
     />
   );
 }
