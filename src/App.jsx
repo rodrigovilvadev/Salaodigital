@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { createClient } from '@supabase/supabase-js';
 import imgMao from './img/mao.jpg';
 import imgMp from './img/mp.jpg';
 import imgTes from './img/tes.jpg';
+
+// 2. Remova o useMemo desta lista abaixo
 import { 
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, LogOut, Bell, DollarSign, 
   ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
   CreditCard, Lock, Clock, CalendarDays, Sparkles, Palette, Briefcase, Edit3, 
   MessageCircle, Phone, XCircle, History, Loader2,
   Home, Plus, Camera,
-  CheckCircle, ArrowLeft, useMemo
+  CheckCircle, ArrowLeft 
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO SUPABASE ---
