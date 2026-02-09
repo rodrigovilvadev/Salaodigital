@@ -259,12 +259,6 @@ const handleFinish = async () => {
       </div>
     </div>
   )}
-
-Para que o nome do profissional apareça, precisamos que ele seja salvo no banco de dados no momento do agendamento ou que você faça um "vlookup" no código. Vou te entregar o código considerando que o campo no banco se chama barber_name (que é o ideal para performance).
-
-Aqui está o código exato da sua Tela de Histórico com o nome do barbeiro e o botão de cancelar:
-
-JavaScript
 {/* --- TELA DE HISTÓRICO (FORA DA HOME) --- */}
 {view === 'history' && (
   <div className="space-y-4 animate-in slide-in-from-right">
