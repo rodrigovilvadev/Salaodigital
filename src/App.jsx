@@ -834,9 +834,16 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                     <div className="flex gap-2">
                       <button 
   onClick={() => {
+    // 1. Atualiza o status no banco de dados (Tabela Appointments)
     onUpdateStatus(app.id, 'confirmed');
     
-    // Use os nomes que o objeto já possui (date e time)
+    // 2. REMOVE O HORÁRIO DA AGENDA (Tabela Profiles/User State)
+    // Isso impede que outros clientes vejam esse horário como disponível
+    if (app.date && app.time) {
+      toggleSlotForDate(app.date, app.time);
+    }
+    
+    // 3. Formatação para o WhatsApp
     const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'data';
     const horaFmt = app.time || 'horário';
     const servicoFmt = app.service_name || 'serviço';
@@ -853,9 +860,9 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
       window.open(`https://api.whatsapp.com/send?phone=55${fone}&text=${mensagem}`, '_blank');
     }
   }} 
-  className="..."
+  className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
 >
-  <CheckCircle size={16} /> Aceitar
+  <CheckCircle size={16} /> Aceitar e Fechar Horário
 </button>
 
                       <button 
