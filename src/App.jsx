@@ -312,17 +312,21 @@ const handleFinish = async () => {
       </button>
       <h3 className="font-bold text-lg text-slate-900 mb-4">Meus Agendamentos</h3>
       
-      {/* Lista de agendamentos filtrada e segura contra erros */}
-      {(appointments || []).filter(a => String(a.client_id) === String(user.id)).length === 0 ? (
-        <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
-          Ainda não tem agendamentos.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {(appointments || [])
-            .filter(a => String(a.client_id) === String(user.id))
-            .sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))
-            .map(app => (
+     {/* Lista de agendamentos filtrada e segura contra erros */}
+    {(appointments || []).filter(a => String(a.client_id) === String(user.id)).length === 0 ? (
+      <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
+        Ainda não tem agendamentos.
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {(appointments || [])
+          .filter(a => String(a.client_id) === String(user.id))
+          .sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))
+          .map(app => {
+            // BUSCA CRUZADA: Encontra o barbeiro na lista 'barbers' pelo ID
+            const professional = (barbers || []).find(b => String(b.id) === String(app.barber_id));
+            
+            return (
               <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
                 <div className="flex gap-3 items-center">
                   <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400">
@@ -331,9 +335,9 @@ const handleFinish = async () => {
                   <div>
                     <p className="font-bold text-slate-900 text-sm">{app.service_name}</p>
                     
-                    {/* Nome do Profissional */}
+                    {/* Nome do Profissional Corrigido */}
                     <p className="text-[10px] text-blue-600 font-bold uppercase">
-                      Profissional: {app.barber_name || "Barbeiro"}
+                      Profissional: {professional?.name || app.barber_name || "Profissional"}
                     </p>
 
                     {/* Data e Hora protegidos contra erro de split */}
@@ -356,11 +360,12 @@ const handleFinish = async () => {
                   <Trash2 size={18} />
                 </button>
               </div>
-            ))}
-        </div>
-      )}
-    </div>
-  )}
+            );
+          })}
+      </div>
+    )}
+  </div>
+)}
 
         {view === 'booking' && (
           <div className="space-y-4 animate-in slide-in-from-right">
