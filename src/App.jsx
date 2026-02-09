@@ -367,15 +367,13 @@ const handleFinish = async () => {
       <div className="grid grid-cols-2 gap-3">
         {processedBarbers
           .filter(b => b.my_services?.some(s => s.id === bookingData.service?.id))
-          // Ordena do mais perto para o mais longe
           .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
           .map((b, index) => {
             const specificService = b.my_services?.find(s => s.id === bookingData.service?.id);
             const displayPrice = specificService ? specificService.price : bookingData.service?.defaultPrice;
             const isSelected = bookingData.barber?.id === b.id;
 
-            // LÓGICA DE CONVERSÃO: KM -> METROS
-            // Se b.distance existe, multiplica por 1000 e remove decimais.
+            // Converte KM para Metros
             const distanceInMeters = b.distance !== null ? Math.floor(b.distance * 1000) : null;
 
             return (
@@ -386,45 +384,39 @@ const handleFinish = async () => {
                   isSelected ? 'border-slate-900 bg-slate-50' : 'border-white bg-white hover:border-slate-200'
                 }`}
               >
-                {/* Badge de "Mais Próximo" */}
+                {/* Só aparece se o cálculo de distância funcionar */}
                 {index === 0 && distanceInMeters !== null && (
-                  <div className="absolute -top-2 bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
+                  <div className="absolute -top-2 bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase">
                     Mais Próximo
                   </div>
                 )}
 
-                {isSelected && <div className="absolute top-2 right-2 w-3 h-3 bg-slate-900 rounded-full"></div>}
-
-                {/* Foto / Avatar */}
+                {/* Avatar */}
                 <div className="w-16 h-16 rounded-full bg-slate-200 mb-3 overflow-hidden border border-slate-100 shadow-inner">
-                  {(() => {
-                    const lastGalleryPhoto = b.photos && b.photos.length > 0 ? b.photos[b.photos.length - 1] : null;
-                    const imageToShow = lastGalleryPhoto || b.avatar_url;
-                    return imageToShow ? (
-                      <img src={imageToShow} alt={b.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
-                        <User size={24}/>
-                      </div>
-                    );
-                  })()}
+                  {b.avatar_url ? (
+                    <img src={b.avatar_url} alt={b.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                      <User size={24}/>
+                    </div>
+                  )}
                 </div>
 
                 <p className="font-bold text-slate-900 text-sm leading-tight mb-1 truncate w-full">{b.name}</p>
 
-                {/* Bloco de Localização Unificado */}
+                {/* Bloco de Localização */}
                 <div className="flex flex-col items-center gap-0.5 mb-2 w-full">
                   {b.address && (
-                    <p className="text-[9px] text-slate-500 leading-tight line-clamp-1 px-1 w-full break-words">
-                      {b.address}
-                    </p>
+                    <p className="text-[9px] text-slate-500 leading-tight line-clamp-1">{b.address}</p>
                   )}
-
-                  {/* MOSTRANDO EM METROS AGORA */}
-                  {distanceInMeters !== null && (
-                    <p className={`text-[10px] flex items-center justify-center gap-1 ${index === 0 ? 'text-blue-600 font-bold' : 'text-slate-400'}`}>
+                  
+                  {/* VERIFICAÇÃO IMPORTANTE: Se o banco estiver NULL, isso aqui não aparece */}
+                  {distanceInMeters !== null ? (
+                    <p className="text-[10px] text-blue-600 font-bold flex items-center gap-1">
                       <MapPin size={10}/> {distanceInMeters} m
                     </p>
+                  ) : (
+                    <p className="text-[9px] text-red-400 italic">Sem GPS no perfil</p>
                   )}
                 </div>
 
@@ -436,8 +428,8 @@ const handleFinish = async () => {
           })}
       </div>
     ) : (
-      <div className="text-center p-8 bg-white rounded-2xl border border-dashed border-slate-300">
-         <p className="text-slate-400">Nenhum profissional disponível na região.</p>
+      <div className="text-center p-8 bg-white rounded-2xl">
+         <p className="text-slate-400">Nenhum profissional disponível.</p>
       </div>
     )}
     <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
