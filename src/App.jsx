@@ -368,49 +368,59 @@ const handleFinish = async () => {
 
            
           {/* PASSO 2: ESCOLHA DO PROFISSIONAL (QUADRADINHOS) */}
+Achei o erro! O problema é que o seu código está tentando calcular distanceInMeters usando b.distance, mas no seu print do Supabase as colunas estão vazias para o profissional 1111. Além disso, existe uma pequena confusão entre as variáveis distanceInMeters e distanceLabel.
+
+Aqui está o seu código ajustado para usar a variável distanceLabel (que criamos no useMemo) como prioridade, pois ela já vem formatada certinho com "m" ou "km".
+
+Substitua todo o seu bloco pelo código abaixo:
+JavaScript
 {step === 2 && (
   <>
-    <h3 className="font-bold text-lg mb-2">Escolha o Profissional</h3>
+    <h3 className="font-bold text-lg mb-2 text-slate-900">Escolha o Profissional</h3>
     <p className="text-xs text-slate-400 mb-4">Mostrando preço para: <b>{bookingData.service?.name}</b></p>
     
     <div className="grid grid-cols-2 gap-3">
       {processedBarbers
         .filter(b => b.my_services?.some(s => s.id === bookingData.service?.id))
-        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
         .map((b, index) => {
           const displayPrice = b.my_services?.find(s => s.id === bookingData.service?.id)?.price || 0;
           const isSelected = bookingData.barber?.id === b.id;
           
-          // Cálculo em metros (1000m = 1km)
-          const distanceInMeters = b.distance ? Math.floor(b.distance * 1000) : null;
-
           return (
             <div 
               key={b.id} 
               onClick={() => setBookingData({...bookingData, barber: b, price: displayPrice})}
-              className={`relative flex flex-col items-center p-4 rounded-2xl border-2 transition-all ${
+              className={`relative flex flex-col items-center p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                 isSelected ? 'border-slate-900 bg-slate-50' : 'border-white bg-white shadow-sm'
               }`}
             >
-              <div className="w-16 h-16 rounded-full bg-slate-200 mb-2 overflow-hidden">
-                {b.avatar_url && <img src={b.avatar_url} className="w-full h-full object-cover" />}
+              <div className="w-16 h-16 rounded-full bg-slate-200 mb-2 overflow-hidden border border-slate-100">
+                {b.avatar_url ? (
+                  <img src={b.avatar_url} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-400">
+                    <User size={24} />
+                  </div>
+                )}
               </div>
               
-              <p className="font-bold text-sm truncate w-full text-center">{b.name}</p>
+              <p className="font-bold text-sm truncate w-full text-center text-slate-900">{b.name}</p>
               
-              {/* ENDEREÇO E DISTÂNCIA */}
-              <div className="flex flex-col items-center mt-1">
-                {b.address && <p className="text-[9px] text-slate-400 line-clamp-1">{b.address}</p>}
+              {/* ENDEREÇO E DISTÂNCIA CORRIGIDOS */}
+              <div className="flex flex-col items-center mt-1 w-full">
+                {b.address && (
+                  <p className="text-[9px] text-slate-400 line-clamp-1 text-center px-1 mb-0.5">
+                    {b.address}
+                  </p>
+                )}
                 
-                {/* Mostra a distância apenas se latitude/longitude existirem no banco */}
-                {distanceInMeters !== null ? (
+                {/* Aqui usamos a label que já calculamos no useMemo */}
+                {b.distanceLabel ? (
                   <p className="text-[10px] text-blue-600 font-black flex items-center gap-1">
-                    <MapPin size={10}/> {distanceInMeters}m
+                    <MapPin size={10}/> {b.distanceLabel}
                   </p>
                 ) : (
-                  <p className="text-[11px] text-blue-600 font-bold">
-  {b.distanceLabel ? b.distanceLabel : "Distância indisponivel"}
-</p>
+                  <p className="text-[10px] text-slate-300 italic">Distância indisponível</p>
                 )}
               </div>
 
@@ -419,7 +429,9 @@ const handleFinish = async () => {
           );
         })}
     </div>
-    <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>Próximo</Button>
+    <Button className="mt-6 w-full" onClick={() => setStep(3)} disabled={!bookingData.barber}>
+      Próximo
+    </Button>
   </>
 )}
 
