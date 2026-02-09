@@ -260,36 +260,67 @@ const handleFinish = async () => {
     </div>
   )}
 
-  {/* --- TELA DE HISTÓRICO (FORA DA HOME) --- */}
-  {view === 'history' && (
-    <div className="space-y-4 animate-in slide-in-from-right">
-      <button 
-        onClick={() => setView('home')} 
-        className="text-slate-400 font-bold text-sm mb-4 flex items-center gap-1"
-      >
-        ← Voltar
-      </button>
-      <h3 className="font-bold text-lg text-slate-900 mb-4">Meus Agendamentos</h3>
-      
-      {/* Lista de agendamentos (o filtro que corrigimos antes) */}
-      {appointments.filter(a => String(a.client_id) === String(user.id)).length === 0 ? (
-        <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
-          Ainda não tem agendamentos.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {appointments
-            .filter(a => String(a.client_id) === String(user.id))
-            .map(app => (
-              <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                <p className="font-bold text-sm">{app.service_name}</p>
-                <p className="text-xs text-slate-500">{app.date} às {app.time}</p>
+Para que o nome do profissional apareça, precisamos que ele seja salvo no banco de dados no momento do agendamento ou que você faça um "vlookup" no código. Vou te entregar o código considerando que o campo no banco se chama barber_name (que é o ideal para performance).
+
+Aqui está o código exato da sua Tela de Histórico com o nome do barbeiro e o botão de cancelar:
+
+JavaScript
+{/* --- TELA DE HISTÓRICO (FORA DA HOME) --- */}
+{view === 'history' && (
+  <div className="space-y-4 animate-in slide-in-from-right">
+    <button 
+      onClick={() => setView('home')} 
+      className="text-slate-400 font-bold text-sm mb-4 flex items-center gap-1 hover:text-slate-600 transition-colors"
+    >
+      <ArrowLeft size={16} /> Voltar
+    </button>
+    <h3 className="font-bold text-lg text-slate-900 mb-4">Meus Agendamentos</h3>
+    
+    {/* Lista de agendamentos */}
+    {appointments.filter(a => String(a.client_id) === String(user.id) && a.status !== 'rejected').length === 0 ? (
+      <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
+        Ainda não tem agendamentos ativos.
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {appointments
+          .filter(a => String(a.client_id) === String(user.id) && a.status !== 'rejected')
+          .sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`)) // Mais recentes primeiro
+          .map(app => (
+            <div key={app.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex justify-between items-center group">
+              <div className="flex gap-3 items-center">
+                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
+                  <User size={20} />
+                </div>
+                <div>
+                  <p className="font-black text-slate-900 text-sm leading-tight">{app.service_name}</p>
+                  <p className="text-[10px] text-blue-600 font-bold uppercase tracking-tighter">
+                    Profissional: {app.barber_name || 'Barbeiro'}
+                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {app.date.split('-').reverse().join('/')} às <span className="font-bold text-slate-700">{app.time}</span>
+                  </p>
+                </div>
               </div>
-            ))}
-        </div>
-      )}
-    </div>
-  )}
+
+              {/* Botão Cancelar */}
+              <button 
+                onClick={async () => {
+                  if (window.confirm("Deseja realmente cancelar este horário?")) {
+                    await onUpdateStatus(app.id, 'rejected');
+                    alert("Agendamento cancelado com sucesso.");
+                  }
+                }}
+                className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+      </div>
+    )}
+  </div>
+)}
 
         {view === 'booking' && (
           <div className="space-y-4 animate-in slide-in-from-right">
