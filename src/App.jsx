@@ -32,7 +32,6 @@ const MASTER_SERVICES = [
   { id: 8, name: 'Manicure/Pedicure', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'foot' },
   { id: 9, name: 'Limpeza facial', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'face' },
   { id: 10, name: 'Massagem e drenagem', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'dren' },
-  { id: 11, name: 'Designer sobrancelha', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'desig' },
   { id: 12, name: 'Lash design', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'lash' },
 ];
 
@@ -958,7 +957,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                 <div className="absolute top-0 left-0 w-full h-2 bg-slate-900"></div>
                 
                 <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <User size={18} className="text-slate-400"/> Dados da Barbearia
+                    <User size={18} className="text-slate-400"/> Dados do Studio
                 </h3>
 
                 {/* Avatar Uploader */}
