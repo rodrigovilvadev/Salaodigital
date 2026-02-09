@@ -10,7 +10,7 @@ import {
   CreditCard, Lock, Clock, CalendarDays, Sparkles, Palette, Briefcase, Edit3, 
   MessageCircle, Phone, XCircle, History, Loader2,
   Home, Plus, Camera,
-  CheckCircle // <--- ADICIONE ESTE AQUI PARA O BOTÃO ACEITAR
+  CheckCircle, ArrowLeft
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO SUPABASE ---
