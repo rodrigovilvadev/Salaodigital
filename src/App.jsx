@@ -1268,8 +1268,10 @@ const handleBookingSubmit = async (data) => {
   try {
     // 1. Filtramos apenas as colunas que existem no seu banco (conforme seus prints)
     // Removemos o 'id' do corpo do objeto, pois ele vai apenas no .eq()
-    const dataToSave = {
+   const dataToSave = {
       address: updatedUser.address,
+      latitude: updatedUser.latitude,   
+      longitude: updatedUser.longitude, 
       avatar_url: updatedUser.avatar_url,
       is_visible: updatedUser.is_visible,
       plano_ativo: updatedUser.plano_ativo,
