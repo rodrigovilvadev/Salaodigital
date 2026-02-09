@@ -261,60 +261,69 @@ const handleFinish = async () => {
   )}
 
   {/* --- TELA DE HISTÓRICO (FORA DA HOME) --- */}
-  {view === 'history' && (
+ {view === 'history' && (
     <div className="space-y-4 animate-in slide-in-from-right">
       <button 
         onClick={() => setView('home')} 
-        className="text-slate-400 font-bold text-sm mb-4 flex items-center gap-1"
+        className="text-slate-400 font-bold text-sm mb-4 flex items-center gap-1 hover:text-slate-600 transition-colors"
       >
-        ← Voltar
+        <ArrowLeft size={16} /> Voltar
       </button>
       <h3 className="font-bold text-lg text-slate-900 mb-4">Meus Agendamentos</h3>
       
-     {appointments.filter(a => String(a.client_id) === String(user.id)).length === 0 ? (
-  <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
-    Ainda não tem agendamentos.
-  </div>
-) : (
-  <div className="space-y-3">
-    {appointments
-      .filter(a => String(a.client_id) === String(user.id))
-      .map(app => (
-        <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
-          <div className="flex gap-3 items-center">
-            {/* Ícone de Usuário/Barbeiro */}
-            <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
-              <User size={18} />
-            </div>
-            
-            <div>
-              <p className="font-bold text-slate-900 text-sm leading-tight">
-                {app.service_name}
-              </p>
-              
-              {/* NOME DO PROFISSIONAL AQUI */}
-              <p className="text-[10px] text-blue-600 font-bold uppercase mt-0.5">
-                Profissional: {app.barber_name || app.barberId || 'Não informado'}
-              </p>
-
-              {/* DATA E HORA COM PROTEÇÃO SPLIT */}
-              <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-                <Clock size={10} />
-                {app.date ? app.date.split('-').reverse().join('/') : '--/--/--'} às {app.time || '--:--'}
-              </p>
-            </div>
-          </div>
-
-          {/* Badge de Status (Opcional, dá um toque premium) */}
-          <span className={`text-[9px] px-2 py-1 rounded-lg font-bold ${
-            app.status === 'confirmed' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'
-          }`}>
-            {app.status === 'confirmed' ? 'CONFIRMADO' : 'PENDENTE'}
-          </span>
+      {/* Lista de agendamentos filtrada e segura contra erros */}
+      {(appointments || []).filter(a => String(a.client_id) === String(user.id)).length === 0 ? (
+        <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">
+          Ainda não tem agendamentos.
         </div>
-      ))}
-  </div>
-)}
+      ) : (
+        <div className="space-y-3">
+          {(appointments || [])
+            .filter(a => String(a.client_id) === String(user.id))
+            .sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))
+            .map(app => (
+              <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
+                <div className="flex gap-3 items-center">
+                  <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400">
+                    <User size={18} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{app.service_name}</p>
+                    
+                    {/* Nome do Profissional */}
+                    <p className="text-[10px] text-blue-600 font-bold uppercase">
+                      Profissional: {app.barber_name || "Barbeiro"}
+                    </p>
+
+                    {/* Data e Hora protegidos contra erro de split */}
+                    <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                      <Clock size={10} />
+                      {app.date ? app.date.split('-').reverse().join('/') : '--/--/--'} às {app.time || '--:--'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Botão de Cancelar */}
+                <button 
+                  onClick={() => {
+                    if(window.confirm("Deseja cancelar este agendamento?")) {
+                      onUpdateStatus(app.id, 'rejected');
+                    }
+                  }}
+                  className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
+  )}
+
+        {view === 'booking' && (
+          <div className="space-y-4 animate-in slide-in-from-right">
+             <button onClick={() => setStep(step - 1)} className={`${step === 1 ? 'hidden' : 'block'} text-slate-400 font-bold text-sm mb-2`}>← Voltar</button>
             
             {/* PASSO 1: ESCOLHA DO SERVIÇO */}
             {step === 1 && (
