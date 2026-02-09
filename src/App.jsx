@@ -154,12 +154,11 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
   return () => clearInterval(interval);
 }, []);
 
-  // Captura localização ao entrar no fluxo de agendamento
  const processedBarbers = useMemo(() => {
   return (barbers || [])
     .filter(b => b.is_visible)
     .map(b => {
-      // Chamada da função de cálculo que está no topo do App.js
+      // Chamada da função de cálculo original
       const dist = calculateDistance(
         userCoords?.lat, 
         userCoords?.lng, 
@@ -167,9 +166,20 @@ const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments }) =
         b.longitude
       );
       
+      // Lógica para criar a etiqueta de texto (m ou km)
+      let label = null;
+      if (dist !== null) {
+        if (dist < 1) {
+          label = `${Math.floor(dist * 1000)} m`; // Menos de 1km vira metros
+        } else {
+          label = `${dist.toFixed(1)} km`; // 1km ou mais mantém km com 1 casa decimal
+        }
+      }
+
       return {
         ...b,
-        distance: dist
+        distance: dist,       // Mantém o número original para o sort funcionar
+        distanceLabel: label  // Nova propriedade para exibir no HTML
       };
     })
     .sort((a, b) => {
