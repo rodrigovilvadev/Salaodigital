@@ -1355,6 +1355,7 @@ export default function App() {
       onLogout={() => { setUser(null); setCurrentMode(null); }}
       onBookingSubmit={handleBookingSubmit}
       onUpdateStatus={handleUpdateStatus} // <--- Função passada corretamente aqui
+      MASTER_SERVICES={MASTER_SERVICES}
     />
   );
 }
