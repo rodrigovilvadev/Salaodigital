@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from 'react';
-
-import { createClient } from '@supabase/supabase-js';
-import imgMao from './img/mao.jpg';
-import imgMp from './img/mp.jpg';
-import imgTes from './img/tes.jpg';
 import { 
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, LogOut, Bell, DollarSign, 
   ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
   CreditCard, Lock, Clock, CalendarDays, Sparkles, Palette, Briefcase, Edit3, 
   MessageCircle, Phone, XCircle, History, Loader2,
-  Home, Plus, Camera,
-  CheckCircle // <--- ADICIONE ESTE AQUI PARA O BOTÃO ACEITAR
+  Home, Plus, Camera, CheckCircle,
+  ArrowLeft // <--- FALTAVA ESTE PARA O BOTÃO VOLTAR DO HISTÓRICO
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO SUPABASE ---
