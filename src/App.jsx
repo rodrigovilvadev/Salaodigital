@@ -559,30 +559,29 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   const [showCalendar, setShowCalendar] = useState(true);
   const [selectedDateConfig, setSelectedDateConfig] = useState(new Date().toISOString().split('T')[0]);
 
-  // --- LÓGICA DE FILTRAGEM (O CORAÇÃO DO DASHBOARD) ---
-  
-  // 1. Criamos a variável myAppointments (que estava faltando no seu erro)
+
+
   const myAppointments = (appointments || []).filter(a => 
     String(a.barber_id || a.barberId) === String(user.id) && a.status !== 'rejected'
   );
 
-  // 2. Filtra os que acabaram de chegar
+
   const pending = myAppointments.filter(a => a.status === 'pending');
 
-  // 3. Ordena os pendentes por data e hora corretamente
+
   pending.sort((a, b) => {
     const dataA = new Date(`${a.date}T${a.time}`);
     const dataB = new Date(`${b.date}T${b.time}`);
     return dataA - dataB;
   });
 
-  // 4. Filtra os confirmados e calcula o faturamento total
+
   const confirmed = myAppointments.filter(a => a.status === 'confirmed');
   const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
-  // --- LÓGICA DE INTERVALO E INIT ---
+
   useEffect(() => {
     const interval = setInterval(() => {
-      // fetchAppointments(); // Descomente se tiver a função disponível no escopo pai ou passe via props
+
       console.log("Sincronizando dados...");
     }, 30000);
     return () => clearInterval(interval);
@@ -598,61 +597,54 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     }
   }, [user.plano_ativo, onUpdateProfile, user]);
 
-  // --- LÓGICA DE CALENDÁRIO & HORÁRIOS ESPECÍFICOS ---
-  
-  // 1. Alternar se o dia está "Aberto" ou "Fechado" na agenda geral
+
   const toggleDateAvailability = (date) => {
     const currentDates = user.available_dates || [];
     let newDates;
     
     if (currentDates.includes(date)) {
-        newDates = currentDates.filter(d => d !== date); // Remove data
+        newDates = currentDates.filter(d => d !== date); 
     } else {
-        newDates = [...currentDates, date].sort(); // Adiciona data
+        newDates = [...currentDates, date].sort(); 
     }
     
-    // Se ativou o dia e ele não tem horários definidos, inicializa com todos ou vazio
+   
     const currentSchedule = user.schedule || {};
     if (!currentSchedule[date] && newDates.includes(date)) {
-        // Opcional: Pré-preencher com alguns horários padrão se quiser
-        // currentSchedule[date] = ['09:00', '10:00', ...];
+
+
     }
 
     onUpdateProfile({ ...user, available_dates: newDates, schedule: currentSchedule });
-    setSelectedDateConfig(date); // Seleciona o dia clicado para editar logo em seguida
+    setSelectedDateConfig(date); 
   };
 
-  // 2. Alternar horários DENTRO de uma data específica
+
  const toggleSlotForDate = async (date, slot) => {
-  // 1. Obtém o estado atual ou um objeto vazio
+
   const currentSlots = user.available_slots || {};
   const slotsForDay = currentSlots[date] || [];
 
   let newSlots;
 
-  // 2. Lógica de Adicionar/Remover
+
   if (slotsForDay.includes(slot)) {
-    // Se o horário já existe, remove (filtra)
     newSlots = slotsForDay.filter(s => s !== slot);
   } else {
-    // Se não existe, adiciona e ordena
     newSlots = [...slotsForDay, slot].sort();
   }
 
-  // 3. Monta o objeto final
-  // Se o dia ficar vazio (newSlots.length === 0), opcionalmente você pode deletar a chave do dia
+
   const updatedAvailableSlots = {
     ...currentSlots,
     [date]: newSlots
   };
 
-  // 4. Atualização Visual Imediata (State local)
   onUpdateProfile({ 
     ...user, 
     available_slots: updatedAvailableSlots 
   });
 
-  // 5. Persistência no Banco de Dados
   try {
     const { error } = await supabase
       .from('profiles')
@@ -662,7 +654,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     if (error) throw error;
   } catch (err) {
     console.error("Erro ao salvar no Supabase:", err.message);
-    // Caso falhe, você pode recarregar os dados ou avisar o usuário
   }
 };
 
