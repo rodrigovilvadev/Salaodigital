@@ -78,39 +78,54 @@ const Card = ({ children, selected, onClick }) => (
 
 // --- 3. TELAS DE ACESSO ---
 const WelcomeScreen = ({ onSelectMode }) => (
-  <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
-    <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center mb-8 rotate-3 shadow-2xl shadow-blue-900/50">
+  <div 
+    className="min-h-screen flex flex-col items-center justify-center p-6 text-center relative overflow-hidden"
+    style={{
+      backgroundImage: `url('/backgr.png')`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    }}
+  >
+    {/* Overlay para escurecer o fundo e dar leitura ao conteúdo */}
+    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-[2px] z-0"></div>
+
+    {/* Conteúdo (Z-10 para ficar acima do overlay) */}
+    <div className="relative z-10 flex flex-col items-center">
+      <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center mb-8 rotate-3 shadow-2xl shadow-blue-900/50">
         <Scissors size={40} className="text-white" />
-    </div>
-    <h1 className="text-4xl font-black text-white italic mb-2 tracking-tighter">SALÃO<span className="text-blue-500">DIGITAL</span></h1>
-    
-    <div className="w-full max-w-xs space-y-3 mt-10">
-      <Button variant="secondary" onClick={() => onSelectMode('client')}>
-        Sou Cliente
-      </Button>
-
-      {/* BOTÃO CONVIDADO: Estilo Outline para diferenciar, mas com destaque */}
-      <Button 
-        variant="outline" 
-        className="text-white border-white/20 hover:bg-white/5" 
-        onClick={() => onSelectMode('guest')}
-      >
-        Explorar como Convidado
-      </Button>
-
-      <div className="py-2 flex items-center gap-4">
-        <div className="h-[1px] bg-white/10 flex-1"></div>
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">ou</span>
-        <div className="h-[1px] bg-white/10 flex-1"></div>
       </div>
+      
+      <h1 className="text-4xl font-black text-white italic mb-2 tracking-tighter">
+        SALÃO<span className="text-blue-500">DIGITAL</span>
+      </h1>
+      
+      <div className="w-full max-w-xs space-y-3 mt-10">
+        <Button variant="secondary" onClick={() => onSelectMode('client')}>
+          Sou Cliente
+        </Button>
 
-      <Button 
-        variant="outline" 
-        className="text-white border-white/10" 
-        onClick={() => onSelectMode('barber')}
-      >
-        Sou Profissional
-      </Button>
+        <Button 
+          variant="outline" 
+          className="text-white border-white/40 bg-white/5 hover:bg-white/10 backdrop-blur-md" 
+          onClick={() => onSelectMode('guest')}
+        >
+          Explorar como Convidado
+        </Button>
+
+        <div className="py-2 flex items-center gap-4">
+          <div className="h-[1px] bg-white/20 flex-1"></div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ou</span>
+          <div className="h-[1px] bg-white/20 flex-1"></div>
+        </div>
+
+        <Button 
+          variant="outline" 
+          className="text-white border-white/20 hover:bg-white/5" 
+          onClick={() => onSelectMode('barber')}
+        >
+          Sou Profissional
+        </Button>
+      </div>
     </div>
   </div>
 );
