@@ -106,7 +106,7 @@ const WelcomeScreen = ({ onSelectMode }) => (
 
       <Button 
         variant="outline" 
-        className="text-slate-300 border-white/10" 
+        className="text-white border-white/10" 
         onClick={() => onSelectMode('barber')}
       >
         Sou Profissional
@@ -636,40 +636,22 @@ return (
   </div>
 );
 };
-const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile, supabase }) => {
+const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdateProfile, supabase, MASTER_SERVICES, GLOBAL_TIME_SLOTS }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [isPaying, setIsPaying] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showCalendar, setShowCalendar] = useState(true);
   const [selectedDateConfig, setSelectedDateConfig] = useState(new Date().toISOString().split('T')[0]);
 
-
-
   const myAppointments = (appointments || []).filter(a => 
     String(a.barber_id || a.barberId) === String(user.id) && a.status !== 'rejected'
   );
 
-
   const pending = myAppointments.filter(a => a.status === 'pending');
-
-
-  pending.sort((a, b) => {
-    const dataA = new Date(`${a.date}T${a.time}`);
-    const dataB = new Date(`${b.date}T${b.time}`);
-    return dataA - dataB;
-  });
-
+  pending.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
 
   const confirmed = myAppointments.filter(a => a.status === 'confirmed');
   const revenue = confirmed.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-
-      console.log("Sincronizando dados...");
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
@@ -681,105 +663,63 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     }
   }, [user.plano_ativo, onUpdateProfile, user]);
 
+  const toggleSlotForDate = async (date, slot) => {
+    const currentSlots = user.available_slots || {};
+    const slotsForDay = currentSlots[date] || [];
+    let newSlots = slotsForDay.includes(slot) 
+      ? slotsForDay.filter(s => s !== slot) 
+      : [...slotsForDay, slot].sort();
 
-  const toggleDateAvailability = (date) => {
-    const currentDates = user.available_dates || [];
-    let newDates;
-    
-    if (currentDates.includes(date)) {
-        newDates = currentDates.filter(d => d !== date); 
-    } else {
-        newDates = [...currentDates, date].sort(); 
+    const updatedAvailableSlots = { ...currentSlots, [date]: newSlots };
+    onUpdateProfile({ ...user, available_slots: updatedAvailableSlots });
+
+    try {
+      await supabase.from('profiles').update({ available_slots: updatedAvailableSlots }).eq('id', user.id);
+    } catch (err) {
+      console.error("Erro ao salvar:", err.message);
     }
-    
-   
-    const currentSchedule = user.schedule || {};
-    if (!currentSchedule[date] && newDates.includes(date)) {
-
-
-    }
-
-    onUpdateProfile({ ...user, available_dates: newDates, schedule: currentSchedule });
-    setSelectedDateConfig(date); 
   };
 
-
- const toggleSlotForDate = async (date, slot) => {
-
-  const currentSlots = user.available_slots || {};
-  const slotsForDay = currentSlots[date] || [];
-
-  let newSlots;
-
-
-  if (slotsForDay.includes(slot)) {
-    newSlots = slotsForDay.filter(s => s !== slot);
-  } else {
-    newSlots = [...slotsForDay, slot].sort();
-  }
-
-
-  const updatedAvailableSlots = {
-    ...currentSlots,
-    [date]: newSlots
-  };
-
-  onUpdateProfile({ 
-    ...user, 
-    available_slots: updatedAvailableSlots 
-  });
-
-  try {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ available_slots: updatedAvailableSlots })
-      .eq('id', user.id);
-
-    if (error) throw error;
-  } catch (err) {
-    console.error("Erro ao salvar no Supabase:", err.message);
-  }
-};
-
-  // --- OUTRAS FUNÇÕES ---
   const handlePayment = async () => {
     setIsPaying(true);
     try {
-      // Simulação da lógica de pagamento
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'salaodigital.onrender.com';
       const response = await fetch(`${API_BASE_URL}/criar-pagamento`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ barberId: user.id, price: 29.90, title: "Plano Profissional" })
       });
-      if (!response.ok) throw new Error("Erro API");
       const data = await response.json();
       if (data.init_point) window.location.href = data.init_point;
-      else alert("Erro ao gerar link.");
     } catch (error) {
-      console.error(error);
       alert("Erro ao conectar ao pagamento.");
     } finally {
       setIsPaying(false);
     }
   };
 
+  // --- CORREÇÃO: PERMITE TODOS ATIVAREM O PERFIL ---
   const handleToggleVisibility = () => {
-    if (user.plano_ativo) {
-      onUpdateProfile({ ...user, is_visible: !user.is_visible });
-    } else if (!user.is_visible) {
-      setShowPayModal(true);
-    } else {
-      onUpdateProfile({ ...user, is_visible: false });
-    }
+    onUpdateProfile({ ...user, is_visible: !user.is_visible });
   };
 
+  // --- CORREÇÃO: LIMITE DE 3 SERVIÇOS PARA PLANO GRÁTIS ---
   const toggleService = (serviceId, defaultPrice) => {
     const currentServices = user.my_services || [];
     const exists = currentServices.find(s => s.id === serviceId);
+    
+    if (!exists) {
+      if (!user.plano_ativo && currentServices.length >= 3) {
+        alert("O plano gratuito permite apenas 3 serviços. Ative o plano Profissional para adicionar mais!");
+        setShowPayModal(true);
+        return;
+      }
+    }
+
     let newServices = exists 
       ? currentServices.filter(s => s.id !== serviceId) 
       : [...currentServices, { id: serviceId, price: defaultPrice }];
+    
     onUpdateProfile({ ...user, my_services: newServices });
   };
 
@@ -790,55 +730,35 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     onUpdateProfile({ ...user, my_services: newServices });
   };
 
-  // --- UPLOAD DE FOTO (AVATAR) ---
   const handleUploadPhoto = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `avatar-${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // Upload Supabase (assumindo que 'barber-photos' é público)
-      const { error: uploadError } = await supabase.storage
-        .from('barber-photos')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('barber-photos')
-        .getPublicUrl(filePath);
-
-      // Atualiza avatar_url no perfil
+      const fileName = `avatar-${user.id}-${Date.now()}`;
+      const { error } = await supabase.storage.from('barber-photos').upload(fileName, file);
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('barber-photos').getPublicUrl(fileName);
       onUpdateProfile({ ...user, avatar_url: publicUrl });
-      alert('Foto de perfil atualizada!');
     } catch (error) {
-      console.error(error);
-      alert('Erro ao carregar foto. Verifique conexão.');
+      alert('Erro ao carregar foto.');
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 font-sans">
       
-      {/* --- MODAL PAGAMENTO --- */}
+      {/* MODAL PLANO (Aparece ao tentar exceder limite) */}
       {showPayModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock size={32} />
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Star size={32} />
             </div>
-            <h2 className="text-xl font-black text-slate-900 mb-2">Ative seu Perfil</h2>
-            <p className="text-slate-500 text-sm mb-6">Para ficar <b>Online</b>, assine o plano profissional.</p>
+            <h2 className="text-xl font-black text-slate-900 mb-2">Seja Profissional</h2>
+            <p className="text-slate-500 text-sm mb-6">Libere serviços ilimitados e destaque seu perfil para mais clientes.</p>
             <div className="space-y-3">
-              <button 
-                className="w-full py-4 bg-green-500 text-white rounded-xl font-bold disabled:opacity-50" 
-                onClick={handlePayment} 
-                disabled={isPaying}
-              >
-                {isPaying ? "Processando..." : "Assinar (R$ 29,90/mês)"}
+              <button className="w-full py-4 bg-green-500 text-white rounded-xl font-bold" onClick={handlePayment} disabled={isPaying}>
+                {isPaying ? "Processando..." : "Assinar Plano (R$ 29,90)"}
               </button>
               <button onClick={() => setShowPayModal(false)} className="text-slate-400 text-sm font-bold block w-full">Agora não</button>
             </div>
@@ -846,17 +766,12 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
         </div>
       )}
 
-      {/* --- HEADER --- */}
+      {/* HEADER */}
       <header className="bg-white p-6 border-b border-slate-100 sticky top-0 z-20">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-             {/* Avatar Pequeno no Header */}
             <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border border-slate-100">
-                {user.avatar_url ? (
-                    <img src={user.avatar_url} alt="Perfil" className="w-full h-full object-cover" />
-                ) : (
-                    <User className="w-full h-full p-2 text-slate-400" />
-                )}
+                {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : <User className="w-full h-full p-2 text-slate-400" />}
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 leading-tight">Painel Pro</h2>
@@ -866,108 +781,64 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
               </div>
             </div>
           </div>
-          <button onClick={onLogout} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-red-500 transition-colors">
+          <button onClick={onLogout} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-red-500">
             <LogOut size={18}/>
           </button>
         </div>
       </header>
 
-      {/* --- MENU TABS --- */}
+      {/* TABS */}
       <div className="px-6 py-4 flex gap-2 overflow-x-auto bg-white border-b border-slate-100 sticky top-[80px] z-10">
-        <button onClick={() => setActiveTab('home')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'home' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Início</button>
-        <button onClick={() => setActiveTab('services')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'services' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Serviços</button>
-        <button onClick={() => setActiveTab('config')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'config' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Perfil & Agenda</button>
+        <button onClick={() => setActiveTab('home')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold ${activeTab === 'home' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Início</button>
+        <button onClick={() => setActiveTab('services')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold ${activeTab === 'services' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Serviços</button>
+        <button onClick={() => setActiveTab('config')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold ${activeTab === 'config' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Perfil</button>
       </div>
 
       <main className="p-6 max-w-md mx-auto">
         
-       {/* === ABA HOME === */}
         {activeTab === 'home' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg shadow-slate-200">
-                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Faturamento (Confirmado)</p>
-                <p className="text-2xl font-black tracking-tight">R$ {revenue}</p>
+              <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg">
+                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Faturamento</p>
+                <p className="text-2xl font-black">R$ {revenue}</p>
               </div>
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
-                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Agendamentos</p>
-                <div className="flex gap-2 items-baseline">
-                    <p className="text-2xl font-black text-slate-900">{confirmed.length}</p>
-                    <span className="text-xs text-orange-500 font-bold">({pending.length} pendentes)</span>
-                </div>
+              <div className="bg-white border border-slate-200 p-5 rounded-2xl">
+                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Agenda</p>
+                <p className="text-2xl font-black text-slate-900">{confirmed.length} <span className="text-xs text-orange-500">({pending.length})</span></p>
               </div>
             </div>
 
             <section>
-              <h3 className="font-bold text-slate-900 mb-4 flex items-center justify-between">
-                Solicitações Pendentes
-                {pending.length > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{pending.length}</span>}
-              </h3>
-              
+              <h3 className="font-bold text-slate-900 mb-4 flex items-center justify-between">Pedidos Pendentes</h3>
               {pending.length === 0 ? (
-                <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl">
-                  <p className="text-slate-400 text-sm font-medium">Nenhum pedido pendente por enquanto.</p>
-                </div>
+                <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm">Nada pendente.</div>
               ) : (
                 pending.map(app => (
-                  <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 mb-3 shadow-sm hover:shadow-md transition-shadow">
+                  <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-100 mb-3 shadow-sm">
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <p className="font-bold text-slate-900 text-lg">{app.client}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mb-1">
-                          {app.service?.name || 'Serviço'}
-                        </p>
-                        <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
-                            <Clock size={12} />
-                            <p className="text-xs font-bold">
-                            {/* CORREÇÃO: Exibição segura da data e hora */}
-                            {app.time || '00:00'} - {app.date ? app.date.split('-').reverse().join('/') : 'Data n/a'}
-                            </p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">{app.service_name}</p>
+                        <div className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit text-xs font-bold mt-1">
+                          {app.time} - {app.date?.split('-').reverse().join('/')}
                         </div>
                       </div>
-                      <p className="font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-lg">R$ {app.price}</p>
+                      <p className="font-bold text-slate-900">R$ {app.price}</p>
                     </div>
-
                     <div className="flex gap-2">
                       <button 
-  onClick={() => {
-    // 1. Atualiza o status no banco de dados (Tabela Appointments)
-    onUpdateStatus(app.id, 'confirmed');
-    
-    // 2. REMOVE O HORÁRIO DA AGENDA (Tabela Profiles/User State)
-    // Isso impede que outros clientes vejam esse horário como disponível
-    if (app.date && app.time) {
-      toggleSlotForDate(app.date, app.time);
-    }
-    
-    // 3. Formatação para o WhatsApp
-    const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'data';
-    const horaFmt = app.time || 'horário';
-    const servicoFmt = app.service_name || 'serviço';
-    
-    const mensagem = `Olá ${app.client}! 👋%0A%0A` +
-                     `Seu agendamento foi *CONFIRMADO*! ✅%0A%0A` +
-                     `📌 *${servicoFmt}*%0A` +
-                     `📅 ${dataFmt} às ${horaFmt}%0A` +
-                     `💰 R$ ${app.price}%0A%0A` +
-                     `Te esperamos lá! 💈`;
-    
-    const fone = app.phone?.toString().replace(/\D/g, '');
-    if (fone) {
-      window.open(`https://api.whatsapp.com/send?phone=55${fone}&text=${mensagem}`, '_blank');
-    }
-  }} 
-  className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
->
-  <CheckCircle size={16} /> Aceitar e Fechar Horário
-</button>
-
-                      <button 
-                        onClick={() => onUpdateStatus(app.id, 'rejected')} 
-                        className="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-100 transition-colors"
+                        onClick={() => {
+                          onUpdateStatus(app.id, 'confirmed');
+                          toggleSlotForDate(app.date, app.time);
+                          const msg = `Olá! Seu agendamento de ${app.service_name} foi CONFIRMADO para ${app.date} às ${app.time}.`;
+                          window.open(`https://api.whatsapp.com/send?phone=55${app.phone}&text=${encodeURIComponent(msg)}`, '_blank');
+                        }} 
+                        className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
                       >
-                        <XCircle size={20} />
+                        <CheckCircle size={16} /> Aceitar
                       </button>
+                      <button onClick={() => onUpdateStatus(app.id, 'rejected')} className="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center"><XCircle size={20} /></button>
                     </div>
                   </div>
                 ))
@@ -976,17 +847,17 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
           </div>
         )}
 
-        {/* === ABA SERVIÇOS === */}
         {activeTab === 'services' && (
           <div className="space-y-4">
-            <div className="p-4 bg-blue-50 rounded-2xl mb-4">
-                <p className="text-xs text-blue-700 font-medium">Selecione os serviços que você oferece e defina seu preço.</p>
+            <div className="p-4 bg-slate-900 text-white rounded-2xl mb-4">
+                <p className="text-xs font-bold uppercase opacity-60">Plano {user.plano_ativo ? 'Profissional' : 'Gratuito'}</p>
+                <p className="text-sm">{user.plano_ativo ? 'Serviços ilimitados liberados!' : `Você está usando ${user.my_services?.length || 0} de 3 serviços permitidos.`}</p>
             </div>
             {MASTER_SERVICES.map(service => {
               const userServiceData = user.my_services?.find(s => s.id === service.id);
               const isActive = !!userServiceData;
               return (
-                <div key={service.id} className={`p-4 rounded-2xl border-2 transition-all ${isActive ? 'border-slate-900 bg-white shadow-md' : 'border-slate-100 bg-slate-50 opacity-70'}`}>
+                <div key={service.id} className={`p-4 rounded-2xl border-2 transition-all ${isActive ? 'border-slate-900 bg-white' : 'border-slate-100 bg-slate-50 opacity-70'}`}>
                   <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleService(service.id, service.defaultPrice)}>
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-400'}`}>{service.icon}</div>
@@ -995,20 +866,14 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                         <p className="text-[10px] text-slate-400">{service.duration}</p>
                       </div>
                     </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isActive ? 'bg-green-500 border-green-500' : 'border-slate-300'}`}>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isActive ? 'bg-green-500 border-green-500' : 'border-slate-300'}`}>
                         {isActive && <div className="w-2 h-2 bg-white rounded-full" />}
                     </div>
                   </div>
                   {isActive && (
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between animate-in slide-in-from-top-2">
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Preço (R$)</span>
-                      <input 
-                        type="number" 
-                        value={userServiceData.price || ''} 
-                        onChange={(e) => updateServicePrice(service.id, e.target.value)} 
-                        className="w-24 text-right font-black text-lg outline-none bg-slate-50 rounded-md px-2 py-1 focus:ring-2 ring-slate-200"
-                        placeholder="0.00"
-                      />
+                      <input type="number" value={userServiceData.price || ''} onChange={(e) => updateServicePrice(service.id, e.target.value)} className="w-24 text-right font-black text-lg outline-none bg-slate-50 rounded-md px-2 py-1" />
                     </div>
                   )}
                 </div>
@@ -1017,205 +882,36 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
           </div>
         )}
 
-        {/* === ABA CONFIGURAÇÕES (Perfil & Agenda) === */}
         {activeTab === 'config' && (
-          <div className="space-y-8 animate-in fade-in">
-            
-            {/* Seção 1: Dados do Perfil */}
+          <div className="space-y-8">
             <section className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-slate-900"></div>
-                
-                <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <User size={18} className="text-slate-400"/> Dados do Studio
-                </h3>
-
-                {/* Avatar Uploader */}
+                <h3 className="font-bold text-slate-900 mb-6">Dados do Studio</h3>
                 <div className="flex flex-col items-center mb-6">
-                    <div className="relative group cursor-pointer">
+                    <div className="relative">
                         <div className="w-24 h-24 rounded-full bg-slate-100 overflow-hidden border-4 border-white shadow-lg">
-                            {user.avatar_url ? (
-                                <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                    <User size={40} />
-                                </div>
-                            )}
+                            {user.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : <User size={40} className="m-auto text-slate-300 h-full" />}
                         </div>
-                        <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors shadow-md">
-                            <Camera size={16} />
-                        </label>
-                        <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleUploadPhoto} />
+                        <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer"><Camera size={16} /></label>
+                        <input id="avatar-upload" type="file" className="hidden" onChange={handleUploadPhoto} />
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-2">Toque na câmera para alterar</p>
                 </div>
-
-                {/* Campos de Texto */}
-               <div className="space-y-4">
-    {/* Endereço */}
-    <div>
-        <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Endereço Completo</label>
-        <div className="flex items-center gap-2 bg-slate-50 px-3 py-3 rounded-xl border border-slate-200 focus-within:border-slate-900 transition-colors">
-            <MapPin size={16} className="text-slate-400" />
-            <input 
-                type="text" 
-                value={user.address || ''} 
-                onChange={(e) => onUpdateProfile({ ...user, address: e.target.value })}
-                placeholder="Ex: Rua das Flores, 123" 
-                className="bg-transparent outline-none w-full text-sm font-medium text-slate-900"
-            />
-        </div>
-    </div>
-
-    {/* Botão de Coordenadas GPS */}
-    <div className="grid grid-cols-1 gap-2">
-        <button 
-            type="button"
-            onClick={() => {
-                if ("geolocation" in navigator) {
-                    navigator.geolocation.getCurrentPosition((pos) => {
-                        onUpdateProfile({ 
-                            ...user, 
-                            latitude: pos.coords.latitude, 
-                            longitude: pos.coords.longitude 
-                        });
-                        alert("Localização capturada!");
-                    });
-                }
-            }}
-            className="flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase border border-blue-100 hover:bg-blue-100 transition-all"
-        >
-            <MapPin size={14} /> Marcar minha localização atual
-        </button>
-        
-        {/* Mostra as coordenadas se existirem */}
-        {user.latitude && (
-            <div className="flex gap-2">
-                <div className="flex-1 bg-slate-50 p-2 rounded-lg border border-slate-100 text-[9px] text-slate-400 text-center">
-                    LAT: {user.latitude.toFixed(5)}
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Endereço</label>
+                        <input type="text" value={user.address || ''} onChange={(e) => onUpdateProfile({ ...user, address: e.target.value })} className="bg-slate-50 w-full p-3 rounded-xl border border-slate-200 text-sm" placeholder="Rua..." />
+                    </div>
+                    <button onClick={() => navigator.geolocation.getCurrentPosition(pos => onUpdateProfile({...user, latitude: pos.coords.latitude, longitude: pos.coords.longitude}))} className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase">Marcar Localização GPS</button>
                 </div>
-                <div className="flex-1 bg-slate-50 p-2 rounded-lg border border-slate-100 text-[9px] text-slate-400 text-center">
-                    LONG: {user.longitude.toFixed(5)}
-                </div>
-            </div>
-        )}
-    </div>
-</div>
-
-                {/* Visibilidade Switch */}
                 <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold text-slate-900 text-sm">Loja Visível</h3>
-                    <p className="text-[10px] text-slate-500">Aparecer na lista de busca</p>
+                    <h3 className="font-bold text-slate-900 text-sm">Perfil Visível</h3>
+                    <p className="text-[10px] text-slate-500">Aparecer para clientes</p>
                   </div>
                   <div onClick={handleToggleVisibility} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors relative ${user.is_visible ? 'bg-green-500' : 'bg-slate-300'}`}>
-                    <div className={`w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${user.is_visible ? 'translate-x-6' : 'translate-x-0'}`}/>
+                    <div className={`w-4 h-4 bg-white rounded-full transition-transform ${user.is_visible ? 'translate-x-6' : 'translate-x-0'}`}/>
                   </div>
                 </div>
-            </section>
- {/* Seção 2: Agenda Avançada */}
-            <section className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                {/* Header Calendário */}
-                <div 
-                    onClick={() => setShowCalendar(!showCalendar)}
-                    className="p-5 flex items-center justify-between bg-slate-50 cursor-pointer border-b border-slate-100"
-                >
-                    <div className="flex items-center gap-3">
-                    <div className="p-2 bg-slate-900 text-white rounded-lg">
-                        <CalendarDays size={20} />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-900 text-sm">Gerenciar Agenda</h3>
-                        <p className="text-[10px] text-slate-500">Toque no dia para definir horários</p>
-                    </div>
-                    </div>
-                    <ChevronRight size={18} className={`text-slate-400 transition-transform ${showCalendar ? 'rotate-90' : ''}`} />
-                </div>
-
-                {showCalendar && (
-                    <div className="p-5">
-                    {/* Grid do Calendário */}
-                    <div className="grid grid-cols-7 gap-1 mb-2 text-center text-[10px] font-black text-slate-300 uppercase">
-                        {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-1">{d}</div>)}
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-2 mb-6">
-                        {Array.from({ length: 30 }, (_, i) => {
-                            const now = new Date();
-                            const year = now.getFullYear();
-                            const month = String(now.getMonth() + 1).padStart(2, '0');
-                            const day = String(i + 1).padStart(2, '0');
-                            const fullDate = `${year}-${month}-${day}`;
-                            
-                            const isAvailable = user.available_slots && user.available_slots[fullDate];
-                            const isSelected = selectedDateConfig === fullDate;
-                            const hasSlots = user.available_slots?.[fullDate]?.length > 0;
-
-                            return (
-                                <button
-                                key={i}
-                                onClick={() => setSelectedDateConfig(fullDate)}
-                                className={`
-                                    relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs font-bold border transition-all
-                                    ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 z-10' : ''}
-                                    ${isAvailable 
-                                        ? 'bg-slate-900 text-white border-slate-900 shadow-md' 
-                                        : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}
-                                `}
-                                >
-                                {i + 1}
-                                {isAvailable && (
-                                    <span className={`absolute bottom-1 w-1 h-1 rounded-full ${hasSlots ? 'bg-green-400' : 'bg-red-400'}`}></span>
-                                )}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {/* Área de Configuração do Dia Selecionado */}
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 animate-in slide-in-from-bottom-2">
-                        <div className="flex justify-between items-center mb-4">
-                            <h4 className="font-bold text-slate-900 text-sm">
-                                Horários para <span className="text-blue-600">{selectedDateConfig.split('-').reverse().join('/')}</span>
-                            </h4>
-                            <span className="text-[10px] uppercase font-bold text-slate-400">
-                                {user.available_slots?.[selectedDateConfig] ? 'Dia Ativo' : 'Dia Fechado'}
-                            </span>
-                        </div>
-
-                        {!user.available_slots?.[selectedDateConfig] ? (
-                            <div className="text-center py-6">
-                                <p className="text-xs text-slate-400 mb-2">Nenhum horário definido.</p>
-                                <button 
-                                    onClick={() => toggleSlotForDate(selectedDateConfig, "09:00")}
-                                    className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg"
-                                >
-                                    Abrir Agenda
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-4 gap-2">
-                                {GLOBAL_TIME_SLOTS.map(slot => (
-                                    <button 
-                                        key={slot} 
-                                        onClick={() => toggleSlotForDate(selectedDateConfig, slot)} 
-                                        className={`
-                                            py-2 text-[10px] font-bold rounded-lg border transition-all
-                                            ${user.available_slots?.[selectedDateConfig]?.includes(slot)
-                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
-                                                : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300'}
-                                        `}
-                                    >
-                                        {slot}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                        <p className="text-[10px] text-slate-400 mt-4 text-center">
-                            Toque nos horários para adicionar ou remover.
-                        </p>
-                    </div>
-                    </div>
-                )}
             </section>
           </div>
         )}
