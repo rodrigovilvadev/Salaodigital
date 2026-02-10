@@ -373,7 +373,7 @@ return (
             <img src={imgMp} alt="Material" className="w-full h-full object-cover" />
           </div>
           <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
-            <img src={imgMap} alt="Mão" className="w-full h-full object-cover" />
+            <img src={imgMao} alt="Mão" className="w-full h-full object-cover" />
           </div>
           <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
             <img src={imgTes} alt="Tesoura" className="w-full h-full object-cover" />
