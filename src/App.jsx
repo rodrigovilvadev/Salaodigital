@@ -83,9 +83,34 @@ const WelcomeScreen = ({ onSelectMode }) => (
         <Scissors size={40} className="text-white" />
     </div>
     <h1 className="text-4xl font-black text-white italic mb-2 tracking-tighter">SALÃO<span className="text-blue-500">DIGITAL</span></h1>
+    
     <div className="w-full max-w-xs space-y-3 mt-10">
-      <Button variant="secondary" onClick={() => onSelectMode('client')}>Sou Cliente</Button>
-      <Button variant="outline" className="text-slate-300 border-white/10" onClick={() => onSelectMode('barber')}>Sou Profissional</Button>
+      <Button variant="secondary" onClick={() => onSelectMode('client')}>
+        Sou Cliente
+      </Button>
+
+      {/* BOTÃO CONVIDADO: Estilo Outline para diferenciar, mas com destaque */}
+      <Button 
+        variant="outline" 
+        className="text-white border-white/20 hover:bg-white/5" 
+        onClick={() => onSelectMode('guest')}
+      >
+        Explorar como Convidado
+      </Button>
+
+      <div className="py-2 flex items-center gap-4">
+        <div className="h-[1px] bg-white/10 flex-1"></div>
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">ou</span>
+        <div className="h-[1px] bg-white/10 flex-1"></div>
+      </div>
+
+      <Button 
+        variant="outline" 
+        className="text-slate-300 border-white/10" 
+        onClick={() => onSelectMode('barber')}
+      >
+        Sou Profissional
+      </Button>
     </div>
   </div>
 );
@@ -113,23 +138,55 @@ const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-      <button onClick={onBack} className="absolute top-6 left-6 p-2 bg-white rounded-full shadow-sm"><ChevronLeft size={24} /></button>
+      <button onClick={onBack} className="absolute top-6 left-6 p-2 bg-white rounded-full shadow-sm">
+        <ChevronLeft size={24} />
+      </button>
+      
       <div className="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl">
-        <h2 className="text-2xl font-black text-center mb-2">{userType === 'barber' ? 'Área Profissional' : 'Área do Cliente'}</h2>
-        <p className="text-center text-slate-400 mb-6 text-sm">{mode === 'login' ? 'Faça login para continuar' : 'Crie sua conta agora'}</p>
+        <h2 className="text-2xl font-black text-center mb-2">
+          {userType === 'barber' ? 'Área Profissional' : 'Área do Cliente'}
+        </h2>
+        <p className="text-center text-slate-400 mb-6 text-sm">
+          {mode === 'login' ? 'Faça login para continuar' : 'Crie sua conta agora'}
+        </p>
         
         {error && <div className="mb-4 p-3 bg-red-50 text-red-500 text-xs font-bold rounded-lg">{error}</div>}
 
         <div className="space-y-4">
-          {mode === 'register' && <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome Completo" className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-blue-500" />}
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="WhatsApp (DDD + Número)" className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-blue-500" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha" className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-blue-500" />
+          {mode === 'register' && (
+            <input 
+              type="text" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Nome Completo" 
+              className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-blue-500" 
+            />
+          )}
+          
+          <input 
+            type="tel" 
+            value={phone} 
+            onChange={(e) => setPhone(e.target.value)} 
+            placeholder="WhatsApp (DDD + Número)" 
+            className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-blue-500" 
+          />
+          
+          <input 
+            type="password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            placeholder="Senha" 
+            className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-blue-500" 
+          />
           
           <Button onClick={handleSubmit} loading={loading}>
             {mode === 'login' ? 'Entrar' : 'Cadastrar'}
           </Button>
           
-          <button onClick={() => {setMode(mode === 'login' ? 'register' : 'login'); setError('')}} className="w-full text-blue-600 font-bold text-sm">
+          <button 
+            onClick={() => {setMode(mode === 'login' ? 'register' : 'login'); setError('')}} 
+            className="w-full text-blue-600 font-bold text-sm mt-2"
+          >
             {mode === 'login' ? 'Criar nova conta' : 'Já tenho conta'}
           </button>
         </div>
@@ -214,20 +271,25 @@ useEffect(() => {
 
 const handleFinish = async () => {
   try {
+    // TRAVA PARA CONVIDADO: Se for visitante, não deixa salvar e convida ao login
+    if (user?.isGuest) {
+      alert("Para realizar um agendamento real, por favor crie sua conta!");
+      onLogout(); // Retorna para a tela de boas-vindas/login
+      return;
+    }
+
     // 1. Verificações preventivas com alertas claros
     if (!bookingData.date || !bookingData.time) {
       alert("Por favor, selecione o dia e o horário antes de confirmar.");
       return;
     }
 
-    // 2. Criamos o payload com segurança (usando ?. e ||)
-    // Se o user.id não existir, ele não vai travar o código, vai apenas avisar
+    // 2. Criamos o payload com segurança
     const payload = {
       date: bookingData.date,
       time: bookingData.time,
-      // Aqui usamos ?. para evitar o erro de "undefined"
       barber_id: bookingData.barber?.id, 
-      client_id: user?.id || null, 
+      client_id: user?.id, 
       client_name: user?.name || "Cliente",
       phone: user?.phone || "Sem telefone",
       service_name: bookingData.service?.name || "Serviço",
@@ -235,7 +297,7 @@ const handleFinish = async () => {
       status: 'pending'
     };
 
-    // 3. Verificação final do ID do barbeiro (essencial para chegar nele)
+    // 3. Verificação final do ID do barbeiro
     if (!payload.barber_id) {
       alert("Erro: O profissional selecionado não foi encontrado. Tente selecioná-lo novamente.");
       return;
@@ -258,22 +320,25 @@ const handleFinish = async () => {
     alert("Falha ao agendar: " + error.message);
   }
 };
-  if (view === 'success') return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-white">
-      <Check size={60} className="text-green-500 mb-4" />
-      <h2 className="text-2xl font-bold mb-8">Agendamento Realizado!</h2>
-      <Button onClick={() => {setView('home'); setStep(1);}}>Voltar ao Início</Button>
-    </div>
-  );
 
-  return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <header className="bg-white p-4 flex justify-between items-center border-b shadow-sm sticky top-0 z-20">
-        <h1 className="font-black italic">SALÃO<span className="text-blue-600">DIGITAL</span></h1>
-        <button onClick={onLogout} className="text-red-500 font-bold text-xs flex items-center gap-1"><LogOut size={14}/> Sair</button>
-      </header>
+if (view === 'success') return (
+  <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-white">
+    <Check size={60} className="text-green-500 mb-4" />
+    <h2 className="text-2xl font-bold mb-8">Agendamento Realizado!</h2>
+    <Button onClick={() => {setView('home'); setStep(1);}}>Voltar ao Início</Button>
+  </div>
+);
 
-      <main className="p-6 max-w-md mx-auto">
+return (
+  <div className="min-h-screen bg-slate-50 pb-20">
+    <header className="bg-white p-4 flex justify-between items-center border-b shadow-sm sticky top-0 z-20">
+      <h1 className="font-black italic">SALÃO<span className="text-blue-600">DIGITAL</span></h1>
+      <button onClick={onLogout} className="text-red-500 font-bold text-xs flex items-center gap-1">
+        <LogOut size={14}/> {user?.isGuest ? 'Entrar' : 'Sair'}
+      </button>
+    </header>
+
+    <main className="p-6 max-w-md mx-auto">
 {view === 'home' && (
   <div className="space-y-6 animate-in fade-in">
    {/* CARD DE BOAS-VINDAS */}
@@ -1177,7 +1242,8 @@ export default function App() {
         
       if (bData) setBarbers(bData);
 
-      if (!user) return;
+      // Se não há usuário ou se for convidado, não busca agendamentos
+      if (!user || user.isGuest) return;
 
       // 2. Busca Agendamentos (onde o usuário é o cliente OU o barbeiro)
       const { data: aData } = await supabase
@@ -1186,7 +1252,6 @@ export default function App() {
         .or(`client_id.eq.${user.id},barber_id.eq.${user.id}`);
       
       if (aData) {
-        // CORREÇÃO DOS CAMPOS AQUI:
         const formatted = aData.map(a => ({
           ...a,
           client: a.client_name,
@@ -1200,6 +1265,16 @@ export default function App() {
     };
     fetchData();
   }, [user]);
+
+  // --- FUNÇÃO DE SELEÇÃO DE MODO (TRATA CONVIDADO) ---
+  const handleSelectMode = (mode) => {
+    if (mode === 'guest') {
+      setUser({ id: 'guest', name: 'Visitante', isGuest: true });
+      setCurrentMode('client');
+    } else {
+      setCurrentMode(mode);
+    }
+  };
 
   // --- FUNÇÃO DE LOGIN ---
   const handleLogin = async (phone, password) => {
@@ -1244,6 +1319,14 @@ export default function App() {
 
   // --- AGENDAMENTO NO BANCO ---
   const handleBookingSubmit = async (data) => {
+    // TRAVA PARA CONVIDADO: Impede gravação no banco
+    if (user?.isGuest) {
+      alert("Modo Convidado: Para realizar um agendamento real, por favor crie uma conta.");
+      setUser(null);
+      setCurrentMode(null);
+      return;
+    }
+
     const newBooking = {
       client_id: user.id,
       client_name: user.name,
@@ -1281,15 +1364,16 @@ export default function App() {
     }
   };
 
-  // --- ATUALIZAÇÃO DE STATUS (CANCELAR/REAGENDAR) ---
+  // --- ATUALIZAÇÃO DE STATUS ---
   const handleUpdateStatus = async (id, status) => {
+    if (user?.isGuest) return; // Convidado não atualiza status
+
     const { error } = await supabase
       .from('appointments')
       .update({ status })
       .eq('id', id);
 
     if (!error) {
-      // Se for 'rejected' (reagendamento), removemos da lista local para limpar o histórico
       if (status === 'rejected') {
         setAppointments(prev => prev.filter(a => a.id !== id));
       } else {
@@ -1320,7 +1404,6 @@ export default function App() {
 
       if (error) throw error;
       setUser(updatedUser);
-      console.log("Perfil atualizado!");
     } catch (error) {
       console.error("Erro completo:", error);
       alert("Erro ao salvar: " + error.message);
@@ -1328,7 +1411,8 @@ export default function App() {
   };
 
   // --- RENDERIZAÇÃO ---
-  if (!currentMode) return <WelcomeScreen onSelectMode={setCurrentMode} />;
+  // Aqui usamos handleSelectMode em vez de setCurrentMode direto
+  if (!currentMode && !user) return <WelcomeScreen onSelectMode={handleSelectMode} />;
 
   if (!user) return (
     <AuthScreen 
@@ -1357,7 +1441,7 @@ export default function App() {
       appointments={appointments} 
       onLogout={() => { setUser(null); setCurrentMode(null); }}
       onBookingSubmit={handleBookingSubmit}
-      onUpdateStatus={handleUpdateStatus} // <--- Função passada corretamente aqui
+      onUpdateStatus={handleUpdateStatus}
       MASTER_SERVICES={MASTER_SERVICES}
     />
   );
