@@ -370,10 +370,10 @@ return (
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Galeria</h3>
         <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
           <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
-            <img src={imgMao} alt="Mão" className="w-full h-full object-cover" />
+            <img src={imgMp} alt="Material" className="w-full h-full object-cover" />
           </div>
           <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
-            <img src={imgMp} alt="Material" className="w-full h-full object-cover" />
+            <img src={imgMap} alt="Mão" className="w-full h-full object-cover" />
           </div>
           <div className="w-[280px] h-[200px] bg-slate-200 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
             <img src={imgTes} alt="Tesoura" className="w-full h-full object-cover" />
