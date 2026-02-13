@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import imgMao from './img/mao.jpg';
 import imgMp from './img/mp.jpg';
-import imgPopup from './img/popup.jpg'; 
+import imgPopup from './img/popup.png'; 
 import imgTes from './img/tes.jpg';
 
 // 2. Remova o useMemo desta lista abaixo
