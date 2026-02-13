@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import imgMao from './img/mao.jpg';
 import imgMp from './img/mp.jpg';
+import imgPopup from './img/popup.jpg'; 
 import imgTes from './img/tes.jpg';
 
 // 2. Remova o useMemo desta lista abaixo
@@ -18,7 +19,7 @@ import {
 // --- CONFIGURAÇÃO SUPABASE ---
 const supabaseUrl = 'https://tqyqcviddzspyvyfcuqy.supabase.co'; 
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxeXFjdmlkZHpzcHl2eWZjdXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxNTEzNTAsImV4cCI6MjA4NTcyNzM1MH0.6z3DQb1HlVNp7Sxtyf45Q3XCFlxPTft6wltNBHVKiwI';
-
+  
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- 1. CONSTANTES E UTILITÁRIOS ---
@@ -76,6 +77,39 @@ const Card = ({ children, selected, onClick }) => (
   </div>
 );
 
+const WelcomePopup = ({ onClose }) => (
+  <div className="fixed inset-0 z-[999] flex items-center justify-center p-6">
+    {/* Overlay com desfoque */}
+    <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={onClose}></div>
+    
+    {/* Card do Modal */}
+    <div className="relative bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+      
+      {/* Container da Imagem Editável */}
+      <div className="w-full h-48 overflow-hidden">
+        <img 
+          src={imgPopup} 
+          alt="Bem-vindo" 
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      <div className="p-8">
+        <h3 className="text-2xl font-black text-slate-900 text-center mb-2 tracking-tight italic">
+          SALÃO<span className="text-blue-600">DIGITAL</span>
+        </h3>
+        
+        <p className="text-slate-500 text-center text-sm leading-relaxed mb-8">
+          Encontre os melhores profissionais ou gerencie sua agenda com apenas alguns cliques. Seja bem-vindo à evolução do seu salão!
+        </p>
+
+        <Button variant="secondary" onClick={onClose}>
+          Começar Agora
+        </Button>
+      </div>
+    </div>
+  </div>
+);
 // --- 3. TELAS DE ACESSO ---
 const WelcomeScreen = ({ onSelectMode }) => (
   <div 
@@ -1235,6 +1269,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     </div>
   );
 };
+
 /// --- 6. ORQUESTRADOR PRINCIPAL ---
 export default function App() {
   const [currentMode, setCurrentMode] = useState(null); 
@@ -1424,37 +1459,44 @@ export default function App() {
 
   // --- RENDERIZAÇÃO ---
   // Aqui usamos handleSelectMode em vez de setCurrentMode direto
-  if (!currentMode && !user) return <WelcomeScreen onSelectMode={handleSelectMode} />;
+// --- RENDERIZAÇÃO FINAL COM POPUP ---
+  return (
+    <>
+      {/* O Popup aparece independente da tela por causa do Fragment */}
+      {showWelcome && <WelcomePopup onClose={() => setShowWelcome(false)} />}
 
-  if (!user) return (
-    <AuthScreen 
-      userType={currentMode} 
-      onBack={() => setCurrentMode(null)} 
-      onLogin={handleLogin} 
-      onRegister={handleRegister} 
-    />
-  );
-
-  return currentMode === 'barber' ? (
-    <BarberDashboard 
-      user={user} 
-      appointments={appointments} 
-      onLogout={() => { setUser(null); setCurrentMode(null); }} 
-      onUpdateStatus={handleUpdateStatus} 
-      onUpdateProfile={handleUpdateProfile}
-      MASTER_SERVICES={MASTER_SERVICES} 
-      GLOBAL_TIME_SLOTS={GLOBAL_TIME_SLOTS} 
-      supabase={supabase} 
-    />
-  ) : (
-    <ClientApp 
-      user={user} 
-      barbers={barbers} 
-      appointments={appointments} 
-      onLogout={() => { setUser(null); setCurrentMode(null); }}
-      onBookingSubmit={handleBookingSubmit}
-      onUpdateStatus={handleUpdateStatus}
-      MASTER_SERVICES={MASTER_SERVICES}
-    />
+      {/* Lógica de Alternância de Telas */}
+      {(!currentMode && !user) ? (
+        <WelcomeScreen onSelectMode={handleSelectMode} />
+      ) : !user ? (
+        <AuthScreen 
+          userType={currentMode} 
+          onBack={() => setCurrentMode(null)} 
+          onLogin={handleLogin} 
+          onRegister={handleRegister} 
+        />
+      ) : currentMode === 'barber' ? (
+        <BarberDashboard 
+          user={user} 
+          appointments={appointments} 
+          onLogout={() => { setUser(null); setCurrentMode(null); }} 
+          onUpdateStatus={handleUpdateStatus} 
+          onUpdateProfile={handleUpdateProfile}
+          MASTER_SERVICES={MASTER_SERVICES} 
+          GLOBAL_TIME_SLOTS={GLOBAL_TIME_SLOTS} 
+          supabase={supabase} 
+        />
+      ) : (
+        <ClientApp 
+          user={user} 
+          barbers={barbers} 
+          appointments={appointments} 
+          onLogout={() => { setUser(null); setCurrentMode(null); }}
+          onBookingSubmit={handleBookingSubmit}
+          onUpdateStatus={handleUpdateStatus}
+          MASTER_SERVICES={MASTER_SERVICES}
+        />
+      )}
+    </>
   );
 }
