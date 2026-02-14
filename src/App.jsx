@@ -96,12 +96,7 @@ const WelcomePopup = ({ onClose }) => (
       {/* Conteúdo de Texto e Botão - Ocupa o restante */}
       <div className="p-8 flex-1 flex flex-col justify-between items-center text-center">
         <div>
-          <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight italic uppercase">
-            Salão<span className="text-blue-600">Digital</span>
-          </h3>
-          <p className="text-slate-500 text-sm leading-relaxed px-2">
-            A beleza está a um clique de distância. Explore os melhores profissionais agora.
-          </p>
+          
         </div>
 
         <Button variant="secondary" onClick={onClose} className="w-full mt-4">
