@@ -6,7 +6,6 @@ import imgMp from './img/mp.jpg';
 import imgPopup from './img/popup.png'; 
 import imgTes from './img/tes.jpg';
 
-// 2. Remova o useMemo desta lista abaixo
 import { 
   Scissors, User, Calendar, MapPin, Star, CheckCircle2, LogOut, Bell, DollarSign, 
   ChevronLeft, ChevronRight, Check, Trash2, KeyRound, UserPlus, Eye, EyeOff, 
@@ -16,13 +15,11 @@ import {
   CheckCircle, ArrowLeft 
 } from 'lucide-react';
 
-// --- CONFIGURAÇÃO SUPABASE ---
 const supabaseUrl = 'https://tqyqcviddzspyvyfcuqy.supabase.co'; 
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxeXFjdmlkZHpzcHl2eWZjdXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxNTEzNTAsImV4cCI6MjA4NTcyNzM1MH0.6z3DQb1HlVNp7Sxtyf45Q3XCFlxPTft6wltNBHVKiwI';
   
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// --- 1. CONSTANTES E UTILITÁRIOS ---
 const MASTER_SERVICES = [
   { id: 1, name: 'Corte Degradê', defaultPrice: 50, duration: '45min', icon: <Scissors size={20}/>, category: 'hair' },
   { id: 2, name: 'Barba Terapia', defaultPrice: 40, duration: '30min', icon: <User size={20}/>, category: 'beard' },
@@ -1276,6 +1273,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [barbers, setBarbers] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   // --- BUSCA DADOS DO BANCO ---
   useEffect(() => {
