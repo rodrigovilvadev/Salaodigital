@@ -89,16 +89,6 @@ const WelcomePopup = ({ onClose }) => (
           alt="Bem-vindo" 
           className="w-full h-full object-cover"
         />
-      </div>
-
-      <div className="p-8">
-        <h3 className="text-2xl font-black text-slate-900 text-center mb-2 tracking-tight italic">
-          SALÃO<span className="text-blue-600">DIGITAL</span>
-        </h3>
-        
-        <p className="text-slate-500 text-center text-sm leading-relaxed mb-8">
-          Encontre os melhores profissionais ou gerencie sua agenda com apenas alguns cliques. Seja bem-vindo à evolução do seu salão!
-        </p>
 
         <Button variant="secondary" onClick={onClose}>
           Começar Agora
