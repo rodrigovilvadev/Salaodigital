@@ -4,9 +4,9 @@
 
 @layer base {
   :root {
-    --primary: 15, 23, 42;    /* Navy Dark */
-    --accent: 37, 99, 235;   /* Royal Blue */
-    --gold: 234, 179, 8;     /* Gold Details */
+    --primary: 15, 23, 42;   
+    --accent: 37, 99, 235;  
+    --gold: 234, 179, 8;    
   }
 
   body {
@@ -16,19 +16,16 @@
 }
 
 @layer components {
-  /* Card com efeito de vidro e elevação suave */
   .glass-card {
     @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl transition-all duration-300;
   }
 
-  /* Botão Interativo Inovador */
   .btn-primary {
     @apply relative overflow-hidden bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold 
            transition-all duration-300 hover:bg-blue-600 hover:shadow-blue-500/25 hover:-translate-y-1
            active:scale-95 disabled:opacity-50;
   }
 
-  /* Animação para entrada de elementos */
   .animate-in {
     animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
@@ -39,7 +36,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsividade de Imagens (Círculos Perfeitos) */
 .avatar-img {
   @apply aspect-square object-cover rounded-full border-4 border-white shadow-lg;
 }

@@ -12,21 +12,17 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 app.use(cors());
-
-// Conexão com o Supabase (Sua memória digital)
 const supabase = createClient(
   process.env.SUPABASE_URL, 
   process.env.SUPABASE_ANON_KEY
 );
 
-// Configuração do Mercado Pago
 const client = new MercadoPagoConfig({ 
   accessToken: process.env.VITE_MP_ACCESS_TOKEN 
 });
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// 1. Rota para Criar o Link de Pagamento
 app.post('/criar-pagamento', async (req, res) => {
   const { barberId } = req.body; 
   try {
@@ -40,7 +36,7 @@ app.post('/criar-pagamento', async (req, res) => {
           currency_id: 'BRL'
         }],
         metadata: { barber_id: barberId },
-        notification_url: "https://salaodigital.onrender.com/webhooks", // URL essencial
+        notification_url: "https://salaodigital.onrender.com/webhooks", 
         back_urls: { success: "https://salaodigital.app.br/" },
         auto_return: "approved",
       }
@@ -52,14 +48,12 @@ app.post('/criar-pagamento', async (req, res) => {
   }
 });
 
-// 2. Rota de Webhook: O Mercado Pago avisa aqui quando o status muda
 app.post('/webhooks', async (req, res) => {
   const { query, body } = req;
   const topic = query.topic || query.type || (body.data && 'payment');
 
   try {
     if (topic === 'payment') {
-      // Pega o ID do pagamento de qualquer lugar que ele venha
       const paymentId = query.id || (body.data && body.data.id);
       
       const payment = new Payment(client);
@@ -68,7 +62,6 @@ app.post('/webhooks', async (req, res) => {
       if (data.status === 'approved') {
         const barberId = data.metadata.barber_id;
 
-        // ATUALIZA NO SUPABASE para ATIVO
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ plano_ativo: true })
@@ -81,7 +74,7 @@ app.post('/webhooks', async (req, res) => {
         }
       }
     }
-    res.sendStatus(200); // Responde 200 para o Mercado Pago não reenviar
+    res.sendStatus(200); 
   } catch (error) {
     console.error("Erro processando Webhook:", error);
     res.sendStatus(500);

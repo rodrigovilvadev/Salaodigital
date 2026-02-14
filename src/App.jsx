@@ -42,7 +42,7 @@ const GLOBAL_TIME_SLOTS = ['08:00', '8:30', '09:00', '10:00', '11:00', '13:00', 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (!lat1 || !lon1 || !lat2 || !lon2) return null;
   
-  const R = 6371; // Raio da Terra em km
+  const R = 6371; 
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a = 
@@ -52,7 +52,6 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return parseFloat((R * c).toFixed(1)); 
 };
 
-// --- 2. COMPONENTES DE UI ---
 const Button = ({ children, onClick, variant = 'primary', className = '', disabled, loading }) => {
   const variants = {
     primary: "bg-slate-900 text-white hover:bg-black shadow-lg",
@@ -76,13 +75,10 @@ const Card = ({ children, selected, onClick }) => (
 
 const WelcomePopup = ({ onClose }) => (
   <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-    {/* Overlay com desfoque profundo para destacar o popup */}
     <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={onClose}></div>
     
-    {/* Card do Modal - Altura de 70% da tela (70vh) */}
     <div className="relative bg-white w-full max-w-[360px] h-[70vh] rounded-[3rem] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
       
-      {/* Área da Imagem - Expandida para preencher quase todo o card */}
       <div className="flex-1 w-full overflow-hidden">
         <img 
           src={imgPopup} 
@@ -91,7 +87,6 @@ const WelcomePopup = ({ onClose }) => (
         />
       </div>
 
-      {/* Área do Botão - Sem textos, apenas o botão de ação no rodapé */}
       <div className="p-6 bg-white w-full flex items-center justify-center">
         <Button 
           variant="secondary" 
@@ -104,7 +99,6 @@ const WelcomePopup = ({ onClose }) => (
     </div>
   </div>
 );
-// --- 3. TELAS DE ACESSO ---
 const WelcomeScreen = ({ onSelectMode }) => (
   <div 
     className="min-h-screen flex flex-col items-center justify-center p-6 text-center relative overflow-hidden"
@@ -114,10 +108,8 @@ const WelcomeScreen = ({ onSelectMode }) => (
       backgroundPosition: 'center',
     }}
   >
-    {/* Overlay para escurecer o fundo e dar leitura ao conteúdo */}
-    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-[2px] z-0"></div>
 
-    {/* Conteúdo (Z-10 para ficar acima do overlay) */}
+    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-[2px] z-0"></div>
     <div className="relative z-10 flex flex-col items-center">
       <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center mb-8 rotate-3 shadow-2xl shadow-blue-900/50">
         <Scissors size={40} className="text-white" />
@@ -237,8 +229,6 @@ const AuthScreen = ({ userType, onBack, onLogin, onRegister }) => {
     </div>
   );
 };
-
-// --- 4. CLIENT APP (Com Geolocalização) ---
 const ClientApp = ({ user, barbers, onLogout, onBookingSubmit, appointments, onUpdateStatus, MASTER_SERVICES }) => {
   const [view, setView] = useState('home');
   const [step, setStep] = useState(1);
@@ -267,13 +257,10 @@ useEffect(() => {
 
  useEffect(() => {
   const interval = setInterval(() => {
-    // Chame aqui as funções que buscam dados do banco
     fetchBarbers(); 
     fetchAppointments();
     console.log("Dados atualizados silenciosamente!");
-  }, 30000); // 30 segu
-
-  // Limpa o intervalo se o componente for desmontado para evitar vazamento de memória
+  }, 30000);
   return () => clearInterval(interval);
 }, []);
 
@@ -281,7 +268,6 @@ useEffect(() => {
   return (barbers || [])
     .filter(b => b.is_visible)
     .map(b => {
-      // Chamada da função de cálculo original
       const dist = calculateDistance(
         userCoords?.lat, 
         userCoords?.lng, 
@@ -289,20 +275,19 @@ useEffect(() => {
         b.longitude
       );
       
-      // Lógica para criar a etiqueta de texto (m ou km)
       let label = null;
       if (dist !== null) {
         if (dist < 1) {
-          label = `${Math.floor(dist * 1000)} m`; // Menos de 1km vira metros
+          label = `${Math.floor(dist * 1000)} m`;
         } else {
-          label = `${dist.toFixed(1)} km`; // 1km ou mais mantém km com 1 casa decimal
+          label = `${dist.toFixed(1)} km`; 
         }
       }
 
       return {
         ...b,
-        distance: dist,       // Mantém o número original para o sort funcionar
-        distanceLabel: label  // Nova propriedade para exibir no HTML
+        distance: dist,     
+        distanceLabel: label 
       };
     })
     .sort((a, b) => {
@@ -314,20 +299,15 @@ useEffect(() => {
 
 const handleFinish = async () => {
   try {
-    // TRAVA PARA CONVIDADO: Se for visitante, não deixa salvar e convida ao login
     if (user?.isGuest) {
       alert("Para realizar um agendamento real, por favor crie sua conta!");
-      onLogout(); // Retorna para a tela de boas-vindas/login
+      onLogout(); 
       return;
     }
-
-    // 1. Verificações preventivas com alertas claros
     if (!bookingData.date || !bookingData.time) {
       alert("Por favor, selecione o dia e o horário antes de confirmar.");
       return;
     }
-
-    // 2. Criamos o payload com segurança
     const payload = {
       date: bookingData.date,
       time: bookingData.time,
@@ -339,8 +319,6 @@ const handleFinish = async () => {
       price: Number(bookingData.price) || 0,
       status: 'pending'
     };
-
-    // 3. Verificação final do ID do barbeiro
     if (!payload.barber_id) {
       alert("Erro: O profissional selecionado não foi encontrado. Tente selecioná-lo novamente.");
       return;
@@ -348,14 +326,11 @@ const handleFinish = async () => {
 
     console.log("Enviando horário para o banco...", payload);
 
-    // 4. Chamada para o banco
     const { error } = await supabase
       .from('appointments')
       .insert([payload]);
 
     if (error) throw error;
-
-    // 5. Se deu tudo certo
     setView('success');
 
   } catch (error) {
@@ -384,7 +359,6 @@ return (
     <main className="p-6 max-w-md mx-auto">
 {view === 'home' && (
   <div className="space-y-6 animate-in fade-in">
-   {/* CARD DE BOAS-VINDAS */}
       <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
         <h2 className="text-xl font-bold mb-4 italic">Olá, {user.name.split(' ')[0]}</h2>
         <div className="flex gap-2">
@@ -393,7 +367,6 @@ return (
         </div>
       </div>
 
-      {/* SEU CARROSSEL (AQUI ELE VOLTA A APARECER) */}
       <div className="mt-2">
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Galeria</h3>
         <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
@@ -411,7 +384,6 @@ return (
     </div>
   )}
 
- {/* --- TELA DE HISTÓRICO (FORA DA HOME) --- */}
 {view === 'history' && (
   <div className="space-y-4 animate-in slide-in-from-right">
     <button 
@@ -454,11 +426,9 @@ return (
                   </div>
                 </div>
 
-                {/* Botão de Reagendar corrigido */}
                 <button 
                   onClick={() => {
                     if(window.confirm("Deseja reagendar este serviço? O horário atual será cancelado.")) {
-                      // 1. Preenche os dados do agendamento atual para o novo fluxo
                       const serviceObj = MASTER_SERVICES.find(s => s.name === app.service_name);
                       setBookingData({
                         service: serviceObj,
@@ -466,12 +436,10 @@ return (
                         price: app.price
                       });
                       
-                      // 2. Remove o agendamento antigo (Chamada protegida)
                       if (typeof onUpdateStatus === 'function') {
                         onUpdateStatus(app.id, 'rejected');
                       }
                       
-                      // 3. Leva o usuário direto para a escolha de nova data (Step 3)
                       setView('booking');
                       setStep(3);
                     }
@@ -492,8 +460,7 @@ return (
         {view === 'booking' && (
           <div className="space-y-4 animate-in slide-in-from-right">
              <button onClick={() => setStep(step - 1)} className={`${step === 1 ? 'hidden' : 'block'} text-slate-400 font-bold text-sm mb-2`}>← Voltar</button>
-            
-            {/* PASSO 1: ESCOLHA DO SERVIÇO */}
+          
             {step === 1 && (
                 <>
                   <h3 className="font-bold text-lg mb-4">Escolha o Serviço</h3>
@@ -514,8 +481,6 @@ return (
                 </>
             )}
 
-           
-          {/* PASSO 2: ESCOLHA DO PROFISSIONAL (QUADRADINHOS) */}
 {step === 2 && (
   <>
     <h3 className="font-bold text-lg mb-2 text-slate-900">Escolha o Profissional</h3>
@@ -547,8 +512,6 @@ return (
               </div>
               
               <p className="font-bold text-sm truncate w-full text-center text-slate-900">{b.name}</p>
-              
-              {/* ENDEREÇO E DISTÂNCIA CORRIGIDOS */}
               <div className="flex flex-col items-center mt-1 w-full">
                 {b.address && (
                   <p className="text-[9px] text-slate-400 line-clamp-1 text-center px-1 mb-0.5">
@@ -556,7 +519,6 @@ return (
                   </p>
                 )}
                 
-                {/* Aqui usamos a label que já calculamos no useMemo */}
                 {b.distanceLabel ? (
                   <p className="text-[10px] text-blue-600 font-black flex items-center gap-1">
                     <MapPin size={10}/> {b.distanceLabel}
@@ -577,14 +539,12 @@ return (
   </>
 )}
 
-        {/* PASSO 3: DATA E HORA */}
         {step === 3 && (
           <>
             <h3 className="font-bold text-lg mb-4">Data e Hora</h3>
             
             <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Selecione um dia disponível</label>
             
-            {/* Grade de Dias dinâmica */}
             <div className="grid grid-cols-7 gap-2 mb-6">
               {['D','S','T','Q','Q','S','S'].map(d => (
                 <div key={d} className="text-[10px] font-black text-slate-300 text-center py-1">{d}</div>
@@ -594,7 +554,6 @@ return (
                 const dia = (i + 1).toString().padStart(2, '0');
                 const dataFormatada = `2026-02-${dia}`;
                 
-                // Verifica se o dia existe no objeto available_slots do barbeiro
                 const daySlots = bookingData.barber?.available_slots?.[dataFormatada] || [];
                 const isAvailable = daySlots.length > 0;
                 const isSelected = bookingData.date === dataFormatada;
@@ -603,7 +562,6 @@ return (
                   <button
                     key={i}
                     disabled={!isAvailable}
-                    // Reseta o time para null ao trocar de data
                     onClick={() => setBookingData({...bookingData, date: dataFormatada, time: null})}
                     className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] font-bold border transition-all
                       ${isSelected 
@@ -626,7 +584,6 @@ return (
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   {GLOBAL_TIME_SLOTS.map(t => {
-                    // Verifica se o horário específico está dentro do array daquela data
                     const isSlotAvailable = bookingData.barber?.available_slots?.[bookingData.date]?.includes(t);
                     
                     return (
@@ -731,7 +688,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     
     const currentSchedule = user.schedule || {};
     if (!currentSchedule[date] && newDates.includes(date)) {
-        // Lógica de schedule se necessário
     }
 
     onUpdateProfile({ ...user, available_dates: newDates, schedule: currentSchedule });
@@ -772,11 +728,9 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   }
 };
 
-  // --- OUTRAS FUNÇÕES ---
   const handlePayment = async () => {
     setIsPaying(true);
     try {
-      // Simulação da lógica de pagamento
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'salaodigital.onrender.com';
       const response = await fetch(`${API_BASE_URL}/criar-pagamento`, {
         method: 'POST',
@@ -794,24 +748,18 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
       setIsPaying(false);
     }
   };
-
-  // --- NOVA LÓGICA DE VISIBILIDADE (Livre para todos) ---
   const handleToggleVisibility = () => {
-    // Removemos a verificação do plano. Agora todos podem ficar visíveis.
     onUpdateProfile({ ...user, is_visible: !user.is_visible });
   };
-
-  // --- NOVA LÓGICA DE SERVIÇOS (Limite de 3 grátis) ---
   const toggleService = (serviceId, defaultPrice) => {
     const currentServices = user.my_services || [];
     const exists = currentServices.find(s => s.id === serviceId);
     
-    // Se for ADICIONAR um novo serviço (não existe ainda)
     if (!exists) {
-        // Se NÃO tem plano ativo E já tem 3 ou mais serviços
+
         if (!user.plano_ativo && currentServices.length >= 3) {
-            setShowPayModal(true); // Abre o modal pedindo pagamento
-            return; // Para a execução aqui
+            setShowPayModal(true); 
+            return; 
         }
     }
 
@@ -827,8 +775,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     );
     onUpdateProfile({ ...user, my_services: newServices });
   };
-
-  // --- UPLOAD DE FOTO (AVATAR) ---
   const handleUploadPhoto = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -837,8 +783,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
       const fileExt = file.name.split('.').pop();
       const fileName = `avatar-${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
-
-      // Upload Supabase (assumindo que 'barber-photos' é público)
       const { error: uploadError } = await supabase.storage
         .from('barber-photos')
         .upload(filePath, file);
@@ -849,7 +793,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
         .from('barber-photos')
         .getPublicUrl(filePath);
 
-      // Atualiza avatar_url no perfil
       onUpdateProfile({ ...user, avatar_url: publicUrl });
       alert('Foto de perfil atualizada!');
     } catch (error) {
@@ -861,7 +804,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   return (
     <div className="min-h-screen bg-slate-50 pb-24 font-sans">
       
-      {/* --- MODAL PAGAMENTO (Atualizado para limite de serviços) --- */}
       {showPayModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -884,11 +826,9 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
         </div>
       )}
 
-      {/* --- HEADER --- */}
       <header className="bg-white p-6 border-b border-slate-100 sticky top-0 z-20">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-             {/* Avatar Pequeno no Header */}
             <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border border-slate-100">
                 {user.avatar_url ? (
                     <img src={user.avatar_url} alt="Perfil" className="w-full h-full object-cover" />
@@ -910,7 +850,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
         </div>
       </header>
 
-      {/* --- MENU TABS --- */}
       <div className="px-6 py-4 flex gap-2 overflow-x-auto bg-white border-b border-slate-100 sticky top-[80px] z-10">
         <button onClick={() => setActiveTab('home')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'home' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Início</button>
         <button onClick={() => setActiveTab('services')} className={`flex-1 py-2 px-4 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'services' ? 'bg-slate-900 text-white' : 'text-slate-500 bg-slate-50'}`}>Serviços</button>
@@ -918,8 +857,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
       </div>
 
       <main className="p-6 max-w-md mx-auto">
-        
-       {/* === ABA HOME === */}
+      
         {activeTab === 'home' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -958,7 +896,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                         <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
                             <Clock size={12} />
                             <p className="text-xs font-bold">
-                            {/* CORREÇÃO: Exibição segura da data e hora */}
                             {app.time || '00:00'} - {app.date ? app.date.split('-').reverse().join('/') : 'Data n/a'}
                             </p>
                         </div>
@@ -969,16 +906,11 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                     <div className="flex gap-2">
                       <button 
   onClick={() => {
-    // 1. Atualiza o status no banco de dados (Tabela Appointments)
     onUpdateStatus(app.id, 'confirmed');
-    
-    // 2. REMOVE O HORÁRIO DA AGENDA (Tabela Profiles/User State)
-    // Isso impede que outros clientes vejam esse horário como disponível
+  
     if (app.date && app.time) {
       toggleSlotForDate(app.date, app.time);
     }
-    
-    // 3. Formatação para o WhatsApp
     const dataFmt = app.date ? app.date.split('-').reverse().join('/') : 'data';
     const horaFmt = app.time || 'horário';
     const servicoFmt = app.service_name || 'serviço';
@@ -1013,8 +945,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
             </section>
           </div>
         )}
-
-        {/* === ABA SERVIÇOS === */}
         {activeTab === 'services' && (
           <div className="space-y-4">
             <div className="p-4 bg-blue-50 rounded-2xl mb-4">
@@ -1056,20 +986,14 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
             })}
           </div>
         )}
-
-        {/* === ABA CONFIGURAÇÕES (Perfil & Agenda) === */}
         {activeTab === 'config' && (
           <div className="space-y-8 animate-in fade-in">
-            
-            {/* Seção 1: Dados do Perfil */}
             <section className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-slate-900"></div>
                 
                 <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <User size={18} className="text-slate-400"/> Dados do Studio
                 </h3>
-
-                {/* Avatar Uploader */}
                 <div className="flex flex-col items-center mb-6">
                     <div className="relative group cursor-pointer">
                         <div className="w-24 h-24 rounded-full bg-slate-100 overflow-hidden border-4 border-white shadow-lg">
@@ -1089,9 +1013,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                     <p className="text-[10px] text-slate-400 mt-2">Toque na câmera para alterar</p>
                 </div>
 
-                {/* Campos de Texto */}
                <div className="space-y-4">
-    {/* Endereço */}
     <div>
         <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Endereço Completo</label>
         <div className="flex items-center gap-2 bg-slate-50 px-3 py-3 rounded-xl border border-slate-200 focus-within:border-slate-900 transition-colors">
@@ -1105,8 +1027,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
             />
         </div>
     </div>
-
-    {/* Botão de Coordenadas GPS */}
     <div className="grid grid-cols-1 gap-2">
         <button 
             type="button"
@@ -1126,8 +1046,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
         >
             <MapPin size={14} /> Marcar minha localização atual
         </button>
-        
-        {/* Mostra as coordenadas se existirem */}
+      
         {user.latitude && (
             <div className="flex gap-2">
                 <div className="flex-1 bg-slate-50 p-2 rounded-lg border border-slate-100 text-[9px] text-slate-400 text-center">
@@ -1141,7 +1060,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
     </div>
 </div>
 
-                {/* Visibilidade Switch */}
                 <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm">Loja Visível</h3>
@@ -1152,9 +1070,7 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                   </div>
                 </div>
             </section>
- {/* Seção 2: Agenda Avançada */}
             <section className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                {/* Header Calendário */}
                 <div 
                     onClick={() => setShowCalendar(!showCalendar)}
                     className="p-5 flex items-center justify-between bg-slate-50 cursor-pointer border-b border-slate-100"
@@ -1173,7 +1089,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
 
                 {showCalendar && (
                     <div className="p-5">
-                    {/* Grid do Calendário */}
                     <div className="grid grid-cols-7 gap-1 mb-2 text-center text-[10px] font-black text-slate-300 uppercase">
                         {['D','S','T','Q','Q','S','S'].map(d => <div key={d} className="py-1">{d}</div>)}
                     </div>
@@ -1210,8 +1125,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
                             );
                         })}
                     </div>
-
-                    {/* Área de Configuração do Dia Selecionado */}
                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 animate-in slide-in-from-bottom-2">
                         <div className="flex justify-between items-center mb-4">
                             <h4 className="font-bold text-slate-900 text-sm">
@@ -1264,7 +1177,6 @@ const BarberDashboard = ({ user, appointments, onUpdateStatus, onLogout, onUpdat
   );
 };
 
-/// --- 6. ORQUESTRADOR PRINCIPAL ---
 export default function App() {
   const [currentMode, setCurrentMode] = useState(null); 
   const [user, setUser] = useState(null);
@@ -1272,10 +1184,8 @@ export default function App() {
   const [appointments, setAppointments] = useState([]);
   const [showWelcome, setShowWelcome] = useState(true);
 
-  // --- BUSCA DADOS DO BANCO ---
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Busca barbeiros visíveis
       const { data: bData } = await supabase
         .from('profiles')
         .select('*')
@@ -1284,10 +1194,7 @@ export default function App() {
         
       if (bData) setBarbers(bData);
 
-      // Se não há usuário ou se for convidado, não busca agendamentos
       if (!user || user.isGuest) return;
-
-      // 2. Busca Agendamentos (onde o usuário é o cliente OU o barbeiro)
       const { data: aData } = await supabase
         .from('appointments')
         .select('*')
@@ -1308,7 +1215,6 @@ export default function App() {
     fetchData();
   }, [user]);
 
-  // --- FUNÇÃO DE SELEÇÃO DE MODO (TRATA CONVIDADO) ---
   const handleSelectMode = (mode) => {
     if (mode === 'guest') {
       setUser({ id: 'guest', name: 'Visitante', isGuest: true });
@@ -1317,8 +1223,6 @@ export default function App() {
       setCurrentMode(mode);
     }
   };
-
-  // --- FUNÇÃO DE LOGIN ---
   const handleLogin = async (phone, password) => {
     const { data, error } = await supabase
       .from('profiles')
@@ -1332,7 +1236,6 @@ export default function App() {
     setUser(data);
   };
 
-  // --- FUNÇÃO DE CADASTRO ---
   const handleRegister = async (name, phone, password) => {
     const { data, error } = await supabase
       .from('profiles')
@@ -1359,9 +1262,7 @@ export default function App() {
     setUser(data);
   };
 
-  // --- AGENDAMENTO NO BANCO ---
   const handleBookingSubmit = async (data) => {
-    // TRAVA PARA CONVIDADO: Impede gravação no banco
     if (user?.isGuest) {
       alert("Modo Convidado: Para realizar um agendamento real, por favor crie uma conta.");
       setUser(null);
@@ -1406,9 +1307,8 @@ export default function App() {
     }
   };
 
-  // --- ATUALIZAÇÃO DE STATUS ---
   const handleUpdateStatus = async (id, status) => {
-    if (user?.isGuest) return; // Convidado não atualiza status
+    if (user?.isGuest) return; 
 
     const { error } = await supabase
       .from('appointments')
@@ -1423,8 +1323,6 @@ export default function App() {
       }
     }
   };
-
-  // --- ATUALIZAÇÃO DE PERFIL ---
   const handleUpdateProfile = async (updatedUser) => {
     try {
       const dataToSave = {
@@ -1451,16 +1349,10 @@ export default function App() {
       alert("Erro ao salvar: " + error.message);
     }
   };
-
-  // --- RENDERIZAÇÃO ---
-  // Aqui usamos handleSelectMode em vez de setCurrentMode direto
-// --- RENDERIZAÇÃO FINAL COM POPUP ---
   return (
     <>
-      {/* O Popup aparece independente da tela por causa do Fragment */}
       {showWelcome && <WelcomePopup onClose={() => setShowWelcome(false)} />}
 
-      {/* Lógica de Alternância de Telas */}
       {(!currentMode && !user) ? (
         <WelcomeScreen onSelectMode={handleSelectMode} />
       ) : !user ? (
