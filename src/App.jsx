@@ -76,30 +76,28 @@ const Card = ({ children, selected, onClick }) => (
 
 const WelcomePopup = ({ onClose }) => (
   <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-    {/* Overlay com desfoque */}
+    {/* Overlay com desfoque profundo para destacar o popup */}
     <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={onClose}></div>
     
-    {/* Card do Modal - Ajustado para cobrir ~70% da área útil */}
-    <div className="relative bg-white w-full max-w-[350px] h-[70vh] rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+    {/* Card do Modal - Altura de 70% da tela (70vh) */}
+    <div className="relative bg-white w-full max-w-[360px] h-[70vh] rounded-[3rem] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
       
-      {/* Container da Imagem - Ocupa 60% do card */}
-      <div className="w-full h-[60%] overflow-hidden relative">
+      {/* Área da Imagem - Expandida para preencher quase todo o card */}
+      <div className="flex-1 w-full overflow-hidden">
         <img 
           src={imgPopup} 
           alt="Bem-vindo" 
-          className="w-full h-full object-cover shadow-inner"
+          className="w-full h-full object-cover"
         />
-        {/* Gradiente suave sobre a imagem para dar acabamento */}
-        <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent"></div>
       </div>
 
-      {/* Conteúdo de Texto e Botão - Ocupa o restante */}
-      <div className="p-8 flex-1 flex flex-col justify-between items-center text-center">
-        <div>
-          
-        </div>
-
-        <Button variant="secondary" onClick={onClose} className="w-full mt-4">
+      {/* Área do Botão - Sem textos, apenas o botão de ação no rodapé */}
+      <div className="p-6 bg-white w-full flex items-center justify-center">
+        <Button 
+          variant="secondary" 
+          onClick={onClose} 
+          className="w-full py-4 text-lg shadow-xl shadow-blue-600/20"
+        >
           Começar Agora
         </Button>
       </div>
