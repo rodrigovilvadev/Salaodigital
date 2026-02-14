@@ -75,22 +75,36 @@ const Card = ({ children, selected, onClick }) => (
 );
 
 const WelcomePopup = ({ onClose }) => (
-  <div className="fixed inset-0 z-[999] flex items-center justify-center p-6">
+  <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
     {/* Overlay com desfoque */}
-    <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={onClose}></div>
+    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={onClose}></div>
     
-    {/* Card do Modal */}
-    <div className="relative bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+    {/* Card do Modal - Ajustado para cobrir ~70% da área útil */}
+    <div className="relative bg-white w-full max-w-[350px] h-[70vh] rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
       
-      {/* Container da Imagem Editável */}
-      <div className="w-full h-56 overflow-hidden">
+      {/* Container da Imagem - Ocupa 60% do card */}
+      <div className="w-full h-[60%] overflow-hidden relative">
         <img 
           src={imgPopup} 
           alt="Bem-vindo" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover shadow-inner"
         />
+        {/* Gradiente suave sobre a imagem para dar acabamento */}
+        <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent"></div>
+      </div>
 
-        <Button variant="secondary" onClick={onClose}>
+      {/* Conteúdo de Texto e Botão - Ocupa o restante */}
+      <div className="p-8 flex-1 flex flex-col justify-between items-center text-center">
+        <div>
+          <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight italic uppercase">
+            Salão<span className="text-blue-600">Digital</span>
+          </h3>
+          <p className="text-slate-500 text-sm leading-relaxed px-2">
+            A beleza está a um clique de distância. Explore os melhores profissionais agora.
+          </p>
+        </div>
+
+        <Button variant="secondary" onClick={onClose} className="w-full mt-4">
           Começar Agora
         </Button>
       </div>
