@@ -83,7 +83,7 @@ const WelcomePopup = ({ onClose }) => (
     <div className="relative bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
       
       {/* Container da Imagem Editável */}
-      <div className="w-full h-48 overflow-hidden">
+      <div className="w-full h-56 overflow-hidden">
         <img 
           src={imgPopup} 
           alt="Bem-vindo" 
